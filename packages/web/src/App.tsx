@@ -4,6 +4,9 @@ import MobilePreview from './components/MobilePreview';
 import PreviewNavigation from './components/PreviewNavigation';
 import {PreviewProvider} from './context/PreviewContext';
 
+// Initialize self-registering screens for web preview
+import './utils/initializeScreens';
+
 const App: React.FC = () => {
   return (
     <PreviewProvider>

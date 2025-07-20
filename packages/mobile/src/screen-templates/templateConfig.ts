@@ -29,8 +29,31 @@ import {CalculatorApp} from '../sample-apps/CalculatorApp';
 import {WeatherApp} from '../sample-apps/WeatherApp';
 import {NotesApp} from '../sample-apps/NotesApp';
 
-// Import screens for unified registry
-import {HomeScreen, SettingsScreen} from '../screens';
+// Import screen configuration
+import {SCREENS_TO_IMPORT} from '../config/screens';
+
+console.log('📱 Importing screens...');
+
+// Import all screens from the array
+Promise.all(
+  SCREENS_TO_IMPORT.map(async (screenName) => {
+    try {
+      // Try direct file first
+      await import(`../screens/${screenName}`);
+      console.log(`✅ Imported: ${screenName}`);
+    } catch {
+      try {
+        // Try subfolder pattern
+        await import(`../screens/${screenName}/${screenName}`);
+        console.log(`✅ Imported: ${screenName}/${screenName}`);
+      } catch (error) {
+        console.log(`⚪ Skipped: ${screenName} (not found)`);
+      }
+    }
+  })
+).then(() => {
+  console.log('🎉 All screens imported - registerScreen calls executed!');
+});
 
 export type TemplateComplexity = 'Simple' | 'Complex' | 'Apps';
 
@@ -444,8 +467,7 @@ function initializeUnifiedRegistry(): void {
   registerComponent('calculator-app', CalculatorApp);
   registerComponent('weather-app', WeatherApp);
   registerComponent('notes-app', NotesApp);
-  registerComponent('HomeScreen', HomeScreen);
-  registerComponent('SettingsScreen', SettingsScreen);
+  // HomeScreen and SettingsScreen now self-register
 
   // Convert existing template configs to unified entities
   const templateEntities: EntityConfig[] = TEMPLATE_CONFIG.map(template => ({
@@ -469,32 +491,8 @@ function initializeUnifiedRegistry(): void {
     }
   }));
 
-  // Add screen entities
+  // Add screen entities (HomeScreen and SettingsScreen now self-register)
   const screenEntities: EntityConfig[] = [
-    {
-      id: 'HomeScreen',
-      name: 'Home',
-      type: 'screen',
-      componentKey: 'HomeScreen',
-      icon: '🏠',
-      category: 'Navigation',
-      tags: ['home', 'main', 'default'],
-      relationships: {
-        tab: 'home-tab'
-      }
-    },
-    {
-      id: 'SettingsScreen',
-      name: 'Settings',
-      type: 'screen',
-      componentKey: 'SettingsScreen',
-      icon: '⚙️',
-      category: 'Configuration',
-      tags: ['settings', 'preferences', 'config'],
-      relationships: {
-        tab: 'settings-tab'
-      }
-    },
     {
       id: 'TemplateIndexScreen',
       name: 'Templates',
@@ -509,19 +507,8 @@ function initializeUnifiedRegistry(): void {
     }
   ];
 
-  // Add navigation tab entities
+  // Add navigation tab entities (Home and Settings tabs now self-managed)
   const navTabEntities: EntityConfig[] = [
-    {
-      id: 'home-tab',
-      name: 'Home',
-      type: 'nav-tab',
-      icon: '🏠',
-      category: 'Navigation',
-      tags: ['tab', 'navigation', 'home'],
-      relationships: {
-        defaultScreen: 'HomeScreen'
-      }
-    },
     {
       id: 'templates-tab',
       name: 'Templates',
@@ -529,19 +516,11 @@ function initializeUnifiedRegistry(): void {
       icon: '📋',
       category: 'Navigation',
       tags: ['tab', 'navigation', 'templates'],
+      metadata: {
+        position: 6 // Demo/development - last position
+      },
       relationships: {
         defaultScreen: 'TemplateIndexScreen'
-      }
-    },
-    {
-      id: 'settings-tab',
-      name: 'Settings',
-      type: 'nav-tab',
-      icon: '⚙️',
-      category: 'Navigation',
-      tags: ['tab', 'navigation', 'settings'],
-      relationships: {
-        defaultScreen: 'SettingsScreen'
       }
     }
   ];
@@ -637,7 +616,15 @@ export const getScreenIdForTab = (tabId: string): string | undefined => {
 // New unified functions
 export const getScreens = () => getEntitiesByType('screen');
 export const getSampleApps = () => getEntitiesByType('sample-app');
-export const getNavTabs = () => getEntitiesByType('nav-tab');
+export const getNavTabs = () => {
+  const tabs = getEntitiesByType('nav-tab');
+  // Sort tabs by position (default to 999 for tabs without position)
+  return tabs.sort((a, b) => {
+    const posA = a.metadata?.position || 999;
+    const posB = b.metadata?.position || 999;
+    return posA - posB;
+  });
+};
 export const getTemplateMappings = () => getEntitiesByType('template-mapping');
 export const getTemplates = () => getEntitiesByType('template');
 

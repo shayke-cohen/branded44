@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import {useTheme} from '../../context';
+import {registerScreen} from '../../config/registry';
 
 const HomeScreen = () => {
   const {theme} = useTheme();
@@ -37,5 +38,16 @@ const HomeScreen = () => {
     </View>
   );
 };
+
+// Self-register this screen
+registerScreen(HomeScreen, {
+  name: 'Home',
+  icon: '🏠',
+  category: 'Navigation',
+  hasTab: true,
+  tabPosition: 1,
+  description: 'Welcome screen and app home',
+  tags: ['home', 'main', 'default']
+});
 
 export default HomeScreen; 

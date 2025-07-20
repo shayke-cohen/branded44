@@ -220,4 +220,73 @@ export const searchEntities = (query: string) => {
   return globalRegistry.searchEntities(query);
 };
 
+// Enhanced screen registration configuration
+export interface ScreenRegistrationConfig {
+  name: string;
+  icon?: string;
+  category?: string;
+  hasTab?: boolean;
+  tabPosition?: number;
+  description?: string;
+  tags?: string[];
+  metadata?: Record<string, any>;
+}
+
+// Enhanced registerScreen helper for self-registering screens
+export const registerScreen = (
+  component: React.ComponentType<any>,
+  config: ScreenRegistrationConfig
+): void => {
+  const screenId = config.name.toLowerCase().replace(/\s+/g, '-') + '-screen';
+  const componentKey = screenId;
+  
+  // Register the component
+  globalRegistry.registerComponent(componentKey, component);
+  
+  // Register the screen entity
+  globalRegistry.registerEntity({
+    id: screenId,
+    name: config.name,
+    type: 'screen',
+    componentKey: componentKey,
+    icon: config.icon || '📱',
+    description: config.description || `${config.name} screen`,
+    category: config.category || 'General',
+    tags: [
+      'screen',
+      ...(config.category ? [config.category.toLowerCase()] : []),
+      ...(config.tags || [])
+    ],
+    metadata: {
+      hasTab: config.hasTab || false,
+      tabPosition: config.tabPosition,
+      ...config.metadata
+    },
+    relationships: config.hasTab ? {
+      tab: `${config.name.toLowerCase().replace(/\s+/g, '-')}-tab`
+    } : undefined
+  });
+  
+  // Auto-create navigation tab if requested
+  if (config.hasTab) {
+    const tabId = `${config.name.toLowerCase().replace(/\s+/g, '-')}-tab`;
+    globalRegistry.registerEntity({
+      id: tabId,
+      name: config.name,
+      type: 'nav-tab',
+      icon: config.icon || '📱',
+      category: 'Navigation',
+      tags: ['tab', 'navigation', config.name.toLowerCase()],
+      metadata: {
+        position: config.tabPosition
+      },
+      relationships: {
+        defaultScreen: screenId
+      }
+    });
+  }
+  
+  console.log(`📱 Screen registered: ${config.name} (${screenId})${config.hasTab ? ' with tab' : ''}`);
+};
+
 export default globalRegistry; 
