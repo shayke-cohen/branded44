@@ -145,8 +145,8 @@ describe('BottomNavigation', () => {
       expect(getByText('Templates')).toBeTruthy();
       expect(getByText('Settings')).toBeTruthy();
       
-      // Verify correct number of tabs
-      expect(navTabs).toHaveLength(3);
+      // Verify correct number of tabs (Home, Messages, Notifications, Profile, Settings, Contacts, Templates)
+      expect(navTabs).toHaveLength(7);
     });
 
     it('displays proper labels and icons', () => {

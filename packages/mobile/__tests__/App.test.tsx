@@ -35,7 +35,7 @@ describe('App Integration Tests', () => {
       expect(getByText('Templates')).toBeTruthy();
       expect(getByText('Settings')).toBeTruthy();
       expect(getByText('🏠')).toBeTruthy(); // Home icon
-      expect(getByText('📱')).toBeTruthy(); // Templates icon
+      expect(getByText('📋')).toBeTruthy(); // Templates icon
       expect(getByText('⚙️')).toBeTruthy(); // Settings icon
     });
 
@@ -43,9 +43,9 @@ describe('App Integration Tests', () => {
       const {getByTestId} = render(<App />);
       
       // All tabs should be present and accessible
-      expect(getByTestId('tab-home')).toBeTruthy();
-      expect(getByTestId('tab-templates')).toBeTruthy();
-      expect(getByTestId('tab-settings')).toBeTruthy();
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-templates-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
     });
   });
 
@@ -121,9 +121,9 @@ describe('App Integration Tests', () => {
       const {getByText, getByTestId} = render(<App />);
       
       // Test navigation using testIDs
-      const homeTab = getByTestId('tab-home');
-      const templatesTab = getByTestId('tab-templates');
-      const settingsTab = getByTestId('tab-settings');
+      const homeTab = getByTestId('tab-home-tab');
+      const templatesTab = getByTestId('tab-templates-tab');
+      const settingsTab = getByTestId('tab-settings-tab');
       
       // Navigate to templates
       fireEvent.press(templatesTab);
@@ -254,9 +254,9 @@ describe('App Integration Tests', () => {
       expect(getByText('Home')).toBeTruthy();
       expect(getByText('Templates')).toBeTruthy();
       expect(getByText('Settings')).toBeTruthy();
-      expect(getByTestId('tab-home')).toBeTruthy();
-      expect(getByTestId('tab-templates')).toBeTruthy();
-      expect(getByTestId('tab-settings')).toBeTruthy();
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-templates-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
     });
   });
 
@@ -323,8 +323,8 @@ describe('App Integration Tests', () => {
       expect(getByText('Welcome to Your App')).toBeTruthy();
       
       // Navigation should be present
-      expect(getByTestId('tab-home')).toBeTruthy();
-      expect(getByTestId('tab-settings')).toBeTruthy();
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
     });
   });
 });

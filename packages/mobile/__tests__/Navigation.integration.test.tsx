@@ -30,8 +30,8 @@ describe('Navigation Integration Tests', () => {
       expect(getByText('This is your home screen. Start building your app from here!')).toBeTruthy();
       
       // Verify bottom navigation is present
-      expect(getByTestId('tab-home')).toBeTruthy();
-      expect(getByTestId('tab-settings')).toBeTruthy();
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
       expect(getByText('Home')).toBeTruthy();
       expect(getByText('Settings')).toBeTruthy();
       expect(getByText('🏠')).toBeTruthy();
@@ -42,7 +42,7 @@ describe('Navigation Integration Tests', () => {
       const {getByText, getByTestId} = render(<App />);
       
       // Navigate to settings
-      const settingsTab = getByTestId('tab-settings');
+      const settingsTab = getByTestId('tab-settings-tab');
       fireEvent.press(settingsTab);
       
       await waitFor(() => {
@@ -58,31 +58,31 @@ describe('Navigation Integration Tests', () => {
       });
       
       // Verify bottom navigation is still present
-      expect(getByTestId('tab-home')).toBeTruthy();
-      expect(getByTestId('tab-settings')).toBeTruthy();
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
     });
 
     it('ensures bottom navigation is visible on all screens', async () => {
       const {getByTestId} = render(<App />);
       
       // Check navigation is present on HomeScreen
-      expect(getByTestId('tab-home')).toBeTruthy();
-      expect(getByTestId('tab-settings')).toBeTruthy();
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
       
       // Navigate to Settings and check navigation is still present
-      fireEvent.press(getByTestId('tab-settings'));
+      fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
-        expect(getByTestId('tab-home')).toBeTruthy();
-        expect(getByTestId('tab-settings')).toBeTruthy();
+        expect(getByTestId('tab-home-tab')).toBeTruthy();
+        expect(getByTestId('tab-settings-tab')).toBeTruthy();
       });
       
       // Navigate back to Home and check navigation is still present
-      fireEvent.press(getByTestId('tab-home'));
+      fireEvent.press(getByTestId('tab-home-tab'));
       
       await waitFor(() => {
-        expect(getByTestId('tab-home')).toBeTruthy();
-        expect(getByTestId('tab-settings')).toBeTruthy();
+        expect(getByTestId('tab-home-tab')).toBeTruthy();
+        expect(getByTestId('tab-settings-tab')).toBeTruthy();
       });
     });
   });
@@ -96,7 +96,7 @@ describe('Navigation Integration Tests', () => {
       expect(queryByText('Appearance')).toBeNull(); // Settings content should not be visible
       
       // Navigate to Settings
-      fireEvent.press(getByTestId('tab-settings'));
+      fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         expect(getByText('Appearance')).toBeTruthy();
@@ -104,7 +104,7 @@ describe('Navigation Integration Tests', () => {
       });
       
       // Navigate back to Home
-      fireEvent.press(getByTestId('tab-home'));
+      fireEvent.press(getByTestId('tab-home-tab'));
       
       await waitFor(() => {
         expect(getByText('Welcome to Your App')).toBeTruthy();
@@ -115,8 +115,8 @@ describe('Navigation Integration Tests', () => {
     it('handles rapid navigation changes without errors', async () => {
       const {getByTestId} = render(<App />);
       
-      const homeTab = getByTestId('tab-home');
-      const settingsTab = getByTestId('tab-settings');
+      const homeTab = getByTestId('tab-home-tab');
+      const settingsTab = getByTestId('tab-settings-tab');
       
       // Perform rapid navigation changes
       for (let i = 0; i < 5; i++) {
@@ -126,8 +126,8 @@ describe('Navigation Integration Tests', () => {
       
       // App should still be functional
       await waitFor(() => {
-        expect(getByTestId('tab-home')).toBeTruthy();
-        expect(getByTestId('tab-settings')).toBeTruthy();
+        expect(getByTestId('tab-home-tab')).toBeTruthy();
+        expect(getByTestId('tab-settings-tab')).toBeTruthy();
       });
     });
 
@@ -138,14 +138,14 @@ describe('Navigation Integration Tests', () => {
       expect(getByText('Welcome to Your App')).toBeTruthy();
       
       // Navigate and verify state change
-      fireEvent.press(getByTestId('tab-settings'));
+      fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         expect(getByText('Appearance')).toBeTruthy();
       });
       
       // Navigate back and verify state restoration
-      fireEvent.press(getByTestId('tab-home'));
+      fireEvent.press(getByTestId('tab-home-tab'));
       
       await waitFor(() => {
         expect(getByText('Welcome to Your App')).toBeTruthy();
@@ -159,16 +159,16 @@ describe('Navigation Integration Tests', () => {
       
       // Both tabs should be pressable without errors
       expect(() => {
-        fireEvent.press(getByTestId('tab-home'));
-        fireEvent.press(getByTestId('tab-settings'));
+        fireEvent.press(getByTestId('tab-home-tab'));
+        fireEvent.press(getByTestId('tab-settings-tab'));
       }).not.toThrow();
     });
 
     it('provides correct accessibility attributes for navigation', () => {
       const {getByTestId} = render(<App />);
       
-      const homeTab = getByTestId('tab-home');
-      const settingsTab = getByTestId('tab-settings');
+      const homeTab = getByTestId('tab-home-tab');
+      const settingsTab = getByTestId('tab-settings-tab');
       
       // Tabs should have accessibility properties
       expect(homeTab).toBeTruthy();
@@ -189,7 +189,7 @@ describe('Navigation Integration Tests', () => {
       expect(getByText('⚙️')).toBeTruthy();
       
       // Navigate to settings
-      fireEvent.press(getByTestId('tab-settings'));
+      fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         // Labels and icons should remain consistent
@@ -198,7 +198,7 @@ describe('Navigation Integration Tests', () => {
         expect(getByText('⚙️')).toBeTruthy();
         
         // Use testID to verify settings tab is still present
-        expect(getByTestId('tab-settings')).toBeTruthy();
+        expect(getByTestId('tab-settings-tab')).toBeTruthy();
       });
     });
   });
@@ -208,7 +208,7 @@ describe('Navigation Integration Tests', () => {
       const {getByText, getByTestId} = render(<App />);
       
       // Navigate to settings and change theme
-      fireEvent.press(getByTestId('tab-settings'));
+      fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         expect(getByText('Appearance')).toBeTruthy();
@@ -222,8 +222,8 @@ describe('Navigation Integration Tests', () => {
       });
       
       // Navigate to home and back to settings - theme should persist
-      fireEvent.press(getByTestId('tab-home'));
-      fireEvent.press(getByTestId('tab-settings'));
+      fireEvent.press(getByTestId('tab-home-tab'));
+      fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         expect(getByText('DARK MODE')).toBeTruthy();
@@ -234,7 +234,7 @@ describe('Navigation Integration Tests', () => {
       const {getByText, getByTestId, queryByText} = render(<App />);
       
       // Navigate between screens multiple times
-      fireEvent.press(getByTestId('tab-settings'));
+      fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         expect(getByText('Appearance')).toBeTruthy();
@@ -242,7 +242,7 @@ describe('Navigation Integration Tests', () => {
         expect(getByText('About')).toBeTruthy();
       });
       
-      fireEvent.press(getByTestId('tab-home'));
+      fireEvent.press(getByTestId('tab-home-tab'));
       
       await waitFor(() => {
         expect(getByText('Welcome to Your App')).toBeTruthy();
@@ -260,9 +260,9 @@ describe('Navigation Integration Tests', () => {
       
       // App should handle navigation without throwing
       expect(() => {
-        fireEvent.press(getByTestId('tab-settings'));
-        fireEvent.press(getByTestId('tab-home'));
-        fireEvent.press(getByTestId('tab-settings'));
+        fireEvent.press(getByTestId('tab-settings-tab'));
+        fireEvent.press(getByTestId('tab-home-tab'));
+        fireEvent.press(getByTestId('tab-settings-tab'));
       }).not.toThrow();
     });
 
@@ -270,8 +270,8 @@ describe('Navigation Integration Tests', () => {
       const {getByTestId, getByText} = render(<App />);
       
       // Perform many rapid navigation operations
-      const homeTab = getByTestId('tab-home');
-      const settingsTab = getByTestId('tab-settings');
+      const homeTab = getByTestId('tab-home-tab');
+      const settingsTab = getByTestId('tab-settings-tab');
       
       for (let i = 0; i < 10; i++) {
         fireEvent.press(settingsTab);
@@ -295,11 +295,11 @@ describe('Navigation Integration Tests', () => {
       expect(getByText('Welcome to Your App')).toBeTruthy();
       
       // 2. Navigation is present and functional
-      expect(getByTestId('tab-home')).toBeTruthy();
-      expect(getByTestId('tab-settings')).toBeTruthy();
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
       
       // 3. Can navigate to settings and use functionality
-      fireEvent.press(getByTestId('tab-settings'));
+      fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         expect(getByText('Appearance')).toBeTruthy();
@@ -313,15 +313,15 @@ describe('Navigation Integration Tests', () => {
       });
       
       // 5. Can navigate back to home
-      fireEvent.press(getByTestId('tab-home'));
+      fireEvent.press(getByTestId('tab-home-tab'));
       
       await waitFor(() => {
         expect(getByText('Welcome to Your App')).toBeTruthy();
       });
       
       // 6. All functionality still works
-      expect(getByTestId('tab-home')).toBeTruthy();
-      expect(getByTestId('tab-settings')).toBeTruthy();
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
     });
   });
 }); 
