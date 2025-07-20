@@ -71,8 +71,8 @@ describe('TemplateIndexScreen', () => {
       
       // Auth template should render sign in elements
       expect(getByText('Sign In')).toBeTruthy();
-      expect(getByTestId('auth-email-input')).toBeTruthy();
-      expect(getByTestId('auth-password-input')).toBeTruthy();
+      expect(getByTestId('auth-template-email-input')).toBeTruthy();
+              expect(getByTestId('auth-template-password-input')).toBeTruthy();
       
       // Dashboard template should render stats
       expect(getByText('Sample Dashboard')).toBeTruthy();
@@ -81,7 +81,7 @@ describe('TemplateIndexScreen', () => {
       
       // Form template should render form fields
       expect(getByText('Sample Form')).toBeTruthy();
-      expect(getByTestId('form-name-input')).toBeTruthy();
+      expect(getByTestId('form-template-name-input')).toBeTruthy();
       
       // List template should render list items
       expect(getByText('Sample List')).toBeTruthy();
@@ -99,7 +99,7 @@ describe('TemplateIndexScreen', () => {
       
       await waitFor(() => {
         // Should show complex examples
-        expect(getByText('Product List Screen')).toBeTruthy();
+        expect(getByText('🛍️ Product List Screen')).toBeTruthy();
         expect(getByText('Product Detail Screen')).toBeTruthy();
         expect(getByText('Cart Screen')).toBeTruthy();
         expect(getByText('Checkout Screen')).toBeTruthy();
@@ -117,7 +117,7 @@ describe('TemplateIndexScreen', () => {
       fireEvent.press(getByText('Complex (5)'));
       
       await waitFor(() => {
-        expect(getByText('Product List Screen')).toBeTruthy();
+        expect(getByText('🛍️ Product List Screen')).toBeTruthy();
         expect(getByText('Full e-commerce product listing with filtering, sorting, wishlist, and cart integration.')).toBeTruthy();
         
         expect(getByText('Product Detail Screen')).toBeTruthy();
@@ -179,22 +179,22 @@ describe('TemplateIndexScreen', () => {
       const {getByText, queryByText} = render(<TemplateIndexScreen />);
       
       // Start with basic templates visible
-      expect(getByText('Authentication Template')).toBeTruthy();
+      expect(getByText('🔐 Authentication Template')).toBeTruthy();
       
       // Switch to complex
       fireEvent.press(getByText('Complex (5)'));
       
       await waitFor(() => {
-        expect(getByText('Product List Screen')).toBeTruthy();
-        expect(queryByText('Authentication Template')).toBeNull();
+        expect(getByText('🛍️ Product List Screen')).toBeTruthy();
+        expect(queryByText('🔐 Authentication Template')).toBeNull();
       });
       
       // Switch back to simple
       fireEvent.press(getByText('Simple (4)'));
       
       await waitFor(() => {
-        expect(getByText('Authentication Template')).toBeTruthy();
-        expect(queryByText('Product List Screen')).toBeNull();
+        expect(getByText('🔐 Authentication Template')).toBeTruthy();
+        expect(queryByText('🛍️ Product List Screen')).toBeNull();
       });
     });
   });
@@ -204,11 +204,11 @@ describe('TemplateIndexScreen', () => {
       const {getByTestId} = render(<TemplateIndexScreen />);
       
       // Should be able to interact with form inputs
-      const emailInput = getByTestId('auth-email-input');
+      const emailInput = getByTestId('auth-template-email-input');
       fireEvent.changeText(emailInput, 'test@example.com');
       expect(emailInput.props.value).toBe('test@example.com');
       
-      const nameInput = getByTestId('form-name-input');
+      const nameInput = getByTestId('form-template-name-input');
       fireEvent.changeText(nameInput, 'John Doe');
       expect(nameInput.props.value).toBe('John Doe');
       
@@ -221,7 +221,7 @@ describe('TemplateIndexScreen', () => {
       const {getByTestId} = render(<TemplateIndexScreen />);
       
       // Should be able to press buttons without errors
-      const submitButton = getByTestId('auth-submit-button');
+      const submitButton = getByTestId('auth-template-submit-button');
       fireEvent.press(submitButton);
       
       const saveButton = getByTestId('save-button');
