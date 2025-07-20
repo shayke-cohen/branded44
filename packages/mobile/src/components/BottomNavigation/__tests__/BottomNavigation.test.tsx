@@ -1,7 +1,7 @@
 import React from 'react';
 import {render, fireEvent} from '../../../test/test-utils';
 import BottomNavigation from '../BottomNavigation';
-import {getNavTabs} from '../../../screen-templates';
+import {getNavTabs} from '../../../screen-templates/templateConfig';
 
 describe('BottomNavigation', () => {
   const mockOnTabPress = jest.fn();

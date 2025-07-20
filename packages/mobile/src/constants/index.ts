@@ -1,11 +1,7 @@
-import {Tab, ThemeOption, Category, Product} from '../types';
+import {ThemeOption, Category, Product} from '../types';
 
-// Navigation constants
-export const TABS: Tab[] = [
-  {key: 'home', label: 'Home', icon: '🏠'},
-  {key: 'templates', label: 'Templates', icon: '📱'},
-  {key: 'settings', label: 'Settings', icon: '⚙️'},
-];
+// Note: Navigation tabs are now dynamically generated from the registry system
+// Use getNavTabs() from screen-templates instead of hardcoded TABS array
 
 // Theme constants
 export const THEME_OPTIONS: ThemeOption[] = [

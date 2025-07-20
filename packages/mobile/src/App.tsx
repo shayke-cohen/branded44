@@ -1,13 +1,15 @@
 import React, {useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {ThemeProvider, CartProvider} from './context';
-import {TemplateIndexScreen} from './screens';
 import {BottomNavigation} from './components';
 import {
   getNavTabs,
   getScreenIdForTab,
   getScreenComponent,
-} from './screen-templates';
+} from './screen-templates/templateConfig';
+
+// Import TemplateIndexScreen registration after templates are loaded
+import './config/registerTemplateScreen';
 
 const AppContent = () => {
   // Get first tab from unified registry as default
@@ -15,12 +17,7 @@ const AppContent = () => {
   const [activeTab, setActiveTab] = useState<string>(navTabs[0]?.id || 'home-tab');
 
   const renderScreen = () => {
-    // Special handling for TemplateIndexScreen
-    if (activeTab === 'templates-tab') {
-      return <TemplateIndexScreen />;
-    }
-
-    // Get screen ID for the current tab
+    // Generic screen rendering using registry - no special cases!
     const screenId = getScreenIdForTab(activeTab);
     if (!screenId) {
       // Fallback to first available screen
@@ -33,7 +30,7 @@ const AppContent = () => {
       return null;
     }
 
-    // Get and render the screen component
+    // Get and render the screen component from registry
     const ScreenComponent = getScreenComponent(screenId);
     return ScreenComponent ? <ScreenComponent /> : null;
   };

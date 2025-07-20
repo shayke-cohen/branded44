@@ -3,7 +3,6 @@ import {View, Text, StyleSheet, ActivityIndicator} from 'react-native';
 import {ThemeProvider, CartProvider} from '@mobile/context';
 import {usePreview} from '../context/PreviewContext';
 import WebAppContainer from './WebAppContainer';
-import WebTemplateIndexScreen from './WebTemplateIndexScreen';
 
 // Import the new dynamic template system
 import {
@@ -26,7 +25,7 @@ import {
   type ScreenConfig,
   type SampleAppConfig,
   type NavTabConfig
-} from '@mobile/screen-templates';
+} from '@mobile/screen-templates/templateConfig';
 
 // Import bottom navigation
 import {BottomNavigation} from '@mobile/components';
@@ -112,14 +111,11 @@ const MobileApp: React.FC<MobileAppProps> = ({
 
   // Generic screen renderer using configuration
   const renderScreenComponent = (screenId: string) => {
-    // Special handling for TemplateIndexScreen
-    if (screenId === 'TemplateIndexScreen') {
-      return <WebTemplateIndexScreen onAppLaunch={handleAppLaunch} />;
-    }
-    
+    // Get screen component from registry - completely generic!
     const ScreenComponent = getScreenComponent(screenId);
     if (ScreenComponent) {
-      return <ScreenComponent />;
+      // Pass onAppLaunch to all screens (they can use it if needed)
+      return <ScreenComponent onAppLaunch={handleAppLaunch} />;
     }
     
     // Fallback to first available screen if not found
@@ -128,7 +124,7 @@ const MobileApp: React.FC<MobileAppProps> = ({
     if (fallbackScreen) {
       const FallbackComponent = getScreenComponent(fallbackScreen.id);
       if (FallbackComponent) {
-        return <FallbackComponent />;
+        return <FallbackComponent onAppLaunch={handleAppLaunch} />;
       }
     }
     
@@ -198,8 +194,19 @@ const MobileApp: React.FC<MobileAppProps> = ({
       }
     }
     
-    // Fallback to template gallery if template not found
-    return <WebTemplateIndexScreen onAppLaunch={handleAppLaunch} />;
+    // Fallback to templates screen from registry if template not found
+    const templatesScreenComponent = getScreenComponent('templates-screen');
+    if (templatesScreenComponent) {
+      const TemplatesComponent = templatesScreenComponent;
+      return <TemplatesComponent onAppLaunch={handleAppLaunch} />;
+    }
+    
+    // Ultimate fallback
+    return (
+      <View style={styles.placeholderContainer}>
+        <Text style={styles.placeholderTitle}>Templates not available</Text>
+      </View>
+    );
   };
 
   // Main content renderer with generic logic

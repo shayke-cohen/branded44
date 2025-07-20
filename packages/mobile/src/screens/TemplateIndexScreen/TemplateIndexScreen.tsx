@@ -20,7 +20,7 @@ import {
   getTemplateComponent,
   getTemplateConfig,
   getAllCategories,
-} from '../../screen-templates';
+} from '../../screen-templates/templateConfig';
 
 const {width: screenWidth} = Dimensions.get('window');
 

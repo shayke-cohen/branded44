@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import {useTheme} from '../../context/ThemeContext';
 import {BottomNavigationProps} from '../../types';
-import {getNavTabs} from '../../screen-templates';
+import {getNavTabs} from '../../screen-templates/templateConfig';
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({
   activeTab,

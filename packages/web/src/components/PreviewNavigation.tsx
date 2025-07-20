@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {usePreview, ScreenType, SampleAppType, TemplateType} from '../context/PreviewContext';
-import {getScreens, getSampleApps, getTemplateMappings} from '@mobile/screen-templates';
+import {getScreens, getSampleApps, getTemplateMappings} from '@mobile/screen-templates/templateConfig';
 
 const PreviewNavigation: React.FC = () => {
   const {

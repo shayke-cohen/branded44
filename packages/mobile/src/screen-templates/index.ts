@@ -16,7 +16,6 @@ export {default as SearchScreen} from './examples/SearchScreen';
 
 // Dynamic Template Configuration System
 export {
-  TEMPLATE_CONFIG,
   TEMPLATE_COMPONENTS,
   getTemplatesByComplexity,
   getTemplatesByCategory,
@@ -74,8 +73,9 @@ export type {
   TemplateComplexity,
 } from './templateConfig';
 
-import TEMPLATE_CONFIG from './templateConfig';
-export default TEMPLATE_CONFIG;
+// Default export removed to prevent circular dependency issues
+// Use named exports instead: import {TEMPLATE_CONFIG} from './screen-templates'
+export {default as TEMPLATE_CONFIG} from './templateConfig';
 
 // Note: Copy the interfaces from the template files to your project when using them
 // Each template contains TypeScript interfaces that define the expected props and data structures 

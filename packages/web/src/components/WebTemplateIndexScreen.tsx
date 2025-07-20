@@ -11,7 +11,7 @@ import {
   getTemplateComponent,
   getTemplateConfig,
   getAllCategories,
-} from '@mobile/screen-templates';
+} from '@mobile/screen-templates/templateConfig';
 
 interface WebTemplateIndexScreenProps {
   onAppLaunch?: (app: {id: string; name: string; icon?: string}) => void;

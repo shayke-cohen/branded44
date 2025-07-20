@@ -29,31 +29,8 @@ import {CalculatorApp} from '../sample-apps/CalculatorApp';
 import {WeatherApp} from '../sample-apps/WeatherApp';
 import {NotesApp} from '../sample-apps/NotesApp';
 
-// Import screen configuration
-import {SCREENS_TO_IMPORT} from '../config/screens';
-
-console.log('📱 Importing screens...');
-
-// Import all screens from the array
-Promise.all(
-  SCREENS_TO_IMPORT.map(async (screenName) => {
-    try {
-      // Try direct file first
-      await import(`../screens/${screenName}`);
-      console.log(`✅ Imported: ${screenName}`);
-    } catch {
-      try {
-        // Try subfolder pattern
-        await import(`../screens/${screenName}/${screenName}`);
-        console.log(`✅ Imported: ${screenName}/${screenName}`);
-      } catch (error) {
-        console.log(`⚪ Skipped: ${screenName} (not found)`);
-      }
-    }
-  })
-).then(() => {
-  console.log('🎉 All screens imported - registerScreen calls executed!');
-});
+// Import all screens from dedicated file
+import '../config/importScreens';
 
 export type TemplateComplexity = 'Simple' | 'Complex' | 'Apps';
 
