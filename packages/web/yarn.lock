@@ -341,7 +341,7 @@
   dependencies:
     "@babel/helper-plugin-utils" "^7.27.1"
 
-"@babel/plugin-transform-class-properties@^7.27.1":
+"@babel/plugin-transform-class-properties@^7.25.9", "@babel/plugin-transform-class-properties@^7.27.1":
   version "7.27.1"
   resolved "https://npm.dev.wixpress.com/api/npm/npm-repos/@babel/plugin-transform-class-properties/-/plugin-transform-class-properties-7.27.1.tgz#dd40a6a370dfd49d32362ae206ddaf2bb082a925"
   integrity sha512-D0VcalChDMtuRvJIu3U/fwWjf8ZMykz5iZsg77Nuj821vCKI3zCyRLwRdWbsuJ/uRwZhZ002QtCqIkwC/ZkvbA==
@@ -1630,11 +1630,6 @@ babel-plugin-polyfill-regenerator@^0.6.5:
   integrity sha512-ISqQ2frbiNU9vIJkzg7dlPpznPZ4jOiUQ1uSmB0fEHeowtN3COYRsXr/xexn64NpU13P06jc/L5TgiJXOgrbEg==
   dependencies:
     "@babel/helper-define-polyfill-provider" "^0.6.5"
-
-babel-plugin-react-native-web@^0.19.12:
-  version "0.19.13"
-  resolved "https://npm.dev.wixpress.com/api/npm/npm-repos/babel-plugin-react-native-web/-/babel-plugin-react-native-web-0.19.13.tgz#bf919bd6f18c4689dd1a528a82bda507363b953d"
-  integrity sha512-4hHoto6xaN23LCyZgL9LJZc3olmAxd7b6jDzlZnKXAh4rRAbZRKNBJoOOdp46OBqgy+K0t0guTj5/mhA8inymQ==
 
 balanced-match@^1.0.0:
   version "1.0.2"

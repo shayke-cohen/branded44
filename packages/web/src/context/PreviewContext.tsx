@@ -1,58 +1,55 @@
 import React, {createContext, useContext, useState, ReactNode} from 'react';
 
 export type PreviewMode = 'screens' | 'sample-apps' | 'templates';
-export type ScreenType = 'home' | 'settings' | 'templates';
-export type SampleAppType = 'todo' | 'notes' | 'weather' | 'calculator';
-export type TemplateType = 'auth' | 'dashboard' | 'form' | 'list' | 'profile';
+export type DeviceFrame = 'iphone' | 'android';
+export type ScreenType = 'HomeScreen' | 'SettingsScreen' | 'TemplateIndexScreen';
+export type SampleAppType = 'TodoApp' | 'CalculatorApp' | 'WeatherApp' | 'NotesApp';
+export type TemplateType = 'AuthScreenTemplate' | 'DashboardScreenTemplate' | 'FormScreenTemplate' | 'ListScreenTemplate';
 
 interface PreviewContextType {
-  mode: PreviewMode;
-  setMode: (mode: PreviewMode) => void;
-  selectedScreen: ScreenType;
+  previewMode: PreviewMode;
+  setPreviewMode: (mode: PreviewMode) => void;
+  deviceFrame: DeviceFrame;
+  setDeviceFrame: (frame: DeviceFrame) => void;
+  selectedScreen: ScreenType | null;
   setSelectedScreen: (screen: ScreenType) => void;
-  selectedSampleApp: SampleAppType;
+  selectedSampleApp: SampleAppType | null;
   setSelectedSampleApp: (app: SampleAppType) => void;
-  selectedTemplate: TemplateType;
+  selectedTemplate: TemplateType | null;
   setSelectedTemplate: (template: TemplateType) => void;
-  deviceFrame: 'iphone' | 'android';
-  setDeviceFrame: (frame: 'iphone' | 'android') => void;
 }
 
 const PreviewContext = createContext<PreviewContextType | undefined>(undefined);
 
-interface PreviewProviderProps {
-  children: ReactNode;
-}
-
-export const PreviewProvider: React.FC<PreviewProviderProps> = ({children}) => {
-  const [mode, setMode] = useState<PreviewMode>('screens');
-  const [selectedScreen, setSelectedScreen] = useState<ScreenType>('home');
-  const [selectedSampleApp, setSelectedSampleApp] = useState<SampleAppType>('todo');
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('auth');
-  const [deviceFrame, setDeviceFrame] = useState<'iphone' | 'android'>('iphone');
+export const PreviewProvider: React.FC<{children: ReactNode}> = ({children}) => {
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('screens');
+  const [deviceFrame, setDeviceFrame] = useState<DeviceFrame>('iphone');
+  const [selectedScreen, setSelectedScreen] = useState<ScreenType | null>('HomeScreen');
+  const [selectedSampleApp, setSelectedSampleApp] = useState<SampleAppType | null>('TodoApp');
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>('AuthScreenTemplate');
 
   return (
     <PreviewContext.Provider
       value={{
-        mode,
-        setMode,
+        previewMode,
+        setPreviewMode,
+        deviceFrame,
+        setDeviceFrame,
         selectedScreen,
         setSelectedScreen,
         selectedSampleApp,
         setSelectedSampleApp,
         selectedTemplate,
         setSelectedTemplate,
-        deviceFrame,
-        setDeviceFrame,
       }}>
       {children}
     </PreviewContext.Provider>
   );
 };
 
-export const usePreview = (): PreviewContextType => {
+export const usePreview = () => {
   const context = useContext(PreviewContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('usePreview must be used within a PreviewProvider');
   }
   return context;

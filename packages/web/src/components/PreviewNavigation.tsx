@@ -1,250 +1,295 @@
 import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
-import {usePreview} from '../context/PreviewContext';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {usePreview, ScreenType, SampleAppType, TemplateType} from '../context/PreviewContext';
 
 const PreviewNavigation: React.FC = () => {
   const {
-    mode,
-    setMode,
+    previewMode,
+    setPreviewMode,
+    deviceFrame,
+    setDeviceFrame,
     selectedScreen,
     setSelectedScreen,
     selectedSampleApp,
     setSelectedSampleApp,
     selectedTemplate,
     setSelectedTemplate,
-    deviceFrame,
-    setDeviceFrame,
   } = usePreview();
 
+  const modes = [
+    {key: 'screens', label: '📱 Screens', subtitle: 'With native tabs'},
+    {key: 'sample-apps', label: '🎮 Sample Apps', subtitle: 'Full app experience'},
+    {key: 'templates', label: '🎨 Templates', subtitle: 'With native tabs'},
+  ];
+
+  const deviceFrames = [
+    {key: 'iphone', label: '📱 iPhone'},
+    {key: 'android', label: '🤖 Android'},
+  ];
+
   const screens = [
-    {id: 'home', name: 'Home Screen'},
-    {id: 'settings', name: 'Settings Screen'},
-    {id: 'templates', name: 'Template Index'},
+    {key: 'HomeScreen', label: '🏠 Home'},
+    {key: 'SettingsScreen', label: '⚙️ Settings'},
+    {key: 'TemplateIndexScreen', label: '📱 Templates'},
   ];
 
   const sampleApps = [
-    {id: 'todo', name: 'Todo App'},
-    {id: 'notes', name: 'Notes App'},
-    {id: 'weather', name: 'Weather App'},
-    {id: 'calculator', name: 'Calculator App'},
+    {key: 'TodoApp', label: '✅ Todo App'},
+    {key: 'CalculatorApp', label: '🔢 Calculator'},
+    {key: 'WeatherApp', label: '🌤️ Weather'},
+    {key: 'NotesApp', label: '📝 Notes'},
   ];
 
   const templates = [
-    {id: 'auth', name: 'Auth Template'},
-    {id: 'dashboard', name: 'Dashboard Template'},
-    {id: 'form', name: 'Form Template'},
-    {id: 'list', name: 'List Template'},
-    {id: 'profile', name: 'Profile Template'},
+    {key: 'AuthScreenTemplate', label: '🔐 Auth Screen'},
+    {key: 'DashboardScreenTemplate', label: '📊 Dashboard'},
+    {key: 'FormScreenTemplate', label: '📝 Form Screen'},
+    {key: 'ListScreenTemplate', label: '📋 List Screen'},
   ];
-
-  const renderModeButton = (modeId: string, label: string) => (
-    <TouchableOpacity
-      key={modeId}
-      style={[
-        styles.modeButton,
-        mode === modeId && styles.modeButtonActive,
-      ]}
-      onPress={() => setMode(modeId as any)}>
-      <Text
-        style={[
-          styles.modeButtonText,
-          mode === modeId && styles.modeButtonTextActive,
-        ]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderNavItem = (item: any, isSelected: boolean, onPress: () => void) => (
-    <TouchableOpacity
-      key={item.id}
-      style={[styles.navItem, isSelected && styles.navItemActive]}
-      onPress={onPress}>
-      <Text
-        style={[
-          styles.navItemText,
-          isSelected && styles.navItemTextActive,
-        ]}>
-        {item.name}
-      </Text>
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preview Mode</Text>
-        <View style={styles.modeButtons}>
-          {renderModeButton('screens', 'Screens')}
-          {renderModeButton('sample-apps', 'Sample Apps')}
-          {renderModeButton('templates', 'Templates')}
-        </View>
-      </View>
-
+      <Text style={styles.title}>Mobile Preview</Text>
+      
+      {/* Device Frame Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Device Frame</Text>
-        <View style={styles.modeButtons}>
-          <TouchableOpacity
-            style={[
-              styles.deviceButton,
-              deviceFrame === 'iphone' && styles.deviceButtonActive,
-            ]}
-            onPress={() => setDeviceFrame('iphone')}>
-            <Text
+        <View style={styles.buttonRow}>
+          {deviceFrames.map((frame) => (
+            <TouchableOpacity
+              key={frame.key}
               style={[
-                styles.deviceButtonText,
-                deviceFrame === 'iphone' && styles.deviceButtonTextActive,
-              ]}>
-              iPhone
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.deviceButton,
-              deviceFrame === 'android' && styles.deviceButtonActive,
-            ]}
-            onPress={() => setDeviceFrame('android')}>
-            <Text
-              style={[
-                styles.deviceButtonText,
-                deviceFrame === 'android' && styles.deviceButtonTextActive,
-              ]}>
-              Android
-            </Text>
-          </TouchableOpacity>
+                styles.button,
+                deviceFrame === frame.key && styles.activeButton,
+              ]}
+              onPress={() => setDeviceFrame(frame.key as any)}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  deviceFrame === frame.key && styles.activeButtonText,
+                ]}>
+                {frame.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
-      <ScrollView style={styles.navigation}>
-        {mode === 'screens' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Screens</Text>
-            {screens.map(screen =>
-              renderNavItem(
-                screen,
-                selectedScreen === screen.id,
-                () => setSelectedScreen(screen.id as any),
-              ),
-            )}
-          </View>
-        )}
+      {/* Preview Mode Selection */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Preview Mode</Text>
+        {modes.map((mode) => (
+          <TouchableOpacity
+            key={mode.key}
+            style={[
+              styles.modeButton,
+              previewMode === mode.key && styles.activeModeButton,
+            ]}
+            onPress={() => setPreviewMode(mode.key as any)}>
+            <Text
+              style={[
+                styles.modeButtonText,
+                previewMode === mode.key && styles.activeModeButtonText,
+              ]}>
+              {mode.label}
+            </Text>
+            <Text
+              style={[
+                styles.modeSubtitle,
+                previewMode === mode.key && styles.activeModeSubtitle,
+              ]}>
+              {mode.subtitle}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        {mode === 'sample-apps' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sample Apps</Text>
-            {sampleApps.map(app =>
-              renderNavItem(
-                app,
-                selectedSampleApp === app.id,
-                () => setSelectedSampleApp(app.id as any),
-              ),
-            )}
-          </View>
-        )}
+      {/* Screen Selection - Only show for screens mode */}
+      {previewMode === 'screens' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Screen Access</Text>
+          <Text style={styles.hint}>💡 Use native tabs below for navigation</Text>
+          {screens.map((screen) => (
+            <TouchableOpacity
+              key={screen.key}
+              style={[
+                styles.itemButton,
+                selectedScreen === screen.key && styles.activeItemButton,
+              ]}
+              onPress={() => setSelectedScreen(screen.key as ScreenType)}>
+              <Text
+                style={[
+                  styles.itemButtonText,
+                  selectedScreen === screen.key && styles.activeItemButtonText,
+                ]}>
+                {screen.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
-        {mode === 'templates' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Screen Templates</Text>
-            {templates.map(template =>
-              renderNavItem(
-                template,
-                selectedTemplate === template.id,
-                () => setSelectedTemplate(template.id as any),
-              ),
-            )}
-          </View>
-        )}
-      </ScrollView>
+      {/* Sample App Selection */}
+      {previewMode === 'sample-apps' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sample Apps</Text>
+          <Text style={styles.hint}>🎮 Full app experience with internal navigation</Text>
+          {sampleApps.map((app) => (
+            <TouchableOpacity
+              key={app.key}
+              style={[
+                styles.itemButton,
+                selectedSampleApp === app.key && styles.activeItemButton,
+              ]}
+              onPress={() => setSelectedSampleApp(app.key as SampleAppType)}>
+              <Text
+                style={[
+                  styles.itemButtonText,
+                  selectedSampleApp === app.key && styles.activeItemButtonText,
+                ]}>
+                {app.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Template Selection - Only show for templates mode */}
+      {previewMode === 'templates' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Template Access</Text>
+          <Text style={styles.hint}>🎨 Use native tabs to access template browser</Text>
+          {templates.map((template) => (
+            <TouchableOpacity
+              key={template.key}
+              style={[
+                styles.itemButton,
+                selectedTemplate === template.key && styles.activeItemButton,
+              ]}
+              onPress={() => setSelectedTemplate(template.key as TemplateType)}>
+              <Text
+                style={[
+                  styles.itemButtonText,
+                  selectedTemplate === template.key && styles.activeItemButtonText,
+                ]}>
+                {template.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: 280,
+    width: 300,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 20,
-    height: 'fit-content',
-    maxHeight: '80vh',
+    marginRight: 24,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
+    alignSelf: 'flex-start',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 24,
+    textAlign: 'center',
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 12,
   },
-  modeButtons: {
+  hint: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  buttonRow: {
     flexDirection: 'row',
     gap: 8,
-    flexWrap: 'wrap',
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  activeButton: {
+    backgroundColor: '#007AFF',
+  },
+  buttonText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  activeButtonText: {
+    color: '#ffffff',
   },
   modeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    flex: 1,
-    minWidth: 80,
-  },
-  modeButtonActive: {
-    backgroundColor: '#667eea',
-  },
-  modeButtonText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  modeButtonTextActive: {
-    color: '#ffffff',
-  },
-  deviceButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    flex: 1,
-  },
-  deviceButtonActive: {
-    backgroundColor: '#764ba2',
-  },
-  deviceButtonText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  deviceButtonTextActive: {
-    color: '#ffffff',
-  },
-  navigation: {
-    flex: 1,
-  },
-  navItem: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    marginBottom: 4,
+    backgroundColor: '#f8f8f8',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
-  navItemActive: {
-    backgroundColor: '#f0f4ff',
+  activeModeButton: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
   },
-  navItemText: {
-    fontSize: 16,
+  modeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  activeModeButtonText: {
+    color: '#ffffff',
+  },
+  modeSubtitle: {
+    fontSize: 12,
     color: '#666',
+    marginTop: 2,
   },
-  navItemTextActive: {
-    color: '#667eea',
-    fontWeight: '500',
+  activeModeSubtitle: {
+    color: '#ffffff',
+    opacity: 0.9,
+  },
+  itemButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: '#f8f8f8',
+    marginBottom: 6,
+  },
+  activeItemButton: {
+    backgroundColor: '#007AFF',
+  },
+  itemButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  activeItemButtonText: {
+    color: '#ffffff',
   },
 });
 
