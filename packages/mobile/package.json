@@ -1,16 +1,24 @@
 {
-  "name": "Branded44",
+  "name": "@branded44/mobile",
   "version": "0.0.1",
   "private": true,
+  "description": "React Native mobile application for Branded44",
+  "main": "index.js",
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "lint": "eslint .",
+    "dev": "react-native start",
     "start": "react-native start",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "build:ios": "react-native run-ios --configuration Release",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --watchAll=false"
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "clean": "react-native clean",
+    "reset-cache": "react-native start --reset-cache"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -42,5 +50,10 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shayke-cohen/branded44.git",
+    "directory": "packages/mobile"
   }
 }
