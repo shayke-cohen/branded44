@@ -1,0 +1,58 @@
+{
+  "name": "@branded44/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Web preview for Branded44 mobile app screens",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "webpack serve --mode development",
+    "build": "webpack --mode production",
+    "start": "webpack serve --mode development --open",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "clean": "rm -rf dist",
+    "install:clean": "rm -rf node_modules yarn.lock && yarn install"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native-web": "^0.19.12"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/preset-react": "^7.25.3",
+    "@babel/preset-typescript": "^7.25.3",
+    "@eslint/js": "^9.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "babel-loader": "^9.1.3",
+    "babel-plugin-react-native-web": "^0.19.12",
+    "css-loader": "^6.8.1",
+    "eslint": "^9.15.0",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.6.0",
+    "style-loader": "^3.3.4",
+    "typescript": "5.0.4",
+    "url-loader": "^4.1.1",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.2"
+  },
+  "peerDependencies": {
+    "@branded44/mobile": "*"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "yarn": ">=1.22.0"
+  },
+  "resolutions": {
+    "@webassemblyjs/ast": "1.14.1",
+    "@webassemblyjs/wasm-edit": "1.14.1",
+    "@webassemblyjs/wasm-parser": "1.14.1"
+  }
+}
