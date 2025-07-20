@@ -11,259 +11,32 @@ import {
 import {useTheme} from '../../context';
 import {AppContainer} from '../../components';
 
-// Import basic templates
-import AuthScreenTemplate from '../../screen-templates/AuthScreenTemplate';
-import DashboardScreenTemplate from '../../screen-templates/DashboardScreenTemplate';
-import FormScreenTemplate from '../../screen-templates/FormScreenTemplate';
-import ListScreenTemplate from '../../screen-templates/ListScreenTemplate';
-
-// Import complex examples
-import ProductListScreen from '../../screen-templates/examples/ProductListScreen';
-import ProductDetailScreen from '../../screen-templates/examples/ProductDetailScreen';
-import CartScreen from '../../screen-templates/examples/CartScreen';
-import CheckoutScreen from '../../screen-templates/examples/CheckoutScreen';
-import SearchScreen from '../../screen-templates/examples/SearchScreen';
-
-// Import sample apps
-import {TodoApp} from '../../sample-apps/TodoApp';
-import {CalculatorApp} from '../../sample-apps/CalculatorApp';
-import {WeatherApp} from '../../sample-apps/WeatherApp';
-import {NotesApp} from '../../sample-apps/NotesApp';
+// Import the new dynamic template system
+import {
+  TEMPLATE_CONFIG,
+  TemplateConfig,
+  TemplateComplexity,
+  getTemplatesByComplexity,
+  getTemplateComponent,
+  getTemplateConfig,
+  getAllCategories,
+} from '../../screen-templates/templateConfig';
 
 const {width: screenWidth} = Dimensions.get('window');
 
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-  complexity: 'Simple' | 'Complex' | 'Apps';
-  component: React.ComponentType<any>;
-  props?: any;
-  features?: string[];
-  icon?: string;
-}
-
-const templates: Template[] = [
-  // Simple Templates
-  {
-    id: 'auth',
-    name: 'Authentication Template',
-    description: 'Multi-mode authentication with social login, validation, and accessibility features.',
-    complexity: 'Simple',
-    component: AuthScreenTemplate,
-    props: {
-      mode: 'login' as const,
-      showSocialLogins: true,
-      allowModeSwitch: true,
-    },
-  },
-  {
-    id: 'dashboard',
-    name: 'Dashboard Template',
-    description: 'Customizable dashboard with stat cards, quick actions, and responsive layout.',
-    complexity: 'Simple',
-    component: DashboardScreenTemplate,
-    props: {
-      title: 'Sample Dashboard',
-      stats: [
-        {id: 'users', label: 'Users', value: '1,234', trend: '+12%', icon: '👥'},
-        {id: 'revenue', label: 'Revenue', value: '$45.2K', trend: '+8%', icon: '💰'},
-        {id: 'orders', label: 'Orders', value: '856', trend: '+15%', icon: '📦'},
-        {id: 'growth', label: 'Growth', value: '23%', trend: '+5%', icon: '📈'},
-      ],
-      quickActions: [
-        {id: 'add-user', label: 'Add User', icon: '➕', onPress: () => console.log('Add User')},
-        {id: 'reports', label: 'Reports', icon: '📊', onPress: () => console.log('Reports')},
-        {id: 'settings', label: 'Settings', icon: '⚙️', onPress: () => console.log('Settings')},
-      ],
-    },
-  },
-  {
-    id: 'form',
-    name: 'Form Template',
-    description: 'Dynamic form with validation, error handling, and various input types.',
-    complexity: 'Simple',
-    component: FormScreenTemplate,
-    props: {
-      title: 'Sample Form',
-      fields: [
-        {
-          key: 'name',
-          label: 'Full Name',
-          type: 'text',
-          required: true,
-          placeholder: 'Enter your name',
-        },
-        {
-          key: 'email',
-          label: 'Email',
-          type: 'email',
-          required: true,
-          placeholder: 'your@email.com',
-        },
-        {
-          key: 'bio',
-          label: 'Bio',
-          type: 'textarea',
-          placeholder: 'Tell us about yourself',
-        },
-      ],
-      submitButtonText: 'Submit Form',
-      onSubmit: async (data: any) => {
-        console.log('Form submitted:', data);
-      },
-    },
-  },
-  {
-    id: 'list',
-    name: 'List Template',
-    description: 'Searchable list with filtering, multiple display modes, and empty states.',
-    complexity: 'Simple',
-    component: ListScreenTemplate,
-    props: {
-      title: 'Sample List',
-      data: [
-        {id: '1', name: 'Item 1', category: 'Category A'},
-        {id: '2', name: 'Item 2', category: 'Category B'},
-        {id: '3', name: 'Item 3', category: 'Category A'},
-      ],
-      renderItem: (item: any) => (
-        <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee'}}>
-          <Text style={{fontSize: 16, fontWeight: '600'}}>{item.name}</Text>
-          <Text style={{fontSize: 14, color: '#666'}}>{item.category}</Text>
-        </View>
-      ),
-      displayMode: 'list' as const,
-      emptyMessage: 'No items found',
-    },
-  },
-  
-  // Complex Examples
-  {
-    id: 'product-list',
-    name: 'Product List Screen',
-    description: 'Full e-commerce product listing with filtering, sorting, wishlist, and cart integration.',
-    complexity: 'Complex',
-    component: ProductListScreen,
-    props: {
-      onProductPress: (product: any) => console.log('Product pressed:', product.name),
-    },
-  },
-  {
-    id: 'product-detail',
-    name: 'Product Detail Screen',
-    description: 'Comprehensive product view with image gallery, reviews, specifications, and purchase options.',
-    complexity: 'Complex',
-    component: ProductDetailScreen,
-    props: {
-      productId: '1',
-      onBack: () => console.log('Back pressed'),
-    },
-  },
-  {
-    id: 'cart',
-    name: 'Cart Screen',
-    description: 'Complete shopping cart with quantity management, pricing calculations, and checkout flow.',
-    complexity: 'Complex',
-    component: CartScreen,
-    props: {
-      onBack: () => console.log('Back pressed'),
-      onCheckout: () => console.log('Checkout pressed'),
-    },
-  },
-  {
-    id: 'checkout',
-    name: 'Checkout Screen',
-    description: 'Multi-step checkout with address management, payment processing, and order confirmation.',
-    complexity: 'Complex',
-    component: CheckoutScreen,
-    props: {
-      onBack: () => console.log('Back pressed'),
-      onOrderComplete: (order: any) => console.log('Order completed:', order),
-    },
-  },
-  {
-    id: 'search',
-    name: 'Search Screen',
-    description: 'Advanced search interface with filters, suggestions, history, and result management.',
-    complexity: 'Complex',
-    component: SearchScreen,
-    props: {
-      onProductPress: (product: any) => console.log('Product pressed:', product.name),
-    },
-  },
-  
-  // Sample Apps (Full Applications)
-  {
-    id: 'todo-app',
-    name: 'Todo App',
-    description: 'Complete task management application with categories, priorities, and local persistence.',
-    complexity: 'Apps',
-    component: TodoApp,
-    icon: '✅',
-    features: [
-      'Add, edit, delete todos',
-      'Categories & priorities',
-      'Filter & search',
-      'Local storage persistence',
-      'Statistics & progress tracking',
-    ],
-  },
-  {
-    id: 'calculator-app',
-    name: 'Calculator App',
-    description: 'Advanced calculator with history, memory functions, and scientific operations.',
-    complexity: 'Apps',
-    component: CalculatorApp,
-    icon: '🧮',
-    features: [
-      'Basic & advanced operations',
-      'Memory functions (MC, MR, M+, M-)',
-      'Calculation history',
-      'Error handling',
-      'Local storage persistence',
-    ],
-  },
-  {
-    id: 'weather-app',
-    name: 'Weather App',
-    description: 'Beautiful weather forecasting with location search, 7-day forecasts, and weather alerts.',
-    complexity: 'Apps',
-    component: WeatherApp,
-    icon: '🌤️',
-    features: [
-      'Current weather & forecasts',
-      'Location search & saved locations',
-      'Hourly & 7-day forecasts',
-      'Weather alerts & warnings',
-      'Unit preferences (°C/°F, km/h/mph)',
-    ],
-  },
-  {
-    id: 'notes-app',
-    name: 'Notes App',
-    description: 'Rich text note-taking with folders, tags, search, and export capabilities.',
-    complexity: 'Apps',
-    component: NotesApp,
-    icon: '📝',
-    features: [
-      'Rich text editing with formatting',
-      'Folder organization & tagging',
-      'Advanced search & filtering',
-      'Note templates & export',
-      'Pin favorites & auto-save',
-    ],
-  },
-];
-
 interface TemplateIndexScreenProps {
   navigation?: any;
+  onAppLaunch?: (app: {id: string; name: string; icon?: string}) => void;
 }
 
-const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) => {
+const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation, onAppLaunch}) => {
   const {theme} = useTheme();
-  const [activeTab, setActiveTab] = useState<'Simple' | 'Complex' | 'Apps'>('Simple');
-  const [activeApp, setActiveApp] = useState<Template | null>(null);
+  const [activeTab, setActiveTab] = useState<TemplateComplexity>('Simple');
+  const [activeApp, setActiveApp] = useState<TemplateConfig | null>(null);
+
+  // Get templates dynamically from configuration
+  const filteredTemplates = getTemplatesByComplexity(activeTab);
+  const categories = getAllCategories();
 
   const styles = StyleSheet.create({
     container: {
@@ -299,28 +72,46 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) =
       paddingVertical: 16,
       alignItems: 'center',
     },
-    tabActive: {
+    activeTab: {
       borderBottomWidth: 2,
       borderBottomColor: theme.colors.primary,
     },
     tabText: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '500',
       color: theme.colors.textSecondary,
     },
-    tabTextActive: {
+    activeTabText: {
       color: theme.colors.primary,
+      fontWeight: '600',
     },
     content: {
       flex: 1,
     },
+    listContent: {
+      padding: 16,
+    },
+    appGridContainer: {
+      padding: 16,
+    },
     templateContainer: {
-      marginBottom: 16,
       backgroundColor: theme.colors.surface,
       borderRadius: 12,
+      marginBottom: 16,
       overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: theme.colors.border,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    appContainer: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      marginBottom: 16,
+      marginHorizontal: 8,
+      width: (screenWidth - 56) / 2,
+      overflow: 'hidden',
       shadowColor: '#000',
       shadowOffset: {width: 0, height: 2},
       shadowOpacity: 0.1,
@@ -328,132 +119,139 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) =
       elevation: 3,
     },
     templateHeader: {
-      padding: 12,
-      backgroundColor: theme.colors.background,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
+      padding: 16,
     },
     templateHeaderRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       marginBottom: 8,
     },
     templateName: {
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: '600',
       color: theme.colors.text,
       flex: 1,
+      marginRight: 8,
     },
     complexityBadge: {
+      backgroundColor: theme.colors.primary + '20',
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 6,
-      backgroundColor: theme.colors.primary + '20',
-      marginLeft: 8,
     },
     complexityText: {
       fontSize: 12,
       fontWeight: '600',
       color: theme.colors.primary,
     },
+    categoryBadge: {
+      backgroundColor: theme.colors.textSecondary + '20',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      marginTop: 4,
+      alignSelf: 'flex-start',
+    },
+    categoryText: {
+      fontSize: 10,
+      fontWeight: '500',
+      color: theme.colors.textSecondary,
+    },
     templateDescription: {
       fontSize: 14,
       color: theme.colors.textSecondary,
       lineHeight: 20,
+      marginBottom: 12,
     },
     featuresContainer: {
-      marginTop: 12,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border,
+      marginTop: 8,
     },
     featuresTitle: {
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: '600',
       color: theme.colors.text,
-      marginBottom: 6,
+      marginBottom: 4,
     },
     featureItem: {
       fontSize: 12,
       color: theme.colors.textSecondary,
-      lineHeight: 18,
-      marginBottom: 2,
+      marginLeft: 8,
+      lineHeight: 16,
     },
     templateContent: {
-      height: 300,
       backgroundColor: theme.colors.background,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
     },
     templateWrapper: {
-      flex: 1,
-      transform: [{scale: 0.9}],
-      marginHorizontal: -20,
+      minHeight: 200,
+      maxHeight: 300,
+      overflow: 'hidden',
     },
     appLaunchContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
       padding: 16,
+      alignItems: 'center',
+      height: 130,
+      justifyContent: 'center',
     },
     launchButton: {
       backgroundColor: theme.colors.primary,
-      paddingHorizontal: 24,
-      paddingVertical: 18,
-      borderRadius: 16,
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
       alignItems: 'center',
-      justifyContent: 'center',
-      minWidth: 140,
-      maxWidth: '90%',
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 4},
-      shadowOpacity: 0.25,
-      shadowRadius: 12,
-      elevation: 8,
+      minWidth: 120,
     },
     launchButtonIcon: {
-      fontSize: 28,
-      marginBottom: 8,
+      fontSize: 20,
+      marginBottom: 4,
     },
     launchButtonText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: '#FFFFFF',
-      marginBottom: 4,
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#ffffff',
       textAlign: 'center',
+      marginBottom: 2,
     },
     launchButtonSubtext: {
-      fontSize: 11,
-      color: '#FFFFFF',
-      opacity: 0.85,
-      textAlign: 'center',
+      fontSize: 10,
+      color: '#ffffff',
+      opacity: 0.8,
     },
-    listContent: {
-      padding: 16,
+    customizableIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
     },
-    // Improved grid styling for Apps
-    appGridContainer: {
-      paddingHorizontal: 8,
+    customizableIcon: {
+      fontSize: 12,
+      marginRight: 4,
     },
-    appGridItem: {
-      flex: 1,
-      marginHorizontal: 8,
-      marginBottom: 16,
-      maxWidth: (screenWidth - 48) / 2, // Ensure proper width calculation
+    customizableText: {
+      fontSize: 10,
+      color: theme.colors.primary,
+      fontWeight: '500',
     },
   });
 
-  const filteredTemplates = templates.filter(template => template.complexity === activeTab);
-
-  const renderTemplate = (template: Template) => {
-    const TemplateComponent = template.component;
+  const renderTemplate = (template: TemplateConfig) => {
     const isApp = template.complexity === 'Apps';
-    
-    // Use different container styles for Apps grid layout
-    const containerStyle = isApp ? [
-      styles.templateContainer,
-      styles.appGridItem,
-      {height: 240}, // Slightly increased height for better button spacing
-    ] : styles.templateContainer;
+    const containerStyle = isApp ? styles.appContainer : styles.templateContainer;
+    const TemplateComponent = getTemplateComponent(template.componentKey);
+
+    if (!TemplateComponent) {
+      return (
+        <View key={template.id} style={containerStyle}>
+          <View style={styles.templateHeader}>
+            <Text style={styles.templateName}>Component not found</Text>
+            <Text style={styles.templateDescription}>
+              Template component "{template.componentKey}" is not available
+            </Text>
+          </View>
+        </View>
+      );
+    }
 
     return (
       <View key={template.id} style={containerStyle}>
@@ -467,6 +265,12 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) =
             </View>
           </View>
           
+          {template.category && (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{template.category}</Text>
+            </View>
+          )}
+          
           <Text style={styles.templateDescription} numberOfLines={isApp ? 3 : undefined}>
             {template.description}
           </Text>
@@ -474,9 +278,16 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) =
           {template.features && template.features.length > 0 && !isApp && (
             <View style={styles.featuresContainer}>
               <Text style={styles.featuresTitle}>Features:</Text>
-              {template.features.map((feature, index) => (
+              {template.features.slice(0, 4).map((feature, index) => (
                 <Text key={index} style={styles.featureItem}>• {feature}</Text>
               ))}
+            </View>
+          )}
+
+          {template.customizable && (
+            <View style={styles.customizableIndicator}>
+              <Text style={styles.customizableIcon}>⚙️</Text>
+              <Text style={styles.customizableText}>Customizable</Text>
             </View>
           )}
         </View>
@@ -486,7 +297,17 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) =
             <View style={styles.appLaunchContainer}>
               <TouchableOpacity
                 style={styles.launchButton}
-                onPress={() => setActiveApp(template)}
+                onPress={() => {
+                  if (onAppLaunch) {
+                    onAppLaunch({
+                      id: template.id,
+                      name: template.name,
+                      icon: template.icon,
+                    });
+                  } else {
+                    setActiveApp(template);
+                  }
+                }}
                 testID={`launch-${template.id}`}
                 activeOpacity={0.8}>
                 <Text style={styles.launchButtonIcon}>🚀</Text>
@@ -498,7 +319,7 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) =
             </View>
           ) : (
             <View style={styles.templateWrapper}>
-              <TemplateComponent {...(template.props || {})} testIDPrefix={`${template.id}-`} />
+              <TemplateComponent {...(template.defaultProps || {})} testIDPrefix={`${template.id}-`} />
             </View>
           )}
         </View>
@@ -506,49 +327,53 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) =
     );
   };
 
+  const renderAppModal = () => {
+    if (!activeApp) return null;
+    
+    const TemplateComponent = getTemplateComponent(activeApp.componentKey);
+    if (!TemplateComponent) return null;
+
+    return (
+      <AppContainer
+        isVisible={!!activeApp}
+        onClose={() => setActiveApp(null)}
+        appName={activeApp.name}
+        appIcon={activeApp.icon}>
+        <TemplateComponent {...(activeApp.defaultProps || {})} />
+      </AppContainer>
+    );
+  };
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Live Template Gallery</Text>
         <Text style={styles.subtitle}>
-          Interact with actual React Native components. All templates are live and fully 
+          Interact with actual React Native components. All templates are live and fully
           functional with real data and interactions.
+        </Text>
+        <Text style={[styles.subtitle, {marginTop: 8, fontSize: 14}]}>
+          Categories: {categories.join(' • ')}
         </Text>
       </View>
 
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'Simple' && styles.tabActive]}
-          onPress={() => setActiveTab('Simple')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Simple' && styles.tabTextActive]}>
-            Simple ({templates.filter(t => t.complexity === 'Simple').length})
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'Complex' && styles.tabActive]}
-          onPress={() => setActiveTab('Complex')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Complex' && styles.tabTextActive]}>
-            Complex ({templates.filter(t => t.complexity === 'Complex').length})
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'Apps' && styles.tabActive]}
-          onPress={() => setActiveTab('Apps')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Apps' && styles.tabTextActive]}>
-            Apps ({templates.filter(t => t.complexity === 'Apps').length})
-          </Text>
-        </TouchableOpacity>
+        {['Simple', 'Complex', 'Apps'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onPress={() => setActiveTab(tab as TemplateComplexity)}>
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+              {tab} ({getTemplatesByComplexity(tab as TemplateComplexity).length})
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <FlatList
         data={filteredTemplates}
-        renderItem={({item}: {item: Template}) => renderTemplate(item)}
-        keyExtractor={(item: Template) => item.id}
+        renderItem={({item}: {item: TemplateConfig}) => renderTemplate(item)}
+        keyExtractor={(item: TemplateConfig) => item.id}
         style={styles.content}
         contentContainerStyle={activeTab === 'Apps' ? styles.appGridContainer : styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -556,33 +381,8 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation}) =
         key={activeTab} // Force re-render when changing columns
       />
 
-      {activeApp && (
-        <AppContainer
-          isVisible={!!activeApp}
-          onClose={() => setActiveApp(null)}
-          appName={activeApp.name}
-          appIcon={activeApp.icon}>
-          {activeApp.id === 'todo-app' ? (
-            <TodoApp />
-          ) : activeApp.id === 'calculator-app' ? (
-            <CalculatorApp />
-          ) : activeApp.id === 'weather-app' ? (
-            <WeatherApp />
-          ) : activeApp.id === 'notes-app' ? (
-            <NotesApp />
-          ) : (
-            <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-              <Text style={{fontSize: 18, textAlign: 'center'}}>
-                {activeApp.icon} {activeApp.name} will launch here
-              </Text>
-              <Text style={{fontSize: 14, color: 'gray', marginTop: 8, textAlign: 'center'}}>
-                App integration pending
-              </Text>
-            </View>
-          )}
-        </AppContainer>
-      )}
-    </View>
+      {renderAppModal()}
+    </SafeAreaView>
   );
 };
 
