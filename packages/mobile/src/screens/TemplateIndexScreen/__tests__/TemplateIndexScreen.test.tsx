@@ -100,13 +100,13 @@ describe('TemplateIndexScreen', () => {
       await waitFor(() => {
         // Should show complex examples
         expect(getByText('🛍️ Product List Screen')).toBeTruthy();
-        expect(getByText('Product Detail Screen')).toBeTruthy();
-        expect(getByText('Cart Screen')).toBeTruthy();
-        expect(getByText('Checkout Screen')).toBeTruthy();
-        expect(getByText('Search Screen')).toBeTruthy();
+        expect(getByText('📱 Product Detail Screen')).toBeTruthy();
+        expect(getByText('🛒 Cart Screen')).toBeTruthy();
+        expect(getByText('💳 Checkout Screen')).toBeTruthy();
+        expect(getByText('🔍 Search Screen')).toBeTruthy();
         
         // Basic templates should not be visible
-        expect(queryByText('Authentication Template')).toBeNull();
+        expect(queryByText('🔐 Authentication Template')).toBeNull();
       });
     });
 
@@ -120,13 +120,13 @@ describe('TemplateIndexScreen', () => {
         expect(getByText('🛍️ Product List Screen')).toBeTruthy();
         expect(getByText('Full e-commerce product listing with filtering, sorting, wishlist, and cart integration.')).toBeTruthy();
         
-        expect(getByText('Product Detail Screen')).toBeTruthy();
+        expect(getByText('📱 Product Detail Screen')).toBeTruthy();
         expect(getByText('Comprehensive product view with image gallery, reviews, specifications, and purchase options.')).toBeTruthy();
         
-        expect(getByText('Cart Screen')).toBeTruthy();
+        expect(getByText('🛒 Cart Screen')).toBeTruthy();
         expect(getByText('Complete shopping cart with quantity management, pricing calculations, and checkout flow.')).toBeTruthy();
         
-        expect(getByText('Checkout Screen')).toBeTruthy();
+        expect(getByText('💳 Checkout Screen')).toBeTruthy();
         expect(getByText('Multi-step checkout with address management, payment processing, and order confirmation.')).toBeTruthy();
         
         expect(getByText('Search Screen')).toBeTruthy();
