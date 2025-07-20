@@ -12,11 +12,11 @@ interface PreviewContextType {
   deviceFrame: DeviceFrame;
   setDeviceFrame: (frame: DeviceFrame) => void;
   selectedScreen: ScreenType | null;
-  setSelectedScreen: (screen: ScreenType) => void;
+  setSelectedScreen: (screen: ScreenType | null) => void;
   selectedSampleApp: SampleAppType | null;
-  setSelectedSampleApp: (app: SampleAppType) => void;
+  setSelectedSampleApp: (app: SampleAppType | null) => void;
   selectedTemplate: TemplateType | null;
-  setSelectedTemplate: (template: TemplateType) => void;
+  setSelectedTemplate: (template: TemplateType | null) => void;
 }
 
 const PreviewContext = createContext<PreviewContextType | undefined>(undefined);

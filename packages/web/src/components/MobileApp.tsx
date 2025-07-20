@@ -5,6 +5,12 @@ import {usePreview} from '../context/PreviewContext';
 import WebAppContainer from './WebAppContainer';
 import WebTemplateIndexScreen from './WebTemplateIndexScreen';
 
+// Import the new dynamic template system
+import {
+  getTemplateComponent,
+  getTemplateConfig,
+} from '@mobile/screen-templates/templateConfig';
+
 // Import mobile screens
 import {HomeScreen, SettingsScreen} from '@mobile/screens';
 import {BottomNavigation} from '@mobile/components';
@@ -43,7 +49,7 @@ const MobileApp: React.FC<MobileAppProps> = ({
   selectedSampleApp,
   selectedTemplate
 }) => {
-  const {setSelectedScreen} = usePreview();
+  const {setSelectedScreen, setSelectedTemplate} = usePreview();
   const [activeTab, setActiveTab] = useState<AppScreen>('home');
   const [activeApp, setActiveApp] = useState<AppState | null>(null);
 
@@ -62,7 +68,12 @@ const MobileApp: React.FC<MobileAppProps> = ({
       };
       setSelectedScreen(screenMapping[tab as keyof typeof screenMapping] as any);
     }
-  }, [previewMode, setSelectedScreen]);
+    
+    // Clear selectedTemplate when switching tabs in templates mode
+    if (previewMode === 'templates') {
+      setSelectedTemplate(null);
+    }
+  }, [previewMode, setSelectedScreen, setSelectedTemplate]);
 
   // Handle app launch from template gallery
   const handleAppLaunch = useCallback((app: AppState) => {
@@ -140,6 +151,44 @@ const MobileApp: React.FC<MobileAppProps> = ({
       }
     }
 
+    // If we're in templates mode and a specific template is selected via Quick Template Access
+    if (previewMode === 'templates' && selectedTemplate) {
+      // Map template keys to template IDs
+      const templateIdMapping = {
+        'AuthScreenTemplate': 'auth-template',
+        'DashboardScreenTemplate': 'dashboard-template', 
+        'FormScreenTemplate': 'form-template',
+        'ListScreenTemplate': 'list-template',
+      };
+      
+      const templateId = templateIdMapping[selectedTemplate as keyof typeof templateIdMapping];
+      if (templateId) {
+        const templateConfig = getTemplateConfig(templateId);
+        const TemplateComponent = getTemplateComponent(templateId);
+        
+        if (TemplateComponent && templateConfig) {
+          return (
+            <View style={styles.templateContainer}>
+              <View style={styles.templateHeader}>
+                <Text style={styles.templateTitle}>
+                  {templateConfig.icon} {templateConfig.name}
+                </Text>
+                <Text style={styles.templateDescription}>
+                  {templateConfig.description}
+                </Text>
+              </View>
+              <View style={styles.templateContent}>
+                <TemplateComponent {...(templateConfig.defaultProps || {})} />
+              </View>
+            </View>
+          );
+        }
+      }
+      
+      // Fallback to template gallery if template not found
+      return <WebTemplateIndexScreen onAppLaunch={handleAppLaunch} />;
+    }
+
     // For other modes, use the tab navigation
     switch (activeTab) {
       case 'home':
@@ -209,6 +258,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+  templateContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  templateHeader: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  templateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  templateDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  templateContent: {
+    flex: 1,
   },
 });
 
