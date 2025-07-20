@@ -1,6 +1,7 @@
 import React, {useState, Suspense, useCallback} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator} from 'react-native';
 import {ThemeProvider, CartProvider} from '@mobile/context';
+import {usePreview} from '../context/PreviewContext';
 import WebAppContainer from './WebAppContainer';
 import WebTemplateIndexScreen from './WebTemplateIndexScreen';
 
@@ -42,6 +43,7 @@ const MobileApp: React.FC<MobileAppProps> = ({
   selectedSampleApp,
   selectedTemplate
 }) => {
+  const {setSelectedScreen} = usePreview();
   const [activeTab, setActiveTab] = useState<AppScreen>('home');
   const [activeApp, setActiveApp] = useState<AppState | null>(null);
 
@@ -50,7 +52,17 @@ const MobileApp: React.FC<MobileAppProps> = ({
     setActiveTab(tab as AppScreen);
     // Close any open apps when switching tabs
     setActiveApp(null);
-  }, []);
+    
+    // Update selectedScreen to keep Quick Screen Access in sync
+    if (previewMode === 'screens') {
+      const screenMapping = {
+        'home': 'HomeScreen',
+        'settings': 'SettingsScreen', 
+        'templates': 'TemplateIndexScreen'
+      };
+      setSelectedScreen(screenMapping[tab as keyof typeof screenMapping] as any);
+    }
+  }, [previewMode, setSelectedScreen]);
 
   // Handle app launch from template gallery
   const handleAppLaunch = useCallback((app: AppState) => {
@@ -109,6 +121,20 @@ const MobileApp: React.FC<MobileAppProps> = ({
           return <WeatherApp />;
         case 'NotesApp':
           return <NotesApp />;
+        default:
+          return <HomeScreen />;
+      }
+    }
+
+    // If we're in screens mode and a specific screen is selected via Quick Screen Access
+    if (previewMode === 'screens' && selectedScreen) {
+      switch (selectedScreen) {
+        case 'HomeScreen':
+          return <HomeScreen />;
+        case 'SettingsScreen':
+          return <SettingsScreen />;
+        case 'TemplateIndexScreen':
+          return <WebTemplateIndexScreen onAppLaunch={handleAppLaunch} />;
         default:
           return <HomeScreen />;
       }
