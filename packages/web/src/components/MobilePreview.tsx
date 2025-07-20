@@ -2,6 +2,7 @@ import React from 'react';
 import {View, StyleSheet} from 'react-native';
 import {usePreview} from '../context/PreviewContext';
 import MobileApp from './MobileApp';
+import PhoneStatusBar from './PhoneStatusBar';
 
 const MobilePreview: React.FC = () => {
   const {
@@ -29,12 +30,15 @@ const MobilePreview: React.FC = () => {
     <View style={styles.container}>
       <View style={getFrameStyles()}>
         <View style={styles.screen}>
-          <MobileApp
-            previewMode={previewMode}
-            selectedScreen={selectedScreen || undefined}
-            selectedSampleApp={selectedSampleApp || undefined}
-            selectedTemplate={selectedTemplate || undefined}
-          />
+          <PhoneStatusBar deviceFrame={deviceFrame} />
+          <View style={styles.appContent}>
+            <MobileApp
+              previewMode={previewMode}
+              selectedScreen={selectedScreen || undefined}
+              selectedSampleApp={selectedSampleApp || undefined}
+              selectedTemplate={selectedTemplate || undefined}
+            />
+          </View>
         </View>
       </View>
     </View>
@@ -77,6 +81,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: 32,
     overflow: 'hidden',
+  },
+  appContent: {
+    flex: 1,
+    backgroundColor: '#ffffff',
   },
 });
 
