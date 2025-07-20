@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {usePreview, ScreenType, SampleAppType, TemplateType} from '../context/PreviewContext';
+import {getScreens, getSampleApps, getTemplateMappings} from '@mobile/screen-templates';
 
 const PreviewNavigation: React.FC = () => {
   const {
@@ -27,25 +28,28 @@ const PreviewNavigation: React.FC = () => {
     {key: 'android', label: '🤖 Android'},
   ];
 
-  const screens = [
-    {key: 'HomeScreen', label: '🏠 Home'},
-    {key: 'SettingsScreen', label: '⚙️ Settings'},
-    {key: 'TemplateIndexScreen', label: '📱 Templates'},
-  ];
+  // Get dynamic data from unified registry
+  const screenEntities = getScreens();
+  const sampleAppEntities = getSampleApps();
+  const templateMappingEntities = getTemplateMappings();
+  
+  const screens = screenEntities.map(screen => ({
+    key: screen.id,
+    label: `${screen.icon || '📱'} ${screen.name}`
+  }));
 
-  const sampleApps = [
-    {key: 'TodoApp', label: '✅ Todo App'},
-    {key: 'CalculatorApp', label: '🔢 Calculator'},
-    {key: 'WeatherApp', label: '🌤️ Weather'},
-    {key: 'NotesApp', label: '📝 Notes'},
-  ];
+  // Generate UI keys dynamically from registry data (e.g., 'Todo App' -> 'TodoApp')
+  const sampleApps = sampleAppEntities.map(app => ({
+    key: app.name.replace(/\s+/g, '') + 'App', // Convert 'Todo App' to 'TodoApp'
+    label: `${app.icon || '🎮'} ${app.name}`,
+    registryId: app.id // Keep track of registry ID for debugging
+  }));
 
-  const templates = [
-    {key: 'AuthScreenTemplate', label: '🔐 Auth Screen'},
-    {key: 'DashboardScreenTemplate', label: '📊 Dashboard'},
-    {key: 'FormScreenTemplate', label: '📝 Form Screen'},
-    {key: 'ListScreenTemplate', label: '📋 List Screen'},
-  ];
+  // Use template mapping keys for Quick Template Access (these map to template IDs)
+  const templates = templateMappingEntities.map(mapping => ({
+    key: mapping.metadata?.key || mapping.id,
+    label: `🎨 ${mapping.metadata?.key?.replace('Template', '') || mapping.name}`
+  }));
 
   return (
     <View style={styles.container}>

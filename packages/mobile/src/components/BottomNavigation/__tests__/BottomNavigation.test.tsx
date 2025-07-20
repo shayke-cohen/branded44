@@ -1,12 +1,13 @@
 import React from 'react';
 import {render, fireEvent} from '../../../test/test-utils';
 import BottomNavigation from '../BottomNavigation';
-import {TABS} from '../../../constants';
+import {getNavTabs} from '../../../screen-templates';
 
 describe('BottomNavigation', () => {
   const mockOnTabPress = jest.fn();
+  const navTabs = getNavTabs();
   const defaultProps = {
-    activeTab: 'home',
+    activeTab: navTabs[0]?.id || 'home-tab',
     onTabPress: mockOnTabPress,
   };
 
@@ -22,18 +23,18 @@ describe('BottomNavigation', () => {
       expect(getByText('Settings')).toBeTruthy();
     });
 
-    it('displays all tabs from constants', () => {
+    it('displays all tabs from unified registry', () => {
       const {getByText} = render(<BottomNavigation {...defaultProps} />);
       
-      TABS.forEach(tab => {
-        expect(getByText(tab.label)).toBeTruthy();
-        expect(getByText(tab.icon)).toBeTruthy();
+      navTabs.forEach(tab => {
+        expect(getByText(tab.name)).toBeTruthy();
+        expect(getByText(tab.icon!)).toBeTruthy();
       });
     });
 
     it('shows correct active tab styling', () => {
       const {getByText} = render(
-        <BottomNavigation {...defaultProps} activeTab="home" />
+        <BottomNavigation {...defaultProps} activeTab="home-tab" />
       );
       
       const homeTab = getByText('Home');
@@ -48,7 +49,7 @@ describe('BottomNavigation', () => {
 
     it('highlights the correct active tab', () => {
       const {getByText} = render(
-        <BottomNavigation {...defaultProps} activeTab="templates" />
+        <BottomNavigation {...defaultProps} activeTab="templates-tab" />
       );
       
       const templatesTab = getByText('Templates');
@@ -57,7 +58,7 @@ describe('BottomNavigation', () => {
 
     it('shows settings tab as active when specified', () => {
       const {getByText} = render(
-        <BottomNavigation {...defaultProps} activeTab="settings" />
+        <BottomNavigation {...defaultProps} activeTab="settings-tab" />
       );
       
       const settingsTab = getByText('Settings');
@@ -72,7 +73,7 @@ describe('BottomNavigation', () => {
       const homeTab = getByText('Home');
       fireEvent.press(homeTab);
       
-      expect(mockOnTabPress).toHaveBeenCalledWith('home');
+      expect(mockOnTabPress).toHaveBeenCalledWith('home-tab');
     });
 
     it('calls onTabPress when templates tab is pressed', () => {
@@ -81,7 +82,7 @@ describe('BottomNavigation', () => {
       const templatesTab = getByText('Templates');
       fireEvent.press(templatesTab);
       
-      expect(mockOnTabPress).toHaveBeenCalledWith('templates');
+      expect(mockOnTabPress).toHaveBeenCalledWith('templates-tab');
     });
 
     it('calls onTabPress when settings tab is pressed', () => {
@@ -90,7 +91,7 @@ describe('BottomNavigation', () => {
       const settingsTab = getByText('Settings');
       fireEvent.press(settingsTab);
       
-      expect(mockOnTabPress).toHaveBeenCalledWith('settings');
+      expect(mockOnTabPress).toHaveBeenCalledWith('settings-tab');
     });
 
     it('handles rapid tab switching', () => {
@@ -105,9 +106,9 @@ describe('BottomNavigation', () => {
       fireEvent.press(settingsTab);
       
       expect(mockOnTabPress).toHaveBeenCalledTimes(3);
-      expect(mockOnTabPress).toHaveBeenNthCalledWith(1, 'home');
-      expect(mockOnTabPress).toHaveBeenNthCalledWith(2, 'templates');
-      expect(mockOnTabPress).toHaveBeenNthCalledWith(3, 'settings');
+      expect(mockOnTabPress).toHaveBeenNthCalledWith(1, 'home-tab');
+      expect(mockOnTabPress).toHaveBeenNthCalledWith(2, 'templates-tab');
+      expect(mockOnTabPress).toHaveBeenNthCalledWith(3, 'settings-tab');
     });
 
     it('handles invalid active tab gracefully', () => {
@@ -124,14 +125,14 @@ describe('BottomNavigation', () => {
     it('handles missing onTabPress prop', () => {
       const mockLocalTabPress = jest.fn();
       const {getByText} = render(
-        <BottomNavigation activeTab="home" onTabPress={mockLocalTabPress} />
+        <BottomNavigation activeTab="home-tab" onTabPress={mockLocalTabPress} />
       );
       
       const homeTab = getByText('Home');
       
       // Should handle press events properly
       fireEvent.press(homeTab);
-      expect(mockLocalTabPress).toHaveBeenCalledWith('home');
+      expect(mockLocalTabPress).toHaveBeenCalledWith('home-tab');
     });
   });
 
@@ -145,19 +146,17 @@ describe('BottomNavigation', () => {
       expect(getByText('Settings')).toBeTruthy();
       
       // Verify correct number of tabs
-      expect(TABS).toHaveLength(3);
+      expect(navTabs).toHaveLength(3);
     });
 
     it('displays proper labels and icons', () => {
       const {getByText} = render(<BottomNavigation {...defaultProps} />);
       
-      // Verify specific tabs
-      expect(getByText('Home')).toBeTruthy();
-      expect(getByText('🏠')).toBeTruthy();
-      expect(getByText('Templates')).toBeTruthy();
-      expect(getByText('📱')).toBeTruthy();
-      expect(getByText('Settings')).toBeTruthy();
-      expect(getByText('⚙️')).toBeTruthy();
+      // Verify specific tabs from registry
+      navTabs.forEach(tab => {
+        expect(getByText(tab.name)).toBeTruthy();
+        expect(getByText(tab.icon!)).toBeTruthy();
+      });
     });
   });
 
@@ -173,15 +172,15 @@ describe('BottomNavigation', () => {
 
     it('maintains tab state consistency', () => {
       const {rerender, getByText} = render(
-        <BottomNavigation {...defaultProps} activeTab="home" />
+        <BottomNavigation {...defaultProps} activeTab="home-tab" />
       );
       
       expect(getByText('Home')).toBeTruthy();
       
-      rerender(<BottomNavigation {...defaultProps} activeTab="templates" />);
+      rerender(<BottomNavigation {...defaultProps} activeTab="templates-tab" />);
       expect(getByText('Templates')).toBeTruthy();
       
-      rerender(<BottomNavigation {...defaultProps} activeTab="settings" />);
+      rerender(<BottomNavigation {...defaultProps} activeTab="settings-tab" />);
       expect(getByText('Settings')).toBeTruthy();
     });
   });

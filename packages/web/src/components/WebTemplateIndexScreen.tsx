@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView} from 'react-native';
 import {useTheme} from '@mobile/context';
 
-// Import the new dynamic template system
+// Import the unified template system (shared from mobile)
 import {
   TEMPLATE_CONFIG,
   TemplateConfig,
@@ -11,7 +11,7 @@ import {
   getTemplateComponent,
   getTemplateConfig,
   getAllCategories,
-} from '@mobile/screen-templates/templateConfig';
+} from '@mobile/screen-templates';
 
 interface WebTemplateIndexScreenProps {
   onAppLaunch?: (app: {id: string; name: string; icon?: string}) => void;

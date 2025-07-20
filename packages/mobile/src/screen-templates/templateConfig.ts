@@ -1,5 +1,15 @@
 import {ComponentType} from 'react';
 
+// Import unified registry system
+import {
+  registerComponent,
+  registerEntities,
+  getEntitiesByType,
+  getEntityComponent,
+  getEntity,
+  type EntityConfig
+} from '../config/registry';
+
 // Import all template components
 import AuthScreenTemplate from './AuthScreenTemplate';
 import DashboardScreenTemplate from './DashboardScreenTemplate';
@@ -18,6 +28,9 @@ import {TodoApp} from '../sample-apps/TodoApp';
 import {CalculatorApp} from '../sample-apps/CalculatorApp';
 import {WeatherApp} from '../sample-apps/WeatherApp';
 import {NotesApp} from '../sample-apps/NotesApp';
+
+// Import screens for unified registry
+import {HomeScreen, SettingsScreen} from '../screens';
 
 export type TemplateComplexity = 'Simple' | 'Complex' | 'Apps';
 
@@ -356,5 +369,284 @@ export const getAllCategories = (): string[] => {
 export const getCustomizableTemplates = (): TemplateConfig[] => {
   return TEMPLATE_CONFIG.filter(template => template.customizable === true);
 };
+
+// Enhanced helper functions for better consistency
+export const getTemplateComponentById = (templateId: string): ComponentType<any> | undefined => {
+  const config = getTemplateConfig(templateId);
+  return config ? getTemplateComponent(config.componentKey) : undefined;
+};
+
+export const getTemplateWithComponent = (templateId: string): {config: TemplateConfig | undefined, component: ComponentType<any> | undefined} => {
+  const config = getTemplateConfig(templateId);
+  const component = config ? getTemplateComponent(config.componentKey) : undefined;
+  return { config, component };
+};
+
+export const validateTemplate = (templateId: string): {isValid: boolean, error?: string} => {
+  const config = getTemplateConfig(templateId);
+  if (!config) {
+    return { isValid: false, error: `Template config not found for "${templateId}"` };
+  }
+  
+  const component = getTemplateComponent(config.componentKey);
+  if (!component) {
+    return { isValid: false, error: `Template component "${config.componentKey}" not found` };
+  }
+  
+  return { isValid: true };
+};
+
+export const renderTemplateWithProps = (templateId: string, additionalProps: Record<string, any> = {}) => {
+  const { config, component: TemplateComponent } = getTemplateWithComponent(templateId);
+  
+  if (!config || !TemplateComponent) {
+    return null;
+  }
+  
+  const finalProps = {
+    ...(config.defaultProps || {}),
+    ...additionalProps
+  };
+  
+  return { TemplateComponent, finalProps, config };
+};
+
+// Unified template rendering helper
+export const createTemplateRenderer = (
+  fallbackComponent?: React.ComponentType<any>,
+  onError?: (error: string) => void
+) => {
+  return (templateId: string, additionalProps: Record<string, any> = {}) => {
+    const validation = validateTemplate(templateId);
+    
+    if (!validation.isValid) {
+      onError?.(validation.error || 'Unknown template error');
+      return fallbackComponent ? { TemplateComponent: fallbackComponent, finalProps: {}, config: null } : null;
+    }
+    
+    return renderTemplateWithProps(templateId, additionalProps);
+  };
+};
+
+// Initialize unified registry with all entities
+function initializeUnifiedRegistry(): void {
+  // Register all components
+  registerComponent('AuthScreenTemplate', AuthScreenTemplate);
+  registerComponent('DashboardScreenTemplate', DashboardScreenTemplate);
+  registerComponent('FormScreenTemplate', FormScreenTemplate);
+  registerComponent('ListScreenTemplate', ListScreenTemplate);
+  registerComponent('ProductListScreen', ProductListScreen);
+  registerComponent('ProductDetailScreen', ProductDetailScreen);
+  registerComponent('CartScreen', CartScreen);
+  registerComponent('CheckoutScreen', CheckoutScreen);
+  registerComponent('SearchScreen', SearchScreen);
+  registerComponent('todo-app', TodoApp);
+  registerComponent('calculator-app', CalculatorApp);
+  registerComponent('weather-app', WeatherApp);
+  registerComponent('notes-app', NotesApp);
+  registerComponent('HomeScreen', HomeScreen);
+  registerComponent('SettingsScreen', SettingsScreen);
+
+  // Convert existing template configs to unified entities
+  const templateEntities: EntityConfig[] = TEMPLATE_CONFIG.map(template => ({
+    id: template.id,
+    name: template.name,
+    type: template.complexity === 'Apps' ? 'sample-app' : 'template',
+    componentKey: template.componentKey,
+    icon: template.icon,
+    description: template.description,
+    category: template.category,
+    tags: [
+      ...(template.features || []),
+      template.complexity.toLowerCase(),
+      ...(template.customizable ? ['customizable'] : [])
+    ],
+    metadata: {
+      complexity: template.complexity,
+      features: template.features,
+      customizable: template.customizable,
+      defaultProps: template.defaultProps
+    }
+  }));
+
+  // Add screen entities
+  const screenEntities: EntityConfig[] = [
+    {
+      id: 'HomeScreen',
+      name: 'Home',
+      type: 'screen',
+      componentKey: 'HomeScreen',
+      icon: '🏠',
+      category: 'Navigation',
+      tags: ['home', 'main', 'default'],
+      relationships: {
+        tab: 'home-tab'
+      }
+    },
+    {
+      id: 'SettingsScreen',
+      name: 'Settings',
+      type: 'screen',
+      componentKey: 'SettingsScreen',
+      icon: '⚙️',
+      category: 'Configuration',
+      tags: ['settings', 'preferences', 'config'],
+      relationships: {
+        tab: 'settings-tab'
+      }
+    },
+    {
+      id: 'TemplateIndexScreen',
+      name: 'Templates',
+      type: 'screen',
+      component: undefined, // Special handling
+      icon: '📋',
+      category: 'Templates',
+      tags: ['templates', 'examples', 'gallery'],
+      relationships: {
+        tab: 'templates-tab'
+      }
+    }
+  ];
+
+  // Add navigation tab entities
+  const navTabEntities: EntityConfig[] = [
+    {
+      id: 'home-tab',
+      name: 'Home',
+      type: 'nav-tab',
+      icon: '🏠',
+      category: 'Navigation',
+      tags: ['tab', 'navigation', 'home'],
+      relationships: {
+        defaultScreen: 'HomeScreen'
+      }
+    },
+    {
+      id: 'templates-tab',
+      name: 'Templates',
+      type: 'nav-tab',
+      icon: '📋',
+      category: 'Navigation',
+      tags: ['tab', 'navigation', 'templates'],
+      relationships: {
+        defaultScreen: 'TemplateIndexScreen'
+      }
+    },
+    {
+      id: 'settings-tab',
+      name: 'Settings',
+      type: 'nav-tab',
+      icon: '⚙️',
+      category: 'Navigation',
+      tags: ['tab', 'navigation', 'settings'],
+      relationships: {
+        defaultScreen: 'SettingsScreen'
+      }
+    }
+  ];
+
+  // Add template mapping entities
+  const templateMappingEntities: EntityConfig[] = [
+    {
+      id: 'AuthScreenTemplate-mapping',
+      name: 'Auth Screen Template Mapping',
+      type: 'template-mapping',
+      category: 'Template Mappings',
+      metadata: {
+        key: 'AuthScreenTemplate',
+        templateId: 'auth-template'
+      }
+    },
+    {
+      id: 'DashboardScreenTemplate-mapping',
+      name: 'Dashboard Screen Template Mapping',
+      type: 'template-mapping',
+      category: 'Template Mappings',
+      metadata: {
+        key: 'DashboardScreenTemplate',
+        templateId: 'dashboard-template'
+      }
+    },
+    {
+      id: 'FormScreenTemplate-mapping',
+      name: 'Form Screen Template Mapping',
+      type: 'template-mapping',
+      category: 'Template Mappings',
+      metadata: {
+        key: 'FormScreenTemplate',
+        templateId: 'form-template'
+      }
+    },
+    {
+      id: 'ListScreenTemplate-mapping',
+      name: 'List Screen Template Mapping',
+      type: 'template-mapping',
+      category: 'Template Mappings',
+      metadata: {
+        key: 'ListScreenTemplate',
+        templateId: 'list-template'
+      }
+    }
+  ];
+
+  // Register all entities
+  registerEntities([
+    ...templateEntities,
+    ...screenEntities,
+    ...navTabEntities,
+    ...templateMappingEntities
+  ]);
+}
+
+// Initialize the unified registry
+initializeUnifiedRegistry();
+
+// Unified registry helper functions (backward compatible + new)
+export const getScreenConfig = (screenId: string) => {
+  const entity = getEntity(screenId);
+  return entity?.type === 'screen' ? entity : undefined;
+};
+
+export const getSampleAppConfig = (appId: string) => {
+  const entity = getEntity(appId);
+  return entity?.type === 'sample-app' ? entity : undefined;
+};
+
+export const getNavTabConfig = (tabId: string) => {
+  const entity = getEntity(tabId);
+  return entity?.type === 'nav-tab' ? entity : undefined;
+};
+
+export const getTemplateIdFromKey = (templateKey: string): string | undefined => {
+  const mappings = getEntitiesByType('template-mapping');
+  const mapping = mappings.find(m => m.metadata?.key === templateKey);
+  return mapping?.metadata?.templateId;
+};
+
+export const getTabIdForScreen = (screenId: string): string | undefined => {
+  const screenConfig = getScreenConfig(screenId);
+  return screenConfig?.relationships?.tab as string;
+};
+
+export const getScreenIdForTab = (tabId: string): string | undefined => {
+  const tabConfig = getNavTabConfig(tabId);
+  return tabConfig?.relationships?.defaultScreen as string;
+};
+
+// New unified functions
+export const getScreens = () => getEntitiesByType('screen');
+export const getSampleApps = () => getEntitiesByType('sample-app');
+export const getNavTabs = () => getEntitiesByType('nav-tab');
+export const getTemplateMappings = () => getEntitiesByType('template-mapping');
+export const getTemplates = () => getEntitiesByType('template');
+
+export const getScreenComponent = (screenId: string) => getEntityComponent(screenId);
+export const getSampleAppComponent = (appId: string) => getEntityComponent(appId);
+
+// Export types for backward compatibility
+export type ScreenConfig = EntityConfig & { type: 'screen' };
+export type SampleAppConfig = EntityConfig & { type: 'sample-app' };
+export type NavTabConfig = EntityConfig & { type: 'nav-tab' };
 
 export default TEMPLATE_CONFIG; 

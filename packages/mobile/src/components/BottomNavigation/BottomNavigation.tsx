@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import {useTheme} from '../../context/ThemeContext';
 import {BottomNavigationProps} from '../../types';
-import {TABS} from '../../constants';
+import {getNavTabs} from '../../screen-templates';
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({
   activeTab,
@@ -49,25 +49,28 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
     },
   });
 
+  // Get navigation tabs from unified registry
+  const navTabs = getNavTabs();
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.tabContainer}>
-        {TABS.map(tab => (
+        {navTabs.map(tab => (
           <TouchableOpacity
-            key={tab.key}
+            key={tab.id}
             style={styles.tab}
-            onPress={() => onTabPress(tab.key)}
+            onPress={() => onTabPress(tab.id)}
             activeOpacity={0.7}
-            testID={`tab-${tab.key}`}>
+            testID={`tab-${tab.id}`}>
             <Text style={styles.tabIcon}>{tab.icon}</Text>
             <Text
               style={[
                 styles.tabLabel,
-                activeTab === tab.key
+                activeTab === tab.id
                   ? styles.activeTabLabel
                   : styles.inactiveTabLabel,
               ]}>
-              {tab.label}
+              {tab.name}
             </Text>
           </TouchableOpacity>
         ))}

@@ -24,7 +24,50 @@ export {
   getTemplateConfig,
   getAllCategories,
   getCustomizableTemplates,
+  getTemplateComponentById,
+  getTemplateWithComponent,
+  validateTemplate,
+  renderTemplateWithProps,
+  createTemplateRenderer,
 } from './templateConfig';
+
+// Shared Template Renderer Component
+export { default as TemplateRenderer } from './TemplateRenderer';
+
+// Unified Registry System (includes screens, apps, navigation)
+export {
+  getScreenConfig,
+  getSampleAppConfig,
+  getNavTabConfig,
+  getTemplateIdFromKey,
+  getTabIdForScreen,
+  getScreenIdForTab,
+  getScreens,
+  getSampleApps,
+  getNavTabs,
+  getTemplateMappings,
+  getTemplates,
+  getScreenComponent,
+  getSampleAppComponent,
+  type ScreenConfig,
+  type SampleAppConfig,
+  type NavTabConfig,
+} from './templateConfig';
+
+// Registry Core (for advanced usage)
+export {
+  registerComponent,
+  registerEntity,
+  registerEntities,
+  getEntity,
+  getComponent,
+  getEntityComponent,
+  getEntitiesByType,
+  getEntitiesByCategory,
+  searchEntities,
+  globalRegistry,
+  type EntityConfig,
+} from '../config/registry';
 
 export type {
   TemplateConfig,

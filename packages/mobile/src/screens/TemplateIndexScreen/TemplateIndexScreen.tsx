@@ -11,7 +11,7 @@ import {
 import {useTheme} from '../../context';
 import {AppContainer} from '../../components';
 
-// Import the new dynamic template system
+// Import the unified template system (includes registry)
 import {
   TEMPLATE_CONFIG,
   TemplateConfig,
@@ -20,7 +20,7 @@ import {
   getTemplateComponent,
   getTemplateConfig,
   getAllCategories,
-} from '../../screen-templates/templateConfig';
+} from '../../screen-templates';
 
 const {width: screenWidth} = Dimensions.get('window');
 

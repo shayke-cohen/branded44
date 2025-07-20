@@ -1,25 +1,41 @@
 import React, {useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {ThemeProvider, CartProvider} from './context';
-import {HomeScreen, SettingsScreen, TemplateIndexScreen} from './screens';
+import {TemplateIndexScreen} from './screens';
 import {BottomNavigation} from './components';
-
-type AppScreen = 'home' | 'templates' | 'settings';
+import {
+  getNavTabs,
+  getScreenIdForTab,
+  getScreenComponent,
+} from './screen-templates';
 
 const AppContent = () => {
-  const [activeTab, setActiveTab] = useState<AppScreen>('home');
+  // Get first tab from unified registry as default
+  const navTabs = getNavTabs();
+  const [activeTab, setActiveTab] = useState<string>(navTabs[0]?.id || 'home-tab');
 
   const renderScreen = () => {
-    switch (activeTab) {
-      case 'home':
-        return <HomeScreen />;
-      case 'templates':
-        return <TemplateIndexScreen />;
-      case 'settings':
-        return <SettingsScreen />;
-      default:
-        return <HomeScreen />;
+    // Special handling for TemplateIndexScreen
+    if (activeTab === 'templates-tab') {
+      return <TemplateIndexScreen />;
     }
+
+    // Get screen ID for the current tab
+    const screenId = getScreenIdForTab(activeTab);
+    if (!screenId) {
+      // Fallback to first available screen
+      const firstTab = navTabs[0];
+      const fallbackScreenId = firstTab ? getScreenIdForTab(firstTab.id) : null;
+      if (fallbackScreenId) {
+        const FallbackComponent = getScreenComponent(fallbackScreenId);
+        return FallbackComponent ? <FallbackComponent /> : null;
+      }
+      return null;
+    }
+
+    // Get and render the screen component
+    const ScreenComponent = getScreenComponent(screenId);
+    return ScreenComponent ? <ScreenComponent /> : null;
   };
 
   return (
@@ -27,7 +43,7 @@ const AppContent = () => {
       {renderScreen()}
       <BottomNavigation 
         activeTab={activeTab} 
-        onTabPress={(tab: string) => setActiveTab(tab as AppScreen)}
+        onTabPress={(tab: string) => setActiveTab(tab)}
       />
     </View>
   );
