@@ -59,11 +59,10 @@ const WebTemplateIndexScreen: React.FC<WebTemplateIndexScreenProps> = ({onAppLau
         </View>
       );
     } else {
+      const TemplateComponent = getTemplateComponent(item.componentKey);
+      
       return (
-        <TouchableOpacity
-          key={item.id}
-          style={styles.templateCard}
-          onPress={() => setSelectedTemplate(item)}>
+        <View key={item.id} style={styles.templateCard}>
           <View style={styles.templateHeader}>
             <Text style={styles.templateIcon}>{item.icon}</Text>
             <Text style={styles.templateName}>{item.name}</Text>
@@ -92,7 +91,22 @@ const WebTemplateIndexScreen: React.FC<WebTemplateIndexScreenProps> = ({onAppLau
               <Text style={styles.customizableText}>Customizable</Text>
             </View>
           )}
-        </TouchableOpacity>
+          
+          {/* Render the actual template component */}
+          <View style={styles.templateContent}>
+            {TemplateComponent ? (
+              <View style={styles.templateWrapper}>
+                <TemplateComponent {...(item.defaultProps || {})} />
+              </View>
+            ) : (
+              <View style={styles.templatePlaceholder}>
+                <Text style={styles.placeholderText}>
+                  Template component not found
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
       );
     }
   };
@@ -395,7 +409,20 @@ const WebTemplateIndexScreen: React.FC<WebTemplateIndexScreenProps> = ({onAppLau
       color: theme.colors.primary,
     },
     templateContent: {
-      flex: 1,
+      backgroundColor: theme.colors.background,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      marginTop: 12,
+    },
+    templateWrapper: {
+      minHeight: 300,
+      overflow: 'hidden',
+    },
+    templatePlaceholder: {
+      padding: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 100,
     },
     placeholderContainer: {
       flex: 1,

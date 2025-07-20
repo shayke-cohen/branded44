@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
-  ScrollView,
   Dimensions,
 } from 'react-native';
 import {useTheme} from '../../context';
@@ -186,8 +185,7 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation, on
       borderTopColor: theme.colors.border,
     },
     templateWrapper: {
-      minHeight: 250,
-      maxHeight: 450,
+      minHeight: 300,
       overflow: 'hidden',
     },
     appLaunchContainer: {
@@ -319,12 +317,9 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation, on
               </TouchableOpacity>
             </View>
           ) : (
-            <ScrollView 
-              style={styles.templateWrapper}
-              showsVerticalScrollIndicator={false}
-              bounces={false}>
+            <View style={styles.templateWrapper}>
               <TemplateComponent {...(template.defaultProps || {})} testIDPrefix={`${template.id}-`} />
-            </ScrollView>
+            </View>
           )}
         </View>
       </View>
