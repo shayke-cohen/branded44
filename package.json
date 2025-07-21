@@ -1,0 +1,32 @@
+{
+  "name": "branded44",
+  "version": "1.0.0",
+  "description": "React Native mobile development toolkit with prompt generation and web preview",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "cd packages/server && npm run dev",
+    "start:server": "cd packages/server && npm start",
+    "dev:web": "cd packages/web && npm start",
+    "install:all": "npm install && cd packages/server && npm install && cd ../web && npm install",
+    "clean": "rm -rf node_modules packages/*/node_modules",
+    "health-check": "curl -s http://localhost:3001/health || echo 'Server not running'"
+  },
+  "keywords": [
+    "react-native",
+    "mobile-development",
+    "claude-code",
+    "prompt-generator",
+    "screen-templates"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+} 
