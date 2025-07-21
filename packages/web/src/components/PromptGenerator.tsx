@@ -21,8 +21,8 @@ const PromptGenerator: React.FC = () => {
   const [model, setModel] = useState('');
   const [permissionMode, setPermissionMode] = useState('default');
   const [verbose, setVerbose] = useState(false);
-  const [maxTurns, setMaxTurns] = useState(3);
-  const [workingDirectory, setWorkingDirectory] = useState('');
+  const [maxTurns, setMaxTurns] = useState(20);
+  const [workingDirectory, setWorkingDirectory] = useState('/Users/shayco/claude-code/branded44/packages/mobile');
 
   // Additional security/proxy options 
   const [dangerouslySkipPermissions, setDangerouslySkipPermissions] = useState(true);
@@ -34,6 +34,11 @@ const PromptGenerator: React.FC = () => {
   const [showConversation, setShowConversation] = useState(false);
   const [executionResult, setExecutionResult] = useState<any>(null);
   const [lastExecutedPrompt, setLastExecutedPrompt] = useState('');
+
+  // Real-time streaming
+  const [streamingMessages, setStreamingMessages] = useState<any[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingEnabled, setStreamingEnabled] = useState(true);
 
   // Quick SDK Test
   const [testPrompt, setTestPrompt] = useState('List files in current directory');
@@ -49,6 +54,16 @@ const PromptGenerator: React.FC = () => {
       .then(data => setServerAvailable(data.installed))
       .catch(() => setServerAvailable(false));
   }, []);
+
+  // Auto-scroll to bottom when streaming messages update
+  useEffect(() => {
+    if (isStreaming && streamingMessages.length > 0) {
+      const messagesContainer = document.querySelector('.messages-container');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+  }, [streamingMessages, isStreaming]);
 
   const generatePrompt = () => {
     if (mode === 'single') {
@@ -68,6 +83,12 @@ const PromptGenerator: React.FC = () => {
    - Call \`registerScreen\` to self-register
 3. Add the screen import to \`packages/mobile/src/config/importScreens.ts\`
 4. Use React Native components and styling
+5. **Create comprehensive tests** in \`packages/mobile/src/screens/__tests__/\` that validate:
+   - Screen renders without crashing
+   - Key text content and UI elements are displayed
+   - Theme integration works correctly
+   - User interactions function as expected
+   - Accessibility features are working
 
 ## Example Structure:
 \`\`\`typescript
@@ -110,7 +131,56 @@ registerScreen({
 });
 \`\`\`
 
-Create the complete implementation following these patterns.`;
+## Test Structure:
+\`\`\`typescript
+// ${screenName}.test.tsx
+import React from 'react';
+import {render, fireEvent} from '../../../test/test-utils';
+import ${screenName} from '../${screenName}';
+
+describe('${screenName}', () => {
+  describe('Rendering', () => {
+    it('renders without crashing', () => {
+      const {getByText} = render(<${screenName} />);
+      expect(getByText('${screenName}')).toBeTruthy();
+    });
+
+    it('displays the description', () => {
+      const {getByText} = render(<${screenName} />);
+      expect(getByText('${description}')).toBeTruthy();
+    });
+
+    it('applies theme-aware styling', () => {
+      const {getByText} = render(<${screenName} />);
+      const titleElement = getByText('${screenName}');
+      expect(titleElement).toBeTruthy();
+    });
+  });
+
+  describe('Interactions', () => {
+    // Add interaction tests based on your screen functionality
+    // Example:
+    // it('handles button press', () => {
+    //   const {getByText} = render(<${screenName} />);
+    //   const button = getByText('Button Text');
+    //   fireEvent.press(button);
+    //   expect(mockFunction).toHaveBeenCalled();
+    // });
+  });
+
+  describe('Accessibility', () => {
+    it('provides accessible labels', () => {
+      const {getByText} = render(<${screenName} />);
+      expect(getByText('${screenName}')).toBeTruthy();
+    });
+  });
+});
+\`\`\`
+
+Create the complete implementation following these patterns, including both the screen component and comprehensive tests.
+
+## Final Step:
+After creating the screen and tests, run only the tests you created to ensure everything works correctly.`;
 
       return singleScreenPrompt;
     } else {
@@ -134,6 +204,13 @@ Based on the description above, you need to deduce and create:
 - Remove existing screen imports that aren't needed
 - Use our theming system (\`useTheme\`)
 - Follow React Native best practices
+- **Create comprehensive tests** for each screen in \`packages/mobile/src/screens/__tests__/\` that validate:
+  - Screen renders without crashing
+  - Key UI elements and text content are displayed
+  - User interactions work correctly
+  - Navigation between screens functions properly
+  - Theme integration is working
+  - App-wide integration tests (navigation flow, state management)
 
 ## Important Notes:
 - **REPLACE ALL EXISTING SCREENS**: Remove all current imports in \`importScreens.ts\` and replace with your new app screens
@@ -176,7 +253,64 @@ registerScreen({
 });
 \`\`\`
 
-Create a complete, functional app with 3-5 main screens based on the description provided.`;
+## Testing Requirements:
+Create tests for each screen following this pattern:
+
+\`\`\`typescript
+// ScreenName.test.tsx
+import React from 'react';
+import {render, fireEvent, waitFor} from '../../../test/test-utils';
+import ScreenName from '../ScreenName';
+
+describe('ScreenName', () => {
+  describe('Rendering', () => {
+    it('renders without crashing', () => {
+      const {getByText} = render(<ScreenName />);
+      expect(getByText('Expected Screen Title')).toBeTruthy();
+    });
+
+    it('displays key UI elements', () => {
+      const {getByText, getByTestId} = render(<ScreenName />);
+      expect(getByText('Important Button')).toBeTruthy();
+      expect(getByTestId('main-content')).toBeTruthy();
+    });
+
+    it('applies theme correctly', () => {
+      const {getByText} = render(<ScreenName />);
+      const titleElement = getByText('Expected Screen Title');
+      expect(titleElement).toBeTruthy();
+    });
+  });
+
+  describe('Interactions', () => {
+    it('handles user interactions', () => {
+      const {getByText} = render(<ScreenName />);
+      const button = getByText('Important Button');
+      fireEvent.press(button);
+      // Add specific assertions based on expected behavior
+    });
+  });
+
+  describe('Navigation', () => {
+    it('navigates correctly when needed', async () => {
+      const {getByText} = render(<ScreenName />);
+      // Test navigation flows if applicable
+    });
+  });
+});
+\`\`\`
+
+## App Integration Tests:
+Also create or update \`packages/mobile/__tests__/App.test.tsx\` to test:
+- Initial app state and default screen
+- Navigation between all your new screens
+- Theme consistency across screens
+- Overall app functionality and user flows
+
+Create a complete, functional app with 3-5 main screens AND comprehensive tests based on the description provided.
+
+## Final Step:
+After creating all screens and their tests, run only the tests you created to ensure the entire app works correctly.`;
 
       return completeAppPrompt;
     }
@@ -203,7 +337,7 @@ Create a complete, functional app with 3-5 main screens based on the description
     if (model) command += ` --model "${model}"`;
     if (permissionMode !== 'default') command += ` --permission-mode "${permissionMode}"`;
     if (verbose) command += ` --verbose`;
-    if (maxTurns !== 3) command += ` --max-turns ${maxTurns}`;
+    if (maxTurns !== 20) command += ` --max-turns ${maxTurns}`;
     if (workingDirectory) command += ` --add-dir "${workingDirectory}"`;
     if (dangerouslySkipPermissions) command += ` --dangerously-skip-permissions`;
     
@@ -215,7 +349,150 @@ Create a complete, functional app with 3-5 main screens based on the description
     return envVars + command;
   };
 
+  const executeClaudeCodeStreaming = async () => {
+    // Validate required fields for single mode
+    if (mode === 'single') {
+      if (!screenName.trim()) {
+        alert('Please enter a screen name before executing.');
+        return;
+      }
+      if (!description.trim()) {
+        alert('Please enter a screen description before executing.');
+        return;
+      }
+    } else if (mode === 'complete') {
+      if (!appDescription.trim()) {
+        alert('Please enter an app description before executing.');
+        return;
+      }
+    }
+
+    setIsExecuting(true);
+    setIsStreaming(true);
+    setStreamingMessages([]);
+    setShowConversation(true);
+    
+    try {
+      const prompt = generatePrompt();
+      setLastExecutedPrompt(prompt);
+
+      const requestBody: any = {
+        prompt: prompt,
+        maxTurns: maxTurns
+      };
+
+      // Add advanced options if specified
+      if (systemPrompt) requestBody.systemPrompt = systemPrompt;
+      if (appendSystemPrompt) requestBody.appendSystemPrompt = appendSystemPrompt;
+      if (allowedTools) requestBody.allowedTools = allowedTools.split(',').map(t => t.trim());
+      if (disallowedTools) requestBody.disallowedTools = disallowedTools.split(',').map(t => t.trim());
+      if (mcpConfig) requestBody.mcpConfig = mcpConfig;
+      if (permissionPromptTool) requestBody.permissionPromptTool = permissionPromptTool;
+      if (model) requestBody.model = model;
+      if (permissionMode !== 'default') requestBody.permissionMode = permissionMode;
+      if (verbose) requestBody.verbose = verbose;
+      if (workingDirectory) requestBody.workingDirectory = workingDirectory;
+      if (dangerouslySkipPermissions) requestBody.dangerouslySkipPermissions = dangerouslySkipPermissions;
+      if (anthropicBaseUrl) requestBody.anthropicBaseUrl = anthropicBaseUrl;
+      if (anthropicAuthToken) requestBody.anthropicAuthToken = anthropicAuthToken;
+
+      console.log('Starting streaming execution with options:', requestBody);
+
+      // Use fetch stream for real-time streaming
+      const response = await fetch('http://localhost:3001/execute-claude-code-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('Response body is not readable');
+      }
+
+      let allMessages: any[] = [];
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last line in buffer if it doesn't end with \n
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line.length > 6) {
+            try {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr) {
+                const data = JSON.parse(jsonStr);
+                
+                if (data.type === 'connection') {
+                  console.log('🌊 Streaming connection established');
+                } else if (data.type === 'message') {
+                  allMessages = [...allMessages, data.message];
+                  setStreamingMessages(allMessages);
+                  console.log(`📨 Received: ${data.message.type}`);
+                } else if (data.type === 'complete') {
+                  setClaudeMessages(data.messages || allMessages);
+                  setExecutionResult(data);
+                  console.log('✅ Streaming execution completed successfully');
+                } else if (data.type === 'error') {
+                  console.error('❌ Streaming execution failed:', data);
+                  alert(`❌ Claude Code failed: ${data.error}\n\nDetails: ${data.details || 'No details available'}`);
+                }
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', line, e);
+            }
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Streaming error:', error);
+      alert(`❌ Streaming error: ${error}`);
+      setShowConversation(false);
+    } finally {
+      setIsExecuting(false);
+      setIsStreaming(false);
+    }
+  };
+
   const executeClaudeCode = async () => {
+    if (streamingEnabled) {
+      return executeClaudeCodeStreaming();
+    }
+
+    // Validate required fields for single mode
+    if (mode === 'single') {
+      if (!screenName.trim()) {
+        alert('Please enter a screen name before executing.');
+        return;
+      }
+      if (!description.trim()) {
+        alert('Please enter a screen description before executing.');
+        return;
+      }
+    } else if (mode === 'complete') {
+      if (!appDescription.trim()) {
+        alert('Please enter an app description before executing.');
+        return;
+      }
+    }
+
     setIsExecuting(true);
     try {
       const prompt = generatePrompt();
@@ -265,6 +542,15 @@ Create a complete, functional app with 3-5 main screens based on the description
     } finally {
       setIsExecuting(false);
     }
+  };
+
+  const isFormValid = () => {
+    if (mode === 'single') {
+      return screenName.trim() && description.trim();
+    } else if (mode === 'complete') {
+      return appDescription.trim();
+    }
+    return false;
   };
 
   const executeTestPrompt = async () => {
@@ -331,6 +617,21 @@ Create a complete, functional app with 3-5 main screens based on the description
             padding-bottom: 10px;
             border-bottom: 1px solid #e0e0e0;
             margin-bottom: 20px;
+          }
+          
+          @keyframes pulse {
+            0% {
+              opacity: 1;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.5;
+              transform: scale(1.1);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1);
+            }
           }
         `}
       </style>
@@ -457,24 +758,40 @@ Create a complete, functional app with 3-5 main screens based on the description
         <div style={{ marginBottom: '20px' }}>
           <h2 style={{ color: '#333' }}>Single Screen Details</h2>
           <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Screen Name:</label>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Screen Name: <span style={{ color: 'red' }}>*</span>
+            </label>
             <input
               type="text"
               value={screenName}
               onChange={(e) => setScreenName(e.target.value)}
               placeholder="e.g., ProfileScreen"
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+              style={{ 
+                width: '100%', 
+                padding: '8px', 
+                border: screenName.trim() ? '1px solid #ccc' : '2px solid #ff6b6b', 
+                borderRadius: '4px',
+                backgroundColor: screenName.trim() ? 'white' : '#ffebee'
+              }}
             />
           </div>
           
           <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Description:</label>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+              Description: <span style={{ color: 'red' }}>*</span>
+            </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g., User profile management screen"
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+              style={{ 
+                width: '100%', 
+                padding: '8px', 
+                border: description.trim() ? '1px solid #ccc' : '2px solid #ff6b6b', 
+                borderRadius: '4px',
+                backgroundColor: description.trim() ? 'white' : '#ffebee'
+              }}
             />
           </div>
           
@@ -505,7 +822,7 @@ Create a complete, functional app with 3-5 main screens based on the description
           <h2 style={{ color: '#333' }}>Complete App Description</h2>
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              App Description:
+              App Description: <span style={{ color: 'red' }}>*</span>
             </label>
             <textarea
               value={appDescription}
@@ -514,10 +831,11 @@ Create a complete, functional app with 3-5 main screens based on the description
               style={{ 
                 width: '100%', 
                 padding: '10px', 
-                border: '1px solid #ccc', 
+                border: appDescription.trim() ? '1px solid #ccc' : '2px solid #ff6b6b', 
                 borderRadius: '4px',
                 minHeight: '120px',
-                resize: 'vertical'
+                resize: 'vertical',
+                backgroundColor: appDescription.trim() ? 'white' : '#ffebee'
               }}
             />
           </div>
@@ -645,16 +963,31 @@ Create a complete, functional app with 3-5 main screens based on the description
                     />
                     Verbose Logging
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold', color: '#dc3545' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold', color: '#28a745' }}>
                     <input
                       type="checkbox"
                       checked={dangerouslySkipPermissions}
                       onChange={(e) => setDangerouslySkipPermissions(e.target.checked)}
                       style={{ marginRight: '8px' }}
                     />
-                    ⚠️ Skip Permissions (Dangerous)
+                    🔒 Grant Directory Permissions (Auto-approve file operations in working directory)
                   </label>
                 </div>
+              </div>
+
+              <div style={{ gridColumn: '1 / -1', marginTop: '15px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold', color: '#28a745' }}>
+                  <input
+                    type="checkbox"
+                    checked={streamingEnabled}
+                    onChange={(e) => setStreamingEnabled(e.target.checked)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  🌊 Real-time Streaming (See messages as they happen)
+                </label>
+                <small style={{ color: '#666', marginLeft: '24px' }}>
+                  When enabled, you'll see Claude Code messages appear live instead of only at the end
+                </small>
               </div>
 
               {/* Custom API Configuration */}
@@ -725,20 +1058,36 @@ Create a complete, functional app with 3-5 main screens based on the description
         {serverAvailable && (
           <button
             onClick={executeClaudeCode}
-            disabled={isExecuting}
+            disabled={isExecuting || !isFormValid()}
             style={{
-              background: isExecuting ? '#6c757d' : '#28a745',
+              background: (isExecuting || !isFormValid()) ? '#6c757d' : '#28a745',
               color: 'white',
               border: 'none',
               padding: '10px 20px',
               borderRadius: '4px',
-              cursor: isExecuting ? 'not-allowed' : 'pointer',
+              cursor: (isExecuting || !isFormValid()) ? 'not-allowed' : 'pointer',
               fontSize: '14px',
-              opacity: isExecuting ? 0.6 : 1
+              opacity: (isExecuting || !isFormValid()) ? 0.6 : 1
             }}
           >
-            {isExecuting ? '⏳ Executing...' : '🚀 Execute Now'}
+            {isExecuting 
+              ? (isStreaming ? '🌊 Streaming Live...' : '⏳ Executing...') 
+              : (streamingEnabled ? '🌊 Execute with Streaming' : '🚀 Execute Now')}
           </button>
+        )}
+        
+        {!isFormValid() && (
+          <div style={{ 
+            marginTop: '10px', 
+            padding: '8px', 
+            background: '#fff3cd', 
+            border: '1px solid #ffeaa7', 
+            borderRadius: '4px',
+            color: '#856404',
+            fontSize: '14px'
+          }}>
+            ⚠️ Please fill in all required fields (*) before executing.
+          </div>
         )}
       </div>
 
@@ -849,12 +1198,38 @@ Create a complete, functional app with 3-5 main screens based on the description
             </div>
 
             {/* Messages */}
-            <div style={{
+            <div className="messages-container" style={{
               flex: 1,
               overflow: 'auto',
               padding: '20px'
             }}>
-              {claudeMessages.map((message, index) => (
+              {/* Real-time streaming indicator */}
+              {isStreaming && (
+                <div style={{
+                  marginBottom: '15px',
+                  padding: '10px',
+                  backgroundColor: '#e3f2fd',
+                  border: '1px solid #2196f3',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    backgroundColor: '#2196f3',
+                    borderRadius: '50%',
+                    animation: 'pulse 1s infinite'
+                  }}></div>
+                  <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                    🌊 Streaming live messages... ({streamingMessages.length} received)
+                  </span>
+                </div>
+              )}
+
+              {/* Display messages (streaming or final) */}
+              {(isStreaming ? streamingMessages : claudeMessages).map((message, index) => (
                 <div key={index} style={{
                   marginBottom: '15px',
                   padding: '10px',
