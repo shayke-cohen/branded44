@@ -19,12 +19,13 @@ const PromptGenerator: React.FC = () => {
   const [mcpConfig, setMcpConfig] = useState('');
   const [permissionPromptTool, setPermissionPromptTool] = useState('');
   const [model, setModel] = useState('');
-  const [permissionMode, setPermissionMode] = useState('bypass-permissions');
+  const [permissionMode, setPermissionMode] = useState('default');
   const [verbose, setVerbose] = useState(false);
   const [maxTurns, setMaxTurns] = useState(3);
   const [workingDirectory, setWorkingDirectory] = useState('');
 
-  // Additional security/proxy options (removed duplicate dangerouslySkipPermissions)
+  // Additional security/proxy options 
+  const [dangerouslySkipPermissions, setDangerouslySkipPermissions] = useState(true);
   const [anthropicBaseUrl, setAnthropicBaseUrl] = useState('http://localhost:3002/api/anthropic-proxy');
   const [anthropicAuthToken, setAnthropicAuthToken] = useState('fake-key-for-proxy');
 
@@ -203,7 +204,7 @@ Create a complete, functional app with 3-5 main screens based on the description
     if (verbose) command += ` --verbose`;
     if (maxTurns !== 3) command += ` --max-turns ${maxTurns}`;
     if (workingDirectory) command += ` --add-dir "${workingDirectory}"`;
-    if (permissionMode === 'bypass-permissions') command += ` --dangerously-skip-permissions`;
+    if (dangerouslySkipPermissions) command += ` --dangerously-skip-permissions`;
     
     // Add environment variables if specified
     let envVars = '';
@@ -234,7 +235,7 @@ Create a complete, functional app with 3-5 main screens based on the description
       if (permissionMode !== 'default') requestBody.permissionMode = permissionMode;
       if (verbose) requestBody.verbose = verbose;
       if (workingDirectory) requestBody.workingDirectory = workingDirectory;
-      if (permissionMode === 'bypass-permissions') requestBody.dangerouslySkipPermissions = true;
+      if (dangerouslySkipPermissions) requestBody.dangerouslySkipPermissions = dangerouslySkipPermissions;
       if (anthropicBaseUrl) requestBody.anthropicBaseUrl = anthropicBaseUrl;
       if (anthropicAuthToken) requestBody.anthropicAuthToken = anthropicAuthToken;
 
@@ -604,8 +605,6 @@ Create a complete, functional app with 3-5 main screens based on the description
                   style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
                 >
                   <option value="default">Default</option>
-                  <option value="accept-edits">Accept Edits</option>
-                  <option value="bypass-permissions">Bypass Permissions</option>
                   <option value="plan">Plan Mode</option>
                 </select>
               </div>
@@ -634,15 +633,26 @@ Create a complete, functional app with 3-5 main screens based on the description
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>
-                  <input
-                    type="checkbox"
-                    checked={verbose}
-                    onChange={(e) => setVerbose(e.target.checked)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  Verbose Logging
-                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>
+                    <input
+                      type="checkbox"
+                      checked={verbose}
+                      onChange={(e) => setVerbose(e.target.checked)}
+                      style={{ marginRight: '8px' }}
+                    />
+                    Verbose Logging
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold', color: '#dc3545' }}>
+                    <input
+                      type="checkbox"
+                      checked={dangerouslySkipPermissions}
+                      onChange={(e) => setDangerouslySkipPermissions(e.target.checked)}
+                      style={{ marginRight: '8px' }}
+                    />
+                    ⚠️ Skip Permissions (Dangerous)
+                  </label>
+                </div>
               </div>
 
               {/* Custom API Configuration */}

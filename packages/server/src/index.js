@@ -69,8 +69,8 @@ app.post('/execute-claude-code', async (req, res) => {
     anthropicAuthToken
   } = req.body;
 
-  // Convert permissionMode to dangerouslySkipPermissions if needed
-  const shouldSkipPermissions = dangerouslySkipPermissions || permissionMode === 'bypass-permissions';
+  // Use explicit dangerouslySkipPermissions parameter
+  const shouldSkipPermissions = dangerouslySkipPermissions;
 
   if (!prompt) {
     return res.status(400).json({ 
@@ -138,13 +138,17 @@ app.post('/execute-claude-code', async (req, res) => {
         options.permissionPromptTool = permissionPromptTool;
       }
 
-      // Add permission mode and dangerous skip
-      if (permissionMode) {
-        options.permissionMode = permissionMode;
-      }
+      // Add dangerous skip permissions
       if (shouldSkipPermissions) {
         options.dangerouslySkipPermissions = true;
-        console.log(`⚠️  DANGER: Skipping all permissions! (Mode: ${permissionMode || 'explicit'})`);
+        console.log(`⚠️  DANGER: Skipping all permissions!`);
+      }
+      
+      // Add permission mode only if it's a valid value (not our custom ones)
+      if (permissionMode && permissionMode !== 'default') {
+        console.log(`📋 Permission mode: ${permissionMode} (may not be supported by SDK)`);
+        // Only add supported permission modes if any
+        // options.permissionMode = permissionMode;
       }
 
       // Add model selection
