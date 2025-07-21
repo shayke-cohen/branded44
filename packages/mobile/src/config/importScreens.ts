@@ -2,22 +2,15 @@
  * Screen Imports
  * 
  * Import all screens to trigger their registerScreen() calls.
- * To add a new screen: 1) Create YourScreen.tsx with registerScreen() 2) Add import below
+ * Only include screens that are relevant to this specific app.
  */
 
-console.log('📱 Importing all screens...');
+console.log('📱 Importing fitness app screens...');
 
-// Import all screens - each will self-register SYNCHRONOUSLY
-import '../screens/HomeScreen/HomeScreen';
-import '../screens/SettingsScreen/SettingsScreen';
-import '../screens/ProfileScreen/ProfileScreen';
-import '../screens/MessagesScreen/MessagesScreen';
-import '../screens/NotificationsScreen';
-import '../screens/ContactsScreen';
+// Fitness App Screens (replace everything with these)
+import '../screens/WorkoutScreen';
+import '../screens/ProgressScreen';
+import '../screens/SocialScreen';
+import '../screens/FitnessProfileScreen';
 
-// Note: TemplateIndexScreen registered separately to avoid circular dependencies
-
-// Add new screen imports here:
-// import '../screens/YourNewScreen';
-
-console.log('✅ All screens imported - registerScreen calls executed!'); 
+console.log('✅ Fitness app screens imported!'); 
