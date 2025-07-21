@@ -33,6 +33,7 @@ const PromptGenerator: React.FC = () => {
   const [claudeMessages, setClaudeMessages] = useState<any[]>([]);
   const [showConversation, setShowConversation] = useState(false);
   const [executionResult, setExecutionResult] = useState<any>(null);
+  const [lastExecutedPrompt, setLastExecutedPrompt] = useState('');
 
   // Quick SDK Test
   const [testPrompt, setTestPrompt] = useState('List files in current directory');
@@ -218,6 +219,7 @@ Create a complete, functional app with 3-5 main screens based on the description
     setIsExecuting(true);
     try {
       const prompt = generatePrompt();
+      setLastExecutedPrompt(prompt); // Store the prompt for display
       
       const requestBody: any = {
         prompt: prompt,
@@ -824,6 +826,28 @@ Create a complete, functional app with 3-5 main screens based on the description
               </button>
             </div>
 
+            {/* Prompt Section */}
+            <div style={{
+              padding: '15px 20px',
+              backgroundColor: '#f8f9fa',
+              borderBottom: '1px solid #e0e0e0'
+            }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#495057' }}>📝 Sent Prompt:</h4>
+              <div style={{
+                backgroundColor: 'white',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+                padding: '12px',
+                fontFamily: 'monospace',
+                fontSize: '13px',
+                whiteSpace: 'pre-wrap',
+                maxHeight: '200px',
+                overflow: 'auto'
+              }}>
+                {lastExecutedPrompt}
+              </div>
+            </div>
+
             {/* Messages */}
             <div style={{
               flex: 1,
@@ -971,12 +995,12 @@ Create a complete, functional app with 3-5 main screens based on the description
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <div>
-                <h2 style={{ margin: 0, color: '#333' }}>🧪 SDK Test Response</h2>
-                <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '14px' }}>
-                  Prompt: "{testPrompt}" • {testResult.messageCount} messages • {testResult.duration}ms
-                </p>
-              </div>
+                             <div>
+                 <h2 style={{ margin: 0, color: '#333' }}>🧪 SDK Test Response</h2>
+                 <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '14px' }}>
+                   {testResult.messageCount} messages • {testResult.duration}ms
+                 </p>
+               </div>
               <button
                 onClick={() => setShowTestConversation(false)}
                 style={{
@@ -992,13 +1016,35 @@ Create a complete, functional app with 3-5 main screens based on the description
               </button>
             </div>
 
-            {/* Messages */}
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: '20px'
-            }}>
-              {testResult.messages.map((message: any, index: number) => (
+                         {/* Prompt Section */}
+             <div style={{
+               padding: '15px 20px',
+               backgroundColor: '#f8f9fa',
+               borderBottom: '1px solid #e0e0e0'
+             }}>
+               <h4 style={{ margin: '0 0 8px 0', color: '#495057' }}>📝 Sent Prompt:</h4>
+               <div style={{
+                 backgroundColor: 'white',
+                 border: '1px solid #dee2e6',
+                 borderRadius: '4px',
+                 padding: '12px',
+                 fontFamily: 'monospace',
+                 fontSize: '13px',
+                 whiteSpace: 'pre-wrap',
+                 maxHeight: '150px',
+                 overflow: 'auto'
+               }}>
+                 {testPrompt}
+               </div>
+             </div>
+
+             {/* Messages */}
+             <div style={{
+               flex: 1,
+               overflow: 'auto',
+               padding: '20px'
+             }}>
+               {testResult.messages.map((message: any, index: number) => (
                 <div key={index} style={{
                   marginBottom: '15px',
                   padding: '12px',
