@@ -8,8 +8,7 @@ import {
   getScreenComponent,
 } from './screen-templates/templateConfig';
 
-// Import TemplateIndexScreen registration after templates are loaded
-import './config/registerTemplateScreen';
+// Templates screen removed for fitness app - only show imported screens from importScreens.ts
 
 const AppContent = () => {
   // Get first tab from unified registry as default
