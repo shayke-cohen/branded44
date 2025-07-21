@@ -236,6 +236,12 @@ import '../screens/YourScreen2';
 // etc...
 ```
 
+**ALSO** remove TemplateIndexScreen from `App.tsx`:
+```typescript
+// Remove or comment out this line in App.tsx:
+// import './config/registerTemplateScreen';
+```
+
 #### Option 2: Selective Removal
 1. **Remove Import**: Delete line from `importScreens.ts`
 2. **Delete Files**: Remove screen files you don't need
