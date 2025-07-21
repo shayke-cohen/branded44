@@ -2,25 +2,56 @@ import React, {useState} from 'react';
 import {View, Text, StyleSheet, ScrollView} from 'react-native';
 import MobilePreview from './components/MobilePreview';
 import PreviewNavigation from './components/PreviewNavigation';
+import PromptGenerator from './components/PromptGenerator';
 import {PreviewProvider} from './context/PreviewContext';
 
 // Initialize self-registering screens for web preview
 import './utils/initializeScreens';
 
 const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'preview' | 'generate'>('preview');
+
   return (
     <PreviewProvider>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Branded44 Mobile Preview</Text>
+          <Text style={styles.title}>Branded44 Mobile Development</Text>
           <Text style={styles.subtitle}>
-            Preview your React Native mobile screens in the browser
+            Preview React Native screens and generate Claude Code prompts
           </Text>
+          
+          {/* Tab Navigation */}
+          <View style={styles.tabContainer}>
+            <button
+              style={{
+                ...styles.tab,
+                ...(activeTab === 'preview' ? styles.activeTab : {})
+              }}
+              onClick={() => setActiveTab('preview')}>
+              📱 Preview Screens
+            </button>
+            <button
+              style={{
+                ...styles.tab,
+                ...(activeTab === 'generate' ? styles.activeTab : {})
+              }}
+              onClick={() => setActiveTab('generate')}>
+              🤖 Generate Prompts
+            </button>
+          </View>
         </View>
         
         <View style={styles.content}>
-          <PreviewNavigation />
-          <MobilePreview />
+          {activeTab === 'preview' ? (
+            <>
+              <PreviewNavigation />
+              <MobilePreview />
+            </>
+          ) : (
+            <View style={styles.promptSection}>
+              <PromptGenerator />
+            </View>
+          )}
         </View>
       </View>
     </PreviewProvider>
@@ -50,12 +81,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginBottom: 20,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  tab: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  activeTab: {
+    backgroundColor: '#007AFF',
+    color: '#ffffff',
   },
   content: {
     flex: 1,
     flexDirection: 'row',
     padding: 24,
     gap: 24,
+  },
+  promptSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
