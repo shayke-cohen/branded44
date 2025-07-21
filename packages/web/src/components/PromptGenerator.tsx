@@ -456,7 +456,10 @@ Based on their description, automatically deduce all requirements and create:
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       fontFamily: 'system-ui, -apple-system, sans-serif',
       maxWidth: '800px',
-      height: 'fit-content'
+      width: '100%',
+      height: 'fit-content',
+      maxHeight: 'calc(100vh - 200px)',
+      overflow: 'auto'
     }}>
       <style>{`
         .prompt-container {

@@ -111,8 +111,10 @@ const styles = StyleSheet.create({
   },
   promptSection: {
     flex: 1,
-    justifyContent: 'center',
+    padding: 20,
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    overflow: 'auto',
   },
 });
 
