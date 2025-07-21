@@ -470,36 +470,12 @@ function initializeUnifiedRegistry(): void {
 
   // Add screen entities (HomeScreen and SettingsScreen now self-register)
   const screenEntities: EntityConfig[] = [
-    {
-      id: 'TemplateIndexScreen',
-      name: 'Templates',
-      type: 'screen',
-      component: undefined, // Special handling
-      icon: '📋',
-      category: 'Templates',
-      tags: ['templates', 'examples', 'gallery'],
-      relationships: {
-        tab: 'templates-tab'
-      }
-    }
+    // TemplateIndexScreen removed for clean fitness app
   ];
 
   // Add navigation tab entities (Home and Settings tabs now self-managed)
   const navTabEntities: EntityConfig[] = [
-    {
-      id: 'templates-tab',
-      name: 'Templates',
-      type: 'nav-tab',
-      icon: '📋',
-      category: 'Navigation',
-      tags: ['tab', 'navigation', 'templates'],
-      metadata: {
-        position: 6 // Demo/development - last position
-      },
-      relationships: {
-        defaultScreen: 'TemplateIndexScreen'
-      }
-    }
+    // templates-tab removed for clean fitness app
   ];
 
   // Add template mapping entities
