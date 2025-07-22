@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {usePreview, ScreenType} from '../context/PreviewContext';
 import {getScreens} from '@mobile/screen-templates/templateConfig';
+import { generateCompleteAppPrompt } from '../utils/claudePrompts';
 
 const PreviewNavigation: React.FC = () => {
   const {
@@ -40,129 +41,10 @@ const PreviewNavigation: React.FC = () => {
     setIsGenerating(true);
 
     try {
-      // Complete app prompt (same as in PromptGenerator)
-      const completeAppPrompt = `You are tasked with creating a complete React Native app based on a user description.
-
-## App Description:
-${appDescription}
-
-## Your Task:
-Based on the description above, you need to deduce and create:
-1. **App name and purpose**
-2. **Core features and functionality** 
-3. **User flow and navigation**
-4. **Specific screens needed**
-5. **Screen content and functionality**
-
-## Architecture Requirements:
-- Create screen files in \`packages/mobile/src/screens/\`
-- Each screen must self-register using \`registerScreen\`
-- Update \`packages/mobile/src/config/importScreens.ts\` with new screen imports
-- Remove existing screen imports that aren't needed
-- Use our theming system (\`useTheme\`)
-- Follow React Native best practices
-- **Create comprehensive tests** for each screen in \`packages/mobile/src/screens/__tests__/\` that validate:
-  - Screen renders without crashing
-  - Key UI elements and text content are displayed
-  - User interactions work correctly
-  - Navigation between screens functions properly
-  - Theme integration is working
-  - App-wide integration tests (navigation flow, state management)
-
-## Important Notes:
-- **REPLACE ALL EXISTING SCREENS**: Remove all current imports in \`importScreens.ts\` and replace with your new app screens
-- **Tab Positions**: Assign tab positions 1, 2, 3, 4, etc. for main navigation
-
-## Example Screen Structure:
-\`\`\`typescript
-import React from 'react';
-import { View, Text, SafeAreaView, StyleSheet } from 'react-native';
-import { useTheme } from '@/context';
-import { registerScreen } from '@/config/registry';
-
-export default function ScreenName() {
-  const { theme } = useTheme();
-  
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Screen content */}
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  // Styles
-});
-
-registerScreen({
-  name: 'Screen Name',
-  component: ScreenName,
-  icon: '📱',
-  category: 'Main',
-  tab: 1,
-  description: 'Description of what this screen does',
-  tags: ['tag1', 'tag2']
-});
-\`\`\`
-
-## Testing Requirements:
-Create tests for each screen following this pattern:
-
-\`\`\`typescript
-// ScreenName.test.tsx
-import React from 'react';
-import {render, fireEvent, waitFor} from '../../../test/test-utils';
-import ScreenName from '../ScreenName';
-
-describe('ScreenName', () => {
-  describe('Rendering', () => {
-    it('renders without crashing', () => {
-      const {getByText} = render(<ScreenName />);
-      expect(getByText('Expected Screen Title')).toBeTruthy();
-    });
-
-    it('displays key UI elements', () => {
-      const {getByText, getByTestId} = render(<ScreenName />);
-      expect(getByText('Important Button')).toBeTruthy();
-      expect(getByTestId('main-content')).toBeTruthy();
-    });
-
-    it('applies theme correctly', () => {
-      const {getByText} = render(<ScreenName />);
-      const titleElement = getByText('Expected Screen Title');
-      expect(titleElement).toBeTruthy();
-    });
-  });
-
-  describe('Interactions', () => {
-    it('handles user interactions', () => {
-      const {getByText} = render(<ScreenName />);
-      const button = getByText('Important Button');
-      fireEvent.press(button);
-      // Add specific assertions based on expected behavior
-    });
-  });
-
-  describe('Navigation', () => {
-    it('navigates correctly when needed', async () => {
-      const {getByText} = render(<ScreenName />);
-      // Test navigation flows if applicable
-    });
-  });
-});
-\`\`\`
-
-## App Integration Tests:
-Also create or update \`packages/mobile/__tests__/App.test.tsx\` to test:
-- Initial app state and default screen
-- Navigation between all your new screens
-- Theme consistency across screens
-- Overall app functionality and user flows
-
-Create a complete, functional app with 3-5 main screens AND comprehensive tests based on the description provided.
-
-## Final Step:
-After creating all screens and their tests, run only the tests you created to ensure the entire app works correctly.`;
+      // ✅ Using centralized prompt from utils/claudePrompts.ts
+      const completeAppPrompt = generateCompleteAppPrompt({
+        appDescription
+      });
 
       // Same defaults as PromptGenerator
       const requestBody = {
