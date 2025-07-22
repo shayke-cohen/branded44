@@ -47,6 +47,11 @@ const PromptGenerator: React.FC = () => {
   const [useProxyForTest, setUseProxyForTest] = useState(false);
   const [showTestConversation, setShowTestConversation] = useState(false);
 
+  // UI Collapse/Expand state
+  const [showSingleScreenDetails, setShowSingleScreenDetails] = useState(false);
+  const [showCompleteAppDetails, setShowCompleteAppDetails] = useState(false);
+  const [showQuickTest, setShowQuickTest] = useState(false);
+
   useEffect(() => {
     // Check if Claude Code server is available
     fetch('http://localhost:3001/check-claude-code')
@@ -64,6 +69,13 @@ const PromptGenerator: React.FC = () => {
       }
     }
   }, [streamingMessages, isStreaming]);
+
+  // Auto-populate description from screen name
+  useEffect(() => {
+    if (screenName && description === '') {
+      setDescription(screenName);
+    }
+  }, [screenName, description]);
 
   const generatePrompt = () => {
     if (mode === 'single') {
@@ -642,15 +654,33 @@ After creating all screens and their tests, run only the tests you created to en
           Generate prompts for Claude Code to create React Native screens or complete apps
         </p>
 
-        {/* Quick SDK Test Section */}
-        <div style={{ 
-          backgroundColor: '#f8f9fa', 
-          border: '1px solid #dee2e6', 
-          borderRadius: '8px', 
-          padding: '15px', 
-          marginBottom: '20px' 
-        }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>🧪 Quick SDK Test</h3>
+        {/* Quick SDK Test Section - Collapsible */}
+        <button
+          onClick={() => setShowQuickTest(!showQuickTest)}
+          style={{
+            background: '#f8f9fa',
+            border: '1px solid #dee2e6',
+            padding: '8px 12px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginBottom: '15px',
+            fontSize: '14px',
+            width: '100%',
+            textAlign: 'left'
+          }}
+        >
+          {showQuickTest ? '🔽' : '🔼'} 🧪 Quick SDK Test
+        </button>
+
+        {showQuickTest && (
+          <div style={{ 
+            backgroundColor: '#f8f9fa', 
+            border: '1px solid #dee2e6', 
+            borderRadius: '8px', 
+            padding: '15px', 
+            marginBottom: '20px' 
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>🧪 Quick SDK Test</h3>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '10px' }}>
             <input
               type="text"
@@ -728,7 +758,8 @@ After creating all screens and their tests, run only the tests you created to en
               {testResult.duration && <div><strong>Duration:</strong> {testResult.duration}ms</div>}
             </div>
           )}
-        </div>
+          </div>
+        )}
         
         <div style={{ marginBottom: '20px' }}>
           <label style={{ marginRight: '20px' }}>
@@ -756,7 +787,7 @@ After creating all screens and their tests, run only the tests you created to en
 
       {mode === 'single' ? (
         <div style={{ marginBottom: '20px' }}>
-          <h2 style={{ color: '#333' }}>Single Screen Details</h2>
+          {/* Always visible: Screen Name */}
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
               Screen Name: <span style={{ color: 'red' }}>*</span>
@@ -775,51 +806,71 @@ After creating all screens and their tests, run only the tests you created to en
               }}
             />
           </div>
-          
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Description: <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g., User profile management screen"
-              style={{ 
-                width: '100%', 
-                padding: '8px', 
-                border: description.trim() ? '1px solid #ccc' : '2px solid #ff6b6b', 
-                borderRadius: '4px',
-                backgroundColor: description.trim() ? 'white' : '#ffebee'
-              }}
-            />
-          </div>
-          
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Category:</label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g., User, Settings, Main"
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-            />
-          </div>
-          
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Icon (emoji):</label>
-            <input
-              type="text"
-              value={icon}
-              onChange={(e) => setIcon(e.target.value)}
-              placeholder="e.g., 👤"
-              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-            />
-          </div>
+
+          {/* Collapsible details section */}
+          <button
+            onClick={() => setShowSingleScreenDetails(!showSingleScreenDetails)}
+            style={{
+              background: '#f0f0f0',
+              border: '1px solid #ccc',
+              padding: '8px 12px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              marginBottom: '15px',
+              fontSize: '14px'
+            }}
+          >
+            {showSingleScreenDetails ? '🔽' : '🔼'} Screen Details
+          </button>
+
+          {showSingleScreenDetails && (
+            <div style={{ border: '1px solid #e0e0e0', padding: '15px', borderRadius: '4px', background: '#f9f9f9', marginBottom: '15px' }}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Description: <span style={{ color: 'red' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g., User profile management screen"
+                  style={{ 
+                    width: '100%', 
+                    padding: '8px', 
+                    border: description.trim() ? '1px solid #ccc' : '2px solid #ff6b6b', 
+                    borderRadius: '4px',
+                    backgroundColor: description.trim() ? 'white' : '#ffebee'
+                  }}
+                />
+              </div>
+              
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Category:</label>
+                <input
+                  type="text"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="e.g., User, Settings, Main"
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                />
+              </div>
+              
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Icon (emoji):</label>
+                <input
+                  type="text"
+                  value={icon}
+                  onChange={(e) => setIcon(e.target.value)}
+                  placeholder="e.g., 👤"
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ marginBottom: '20px' }}>
-          <h2 style={{ color: '#333' }}>Complete App Description</h2>
+          {/* Always visible: App Description */}
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
               App Description: <span style={{ color: 'red' }}>*</span>
@@ -839,6 +890,13 @@ After creating all screens and their tests, run only the tests you created to en
               }}
             />
           </div>
+
+          {/* Optional: Collapsible details section for future app options */}
+          {showCompleteAppDetails && (
+            <div style={{ border: '1px solid #e0e0e0', padding: '15px', borderRadius: '4px', background: '#f9f9f9', marginBottom: '15px' }}>
+              {/* Future app-specific options can go here */}
+            </div>
+          )}
         </div>
       )}
 

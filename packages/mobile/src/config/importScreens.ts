@@ -8,9 +8,11 @@
 console.log('📱 Importing fitness app screens...');
 
 // Fitness App Screens (replace everything with these)
-import '../screens/WorkoutScreen';
-import '../screens/ProgressScreen';
-import '../screens/SocialScreen';
-import '../screens/FitnessProfileScreen';
+//import '../screens/WorkoutScreen';
+//import '../screens/ProgressScreen';
+//import '../screens/SocialScreen';
+//import '../screens/FitnessProfileScreen';
+import '../screens/SettingsScreen'
+import '../screens/HomeScreen'
 
 console.log('✅ Fitness app screens imported!'); 

@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
-import {usePreview, ScreenType, SampleAppType, TemplateType} from '../context/PreviewContext';
+import {usePreview, ScreenType} from '../context/PreviewContext';
 import {getScreens, getSampleApps, getTemplateMappings} from '@mobile/screen-templates/templateConfig';
 
 const PreviewNavigation: React.FC = () => {
@@ -11,16 +11,10 @@ const PreviewNavigation: React.FC = () => {
     setDeviceFrame,
     selectedScreen,
     setSelectedScreen,
-    selectedSampleApp,
-    setSelectedSampleApp,
-    selectedTemplate,
-    setSelectedTemplate,
   } = usePreview();
 
   const modes = [
     {key: 'screens', label: '📱 Screens', subtitle: 'With native tabs'},
-    {key: 'sample-apps', label: '🎮 Sample Apps', subtitle: 'Full app experience'},
-    {key: 'templates', label: '🎨 Templates', subtitle: 'With native tabs'},
   ];
 
   const deviceFrames = [
@@ -133,55 +127,7 @@ const PreviewNavigation: React.FC = () => {
         </View>
       )}
 
-      {/* Sample App Selection */}
-      {previewMode === 'sample-apps' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sample Apps</Text>
-          <Text style={styles.hint}>🎮 Full app experience with internal navigation</Text>
-          {sampleApps.map((app) => (
-            <TouchableOpacity
-              key={app.key}
-              style={[
-                styles.itemButton,
-                selectedSampleApp === app.key && styles.activeItemButton,
-              ]}
-              onPress={() => setSelectedSampleApp(app.key as SampleAppType)}>
-              <Text
-                style={[
-                  styles.itemButtonText,
-                  selectedSampleApp === app.key && styles.activeItemButtonText,
-                ]}>
-                {app.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
-      {/* Template Selection - Only show for templates mode */}
-      {previewMode === 'templates' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Template Access</Text>
-          <Text style={styles.hint}>🎨 Use native tabs to access template browser</Text>
-          {templates.map((template) => (
-            <TouchableOpacity
-              key={template.key}
-              style={[
-                styles.itemButton,
-                selectedTemplate === template.key && styles.activeItemButton,
-              ]}
-              onPress={() => setSelectedTemplate(template.key as TemplateType)}>
-              <Text
-                style={[
-                  styles.itemButtonText,
-                  selectedTemplate === template.key && styles.activeItemButtonText,
-                ]}>
-                {template.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
     </View>
   );
 };

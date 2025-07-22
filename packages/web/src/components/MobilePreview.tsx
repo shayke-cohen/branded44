@@ -9,8 +9,6 @@ const MobilePreview: React.FC = () => {
     deviceFrame,
     previewMode,
     selectedScreen,
-    selectedSampleApp,
-    selectedTemplate,
   } = usePreview();
 
   const getFrameStyles = () => {
@@ -35,8 +33,6 @@ const MobilePreview: React.FC = () => {
             <MobileApp
               previewMode={previewMode}
               selectedScreen={selectedScreen || undefined}
-              selectedSampleApp={selectedSampleApp || undefined}
-              selectedTemplate={selectedTemplate || undefined}
             />
           </View>
         </View>

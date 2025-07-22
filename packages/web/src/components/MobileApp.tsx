@@ -31,10 +31,8 @@ import {
 import {BottomNavigation} from '@mobile/components';
 
 interface MobileAppProps {
-  previewMode: 'screens' | 'sample-apps' | 'templates';
+  previewMode: 'screens';
   selectedScreen?: string;
-  selectedSampleApp?: string;
-  selectedTemplate?: string;
 }
 
 interface AppState {
@@ -52,11 +50,9 @@ const LoadingSpinner = () => (
 
 const MobileApp: React.FC<MobileAppProps> = ({
   previewMode,
-  selectedScreen,
-  selectedSampleApp,
-  selectedTemplate
+  selectedScreen
 }) => {
-  const {setSelectedScreen, setSelectedTemplate} = usePreview();
+  const {setSelectedScreen} = usePreview();
   const [activeTab, setActiveTab] = useState<string>(() => {
     const navTabs = getNavTabs();
     return navTabs[0]?.id || 'home-tab';
@@ -76,11 +72,7 @@ const MobileApp: React.FC<MobileAppProps> = ({
       }
     }
     
-    // Clear selectedTemplate when switching tabs in templates mode
-    if (previewMode === 'templates') {
-      setSelectedTemplate(null);
-    }
-  }, [previewMode, setSelectedScreen, setSelectedTemplate]);
+  }, [previewMode, setSelectedScreen]);
 
   // Handle app launch from template gallery
   const handleAppLaunch = useCallback((app: AppState) => {
@@ -224,17 +216,9 @@ const MobileApp: React.FC<MobileAppProps> = ({
       );
     }
 
-    // Mode-specific rendering
-    if (previewMode === 'sample-apps' && selectedSampleApp) {
-      return renderSampleApp(selectedSampleApp);
-    }
-
-    if (previewMode === 'screens' && selectedScreen) {
+    // Screens mode rendering
+    if (selectedScreen) {
       return renderScreenComponent(selectedScreen);
-    }
-
-    if (previewMode === 'templates' && selectedTemplate) {
-      return renderTemplate(selectedTemplate);
     }
 
     // Default tab-based rendering
@@ -258,8 +242,8 @@ const MobileApp: React.FC<MobileAppProps> = ({
               {renderMainContent()}
             </View>
             
-            {/* Show bottom navigation for screens and templates modes, but hide when app is active */}
-            {!activeApp && (previewMode === 'screens' || previewMode === 'templates') && (
+            {/* Show bottom navigation for screens mode, but hide when app is active */}
+            {!activeApp && (
               <BottomNavigation 
                 activeTab={activeTab} 
                 onTabPress={handleTabPress}
