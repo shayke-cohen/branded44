@@ -11,6 +11,10 @@ export interface CompleteAppPromptParams {
   appDescription: string;
 }
 
+export interface UpdateExistingPromptParams {
+  updateDescription: string;
+}
+
 /**
  * Shared template sections used across different prompt types
  */
@@ -226,6 +230,61 @@ Also create or update \`packages/mobile/__tests__/App.test.tsx\` to test:
 - Overall app functionality and user flows
 
 Create a complete, functional app with 3-5 main screens AND comprehensive tests based on the description provided.
+
+${SharedSections.getFinalStep()}`;
+}
+
+/**
+ * Generates a Claude Code prompt for updating existing React Native app and screens
+ */
+export function generateUpdateExistingPrompt(params: UpdateExistingPromptParams): string {
+  const { updateDescription } = params;
+  
+  return `You are tasked with updating and improving the existing React Native app based on the following requirements.
+
+## Update Requirements:
+${updateDescription}
+
+## Your Task:
+Analyze the current app structure and make the requested improvements. You should:
+
+1. **Examine existing screens** in \`packages/mobile/src/screens/\`
+2. **Review current imports** in \`packages/mobile/src/config/importScreens.ts\`
+3. **Understand the app architecture** and existing patterns
+4. **Make targeted improvements** without breaking existing functionality
+
+## Guidelines:
+- **Preserve existing functionality** unless explicitly asked to change it
+- **Follow established patterns** already used in the codebase
+- **Maintain consistency** with existing theming and styling
+- **Update tests** for any modified components
+- **Add new tests** for any new functionality
+
+${SharedSections.getArchitectureRequirements()}
+
+## Key Considerations:
+- **Backward Compatibility**: Ensure existing screens continue to work
+- **Incremental Changes**: Make focused improvements rather than wholesale changes
+- **Code Quality**: Improve code structure and performance where possible
+- **User Experience**: Enhance usability and navigation flow
+- **Testing**: Update and add tests to cover new and modified functionality
+
+## Testing Strategy:
+- **Run existing tests** to ensure no regressions
+- **Update tests** for modified components
+- **Add new tests** for new functionality
+- **Test integration** between new and existing features
+
+${SharedSections.getExampleScreenStructure()}
+
+## Implementation Approach:
+1. **Analyze Current State**: Review existing screens and their functionality
+2. **Plan Changes**: Identify what needs to be modified, added, or improved
+3. **Implement Updates**: Make changes following existing patterns
+4. **Update Tests**: Ensure test coverage for all changes
+5. **Verify Integration**: Test that new changes work with existing features
+
+Create focused, high-quality improvements that enhance the app while maintaining stability and consistency.
 
 ${SharedSections.getFinalStep()}`;
 } 

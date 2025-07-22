@@ -201,12 +201,13 @@ app.post('/execute-claude-code-stream', async (req, res) => {
 
       // Grant specific permissions to working directory instead of bypassing all permissions
       if (shouldSkipPermissions && workingDirectory) {
-        // Allow all Write, Edit, MultiEdit, Read tools - testing broader permissions
+        // Allow all Write, Edit, MultiEdit, Read, and Bash tools - testing broader permissions
         const workingDirTools = [
           'Write',
           'Edit', 
           'MultiEdit',
-          'Read'
+          'Read',
+          'Bash'  // Enable shell commands like ls, cat, grep, etc.
         ];
         
         if (allowedTools) {
