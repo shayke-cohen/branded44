@@ -21,6 +21,7 @@
     "reset-cache": "react-native start --reset-cache"
   },
   "dependencies": {
+    "@babel/runtime": "^7.25.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native/new-app-screen": "0.80.1",
     "react": "19.1.0",
@@ -29,7 +30,6 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
-    "@babel/runtime": "^7.25.0",
     "@react-native-community/cli": "19.0.0",
     "@react-native-community/cli-platform-android": "19.0.0",
     "@react-native-community/cli-platform-ios": "19.0.0",

@@ -1,4 +1,5 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const path = require('path');
 
 /**
  * Metro configuration
@@ -7,6 +8,17 @@ const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
  * @type {import('@react-native/metro-config').MetroConfig}
  */
 const config = {
+  watchFolders: [
+    // Include the root of the yarn workspace
+    path.resolve(__dirname, '../..'),
+  ],
+  resolver: {
+    // Look for modules in both local and root node_modules
+    nodeModulesPaths: [
+      path.resolve(__dirname, 'node_modules'),
+      path.resolve(__dirname, '../../node_modules'),
+    ],
+  },
   transformer: {
     // Enable experimental require.context for auto-discovery
     unstable_allowRequireContext: true,
