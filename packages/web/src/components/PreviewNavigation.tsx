@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {usePreview, ScreenType} from '../context/PreviewContext';
-import {getScreens, getSampleApps, getTemplateMappings} from '@mobile/screen-templates/templateConfig';
+import {getScreens} from '@mobile/screen-templates/templateConfig';
 
 const PreviewNavigation: React.FC = () => {
   const {
-    previewMode,
-    setPreviewMode,
     deviceFrame,
     setDeviceFrame,
     selectedScreen,
     setSelectedScreen,
   } = usePreview();
 
-  const modes = [
-    {key: 'screens', label: '📱 Screens', subtitle: 'With native tabs'},
-  ];
+  // App generation state
+  const [appDescription, setAppDescription] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [executionLogs, setExecutionLogs] = useState<any[]>([]);
+  const [lastPrompt, setLastPrompt] = useState('');
 
   const deviceFrames = [
     {key: 'iphone', label: '📱 iPhone'},
@@ -24,26 +24,236 @@ const PreviewNavigation: React.FC = () => {
 
   // Get dynamic data from unified registry
   const screenEntities = getScreens();
-  const sampleAppEntities = getSampleApps();
-  const templateMappingEntities = getTemplateMappings();
   
   const screens = screenEntities.map(screen => ({
     key: screen.id,
     label: `${screen.icon || '📱'} ${screen.name}`
   }));
 
-  // Generate UI keys dynamically from registry data (e.g., 'Todo App' -> 'TodoApp')
-  const sampleApps = sampleAppEntities.map(app => ({
-    key: app.name.replace(/\s+/g, '') + 'App', // Convert 'Todo App' to 'TodoApp'
-    label: `${app.icon || '🎮'} ${app.name}`,
-    registryId: app.id // Keep track of registry ID for debugging
-  }));
+  // App generation function using same defaults as PromptGenerator
+  const generateApp = async () => {
+    if (!appDescription.trim()) {
+      alert('Please enter an app description.');
+      return;
+    }
 
-  // Use template mapping keys for Quick Template Access (these map to template IDs)
-  const templates = templateMappingEntities.map(mapping => ({
-    key: mapping.metadata?.key || mapping.id,
-    label: `🎨 ${mapping.metadata?.key?.replace('Template', '') || mapping.name}`
-  }));
+    setIsGenerating(true);
+
+    try {
+      // Complete app prompt (same as in PromptGenerator)
+      const completeAppPrompt = `You are tasked with creating a complete React Native app based on a user description.
+
+## App Description:
+${appDescription}
+
+## Your Task:
+Based on the description above, you need to deduce and create:
+1. **App name and purpose**
+2. **Core features and functionality** 
+3. **User flow and navigation**
+4. **Specific screens needed**
+5. **Screen content and functionality**
+
+## Architecture Requirements:
+- Create screen files in \`packages/mobile/src/screens/\`
+- Each screen must self-register using \`registerScreen\`
+- Update \`packages/mobile/src/config/importScreens.ts\` with new screen imports
+- Remove existing screen imports that aren't needed
+- Use our theming system (\`useTheme\`)
+- Follow React Native best practices
+- **Create comprehensive tests** for each screen in \`packages/mobile/src/screens/__tests__/\` that validate:
+  - Screen renders without crashing
+  - Key UI elements and text content are displayed
+  - User interactions work correctly
+  - Navigation between screens functions properly
+  - Theme integration is working
+  - App-wide integration tests (navigation flow, state management)
+
+## Important Notes:
+- **REPLACE ALL EXISTING SCREENS**: Remove all current imports in \`importScreens.ts\` and replace with your new app screens
+- **Tab Positions**: Assign tab positions 1, 2, 3, 4, etc. for main navigation
+
+## Example Screen Structure:
+\`\`\`typescript
+import React from 'react';
+import { View, Text, SafeAreaView, StyleSheet } from 'react-native';
+import { useTheme } from '@/context';
+import { registerScreen } from '@/config/registry';
+
+export default function ScreenName() {
+  const { theme } = useTheme();
+  
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Screen content */}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  // Styles
+});
+
+registerScreen({
+  name: 'Screen Name',
+  component: ScreenName,
+  icon: '📱',
+  category: 'Main',
+  tab: 1,
+  description: 'Description of what this screen does',
+  tags: ['tag1', 'tag2']
+});
+\`\`\`
+
+## Testing Requirements:
+Create tests for each screen following this pattern:
+
+\`\`\`typescript
+// ScreenName.test.tsx
+import React from 'react';
+import {render, fireEvent, waitFor} from '../../../test/test-utils';
+import ScreenName from '../ScreenName';
+
+describe('ScreenName', () => {
+  describe('Rendering', () => {
+    it('renders without crashing', () => {
+      const {getByText} = render(<ScreenName />);
+      expect(getByText('Expected Screen Title')).toBeTruthy();
+    });
+
+    it('displays key UI elements', () => {
+      const {getByText, getByTestId} = render(<ScreenName />);
+      expect(getByText('Important Button')).toBeTruthy();
+      expect(getByTestId('main-content')).toBeTruthy();
+    });
+
+    it('applies theme correctly', () => {
+      const {getByText} = render(<ScreenName />);
+      const titleElement = getByText('Expected Screen Title');
+      expect(titleElement).toBeTruthy();
+    });
+  });
+
+  describe('Interactions', () => {
+    it('handles user interactions', () => {
+      const {getByText} = render(<ScreenName />);
+      const button = getByText('Important Button');
+      fireEvent.press(button);
+      // Add specific assertions based on expected behavior
+    });
+  });
+
+  describe('Navigation', () => {
+    it('navigates correctly when needed', async () => {
+      const {getByText} = render(<ScreenName />);
+      // Test navigation flows if applicable
+    });
+  });
+});
+\`\`\`
+
+## App Integration Tests:
+Also create or update \`packages/mobile/__tests__/App.test.tsx\` to test:
+- Initial app state and default screen
+- Navigation between all your new screens
+- Theme consistency across screens
+- Overall app functionality and user flows
+
+Create a complete, functional app with 3-5 main screens AND comprehensive tests based on the description provided.
+
+## Final Step:
+After creating all screens and their tests, run only the tests you created to ensure the entire app works correctly.`;
+
+      // Same defaults as PromptGenerator
+      const requestBody = {
+        prompt: completeAppPrompt,
+        maxTurns: 20,
+        workingDirectory: '/Users/shayco/claude-code/branded44/packages/mobile',
+        dangerouslySkipPermissions: true,
+        anthropicBaseUrl: 'http://localhost:3002/api/anthropic-proxy',
+        anthropicAuthToken: 'fake-key-for-proxy'
+      };
+
+      console.log('🚀 Generating app with Claude Code SDK...');
+      
+      // Store the prompt for display
+      setLastPrompt(completeAppPrompt);
+      setExecutionLogs([]);
+
+      const response = await fetch('http://localhost:3001/execute-claude-code-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('Response body is not readable');
+      }
+
+      let allMessages: any[] = [];
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last line in buffer if it doesn't end with \n
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line.length > 6) {
+            try {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr) {
+                const data = JSON.parse(jsonStr);
+                
+                if (data.type === 'connection') {
+                  console.log('🌊 Streaming connection established');
+                } else if (data.type === 'message') {
+                  allMessages = [...allMessages, data.message];
+                  setExecutionLogs(allMessages);
+                  console.log(`📨 Received: ${data.message.type}`);
+                } else if (data.type === 'complete') {
+                  setExecutionLogs(data.messages || allMessages);
+                  console.log('✅ Streaming execution completed successfully');
+                } else if (data.type === 'error') {
+                  console.error('❌ Streaming execution failed:', data);
+                  alert(`❌ Claude Code failed: ${data.error}\n\nDetails: ${data.details || 'No details available'}`);
+                }
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', line, e);
+            }
+          }
+        }
+      }
+
+      console.log('✅ App generation completed successfully!');
+      alert('🚀 App generation completed! Check the mobile package for new screens.');
+      
+      // Clear the input
+      setAppDescription('');
+
+    } catch (error) {
+      console.error('App generation error:', error);
+      alert(`❌ App generation failed: ${error}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -73,38 +283,8 @@ const PreviewNavigation: React.FC = () => {
         </View>
       </View>
 
-      {/* Preview Mode Selection */}
+      {/* Screen Selection */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preview Mode</Text>
-        {modes.map((mode) => (
-          <TouchableOpacity
-            key={mode.key}
-            style={[
-              styles.modeButton,
-              previewMode === mode.key && styles.activeModeButton,
-            ]}
-            onPress={() => setPreviewMode(mode.key as any)}>
-            <Text
-              style={[
-                styles.modeButtonText,
-                previewMode === mode.key && styles.activeModeButtonText,
-              ]}>
-              {mode.label}
-            </Text>
-            <Text
-              style={[
-                styles.modeSubtitle,
-                previewMode === mode.key && styles.activeModeSubtitle,
-              ]}>
-              {mode.subtitle}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Screen Selection - Only show for screens mode */}
-      {previewMode === 'screens' && (
-        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Screen Access</Text>
           <Text style={styles.hint}>💡 Use native tabs below for navigation</Text>
           {screens.map((screen) => (
@@ -125,8 +305,112 @@ const PreviewNavigation: React.FC = () => {
             </TouchableOpacity>
           ))}
         </View>
-      )}
 
+      {/* Generate App Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🚀 Generate App</Text>
+        <Text style={styles.hint}>Describe your app idea to generate screens</Text>
+        
+        <View style={styles.inputContainer}>
+          <textarea
+            value={appDescription}
+            onChange={(e) => setAppDescription(e.target.value)}
+            placeholder="e.g., A fitness tracking app where users can log workouts, track progress, and share achievements with friends."
+            style={{
+              ...styles.textArea,
+              border: appDescription.trim() ? '1px solid #e0e0e0' : '2px solid #ff6b6b',
+              backgroundColor: appDescription.trim() ? '#fff' : '#ffebee',
+            }}
+          />
+          
+          <TouchableOpacity
+            style={[
+              styles.generateButton,
+              isGenerating && styles.generatingButton,
+              !appDescription.trim() && styles.disabledButton
+            ]}
+            onPress={generateApp}
+            disabled={isGenerating || !appDescription.trim()}>
+            <Text style={[
+              styles.generateButtonText,
+              isGenerating && styles.generatingButtonText,
+              !appDescription.trim() && styles.disabledButtonText
+            ]}>
+              {isGenerating ? '⏳ Generating...' : '🚀 Generate App'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Claude Code Logs */}
+        {(lastPrompt || executionLogs.length > 0) && (
+          <View style={styles.logsSection}>
+            <Text style={styles.logsSectionTitle}>📋 Execution Logs</Text>
+            
+            {lastPrompt && (
+              <View style={styles.logItem}>
+                <Text style={styles.logItemTitle}>📝 Sent Prompt</Text>
+                <div style={{
+                  maxHeight: '200px',
+                  overflow: 'auto',
+                  backgroundColor: '#f8f9fa',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '6px',
+                  padding: '10px',
+                  fontSize: '12px',
+                  fontFamily: 'monospace',
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: '1.4'
+                }}>
+                  {lastPrompt}
+                </div>
+              </View>
+            )}
+
+            {executionLogs.length > 0 && (
+              <View style={styles.logItem}>
+                <Text style={styles.logItemTitle}>💬 Claude Messages ({executionLogs.length})</Text>
+                <div style={{
+                  maxHeight: '300px',
+                  overflow: 'auto',
+                  backgroundColor: '#f8f9fa',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '6px',
+                  padding: '10px',
+                  fontSize: '12px'
+                }}>
+                  {executionLogs.map((message, index) => (
+                    <div key={index} style={{
+                      marginBottom: '8px',
+                      paddingBottom: '8px',
+                      borderBottom: index < executionLogs.length - 1 ? '1px solid #e9ecef' : 'none'
+                    }}>
+                      <div style={{
+                        fontWeight: 'bold',
+                        color: message.type === 'system' ? '#6c757d' : 
+                              message.type === 'assistant' ? '#007bff' : 
+                              message.type === 'user' ? '#28a745' : '#dc3545',
+                        marginBottom: '4px'
+                      }}>
+                        {message.type === 'system' ? '⚙️ system' :
+                         message.type === 'assistant' ? '🤖 assistant' :
+                         message.type === 'user' ? '👤 user' : 
+                         message.type === 'result' ? '✅ result' : message.type}
+                      </div>
+                      <div style={{
+                        color: '#495057',
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: '1.3'
+                      }}>
+                        {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
 
     </View>
   );
@@ -134,10 +418,10 @@ const PreviewNavigation: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    width: 300,
+    width: 500,
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 20,
+    padding: 24,
     marginRight: 24,
     shadowColor: '#000',
     shadowOffset: {
@@ -148,6 +432,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     alignSelf: 'flex-start',
+    maxHeight: '90vh',
+    overflow: 'auto',
   },
   title: {
     fontSize: 24,
@@ -240,6 +526,69 @@ const styles = StyleSheet.create({
   },
   activeItemButtonText: {
     color: '#ffffff',
+  },
+  generateButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#28a745',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  generatingButton: {
+    backgroundColor: '#6c757d',
+  },
+  disabledButton: {
+    backgroundColor: '#e9ecef',
+  },
+  generateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  generatingButtonText: {
+    color: '#ffffff',
+  },
+  disabledButtonText: {
+    color: '#6c757d',
+  },
+  inputContainer: {
+    marginTop: 8,
+  },
+  textArea: {
+    width: '100%',
+    minHeight: '100px',
+    padding: '12px',
+    border: '1px solid #e0e0e0',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    resize: 'vertical',
+    marginBottom: '12px',
+    backgroundColor: '#fff',
+    outline: 'none',
+    lineHeight: '1.4',
+    boxSizing: 'border-box',
+  },
+  logsSection: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTop: '1px solid #e9ecef',
+  },
+  logsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  logItem: {
+    marginBottom: 16,
+  },
+  logItemTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#495057',
+    marginBottom: 8,
   },
 });
 

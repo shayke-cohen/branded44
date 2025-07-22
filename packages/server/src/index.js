@@ -7,6 +7,38 @@ const { query } = require('@anthropic-ai/claude-code');
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Enhanced logging function with verbosity control
+const VERBOSE_LOGGING = process.env.VERBOSE_LOGGING === 'true' || false;
+
+function log(level, message, data = null) {
+  const timestamp = new Date().toISOString();
+  const emoji = {
+    'info': '📋',
+    'success': '✅',
+    'error': '❌',
+    'warn': '⚠️',
+    'debug': '🔍',
+    'stream': '📨'
+  }[level] || '📋';
+  
+  console.log(`${emoji} [${timestamp}] ${message}`);
+  
+  if (data) {
+    if (VERBOSE_LOGGING || level === 'error') {
+      // Full detailed logging for verbose mode or errors
+      console.log('   Data:', JSON.stringify(data, null, 2));
+    } else if (level === 'stream') {
+      // For stream messages, show condensed version unless verbose
+      const { type, messageIndex, timestamp: msgTime, toolName, contentLength } = data;
+      console.log(`   ${type} #${messageIndex} (${msgTime}ms)${toolName ? ` tool:${toolName}` : ''}${contentLength ? ` chars:${contentLength}` : ''}`);
+    } else {
+      // For other levels, show summary
+      const keys = Object.keys(data);
+      console.log(`   Summary: ${keys.length} fields - ${keys.slice(0, 3).join(', ')}${keys.length > 3 ? '...' : ''}`);
+    }
+  }
+}
+
 // Enable CORS for web app
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Increased limit for large prompts
@@ -73,7 +105,20 @@ app.post('/execute-claude-code-stream', async (req, res) => {
   // Use explicit dangerouslySkipPermissions parameter
   const shouldSkipPermissions = dangerouslySkipPermissions;
 
+  // Log request details
+  log('info', 'Claude Code streaming request received', {
+    promptLength: prompt ? prompt.length : 0,
+    workingDirectory,
+    maxTurns,
+    model,
+    shouldSkipPermissions,
+    hasSystemPrompt: !!systemPrompt,
+    allowedTools: allowedTools ? (Array.isArray(allowedTools) ? allowedTools : allowedTools.split(',')) : null,
+    anthropicBaseUrl: anthropicBaseUrl ? 'custom' : 'default'
+  });
+
   if (!prompt) {
+    log('error', 'No prompt provided in request');
     return res.status(400).json({ 
       error: 'Prompt is required',
       example: { prompt: "Your Claude Code prompt here" }
@@ -98,7 +143,10 @@ app.post('/execute-claude-code-stream', async (req, res) => {
   
   try {
     process.chdir(targetCwd);
-    console.log(`🚀 Executing Claude Code SDK (STREAMING) in: ${targetCwd}`);
+    log('info', `Executing Claude Code SDK (STREAMING)`, {
+      workingDirectory: targetCwd,
+      promptSnippet: prompt.substring(0, 200) + (prompt.length > 200 ? '...' : '')
+    });
     
     const startTime = Date.now();
     const messages = [];
@@ -113,11 +161,11 @@ app.post('/execute-claude-code-stream', async (req, res) => {
       // Set environment variables if provided
       if (anthropicBaseUrl) {
         process.env.ANTHROPIC_BASE_URL = anthropicBaseUrl;
-        console.log(`🔧 Using custom base URL: ${anthropicBaseUrl}`);
+        log('debug', 'Using custom Anthropic base URL', { url: anthropicBaseUrl });
       }
       if (anthropicAuthToken) {
         process.env.ANTHROPIC_AUTH_TOKEN = anthropicAuthToken;
-        console.log(`🔑 Using custom auth token`);
+        log('debug', 'Using custom auth token', { tokenLength: anthropicAuthToken.length });
       }
       
 
@@ -169,13 +217,15 @@ app.post('/execute-claude-code-stream', async (req, res) => {
           options.allowedTools = workingDirTools;
         }
         
-        console.log(`🔧 STREAMING: Granted permissions for working directory: ${workingDirectory}`);
-        console.log(`📝 Allowed tools:`, options.allowedTools);
+        log('debug', 'Granted permissions for working directory', {
+          workingDirectory,
+          allowedTools: options.allowedTools
+        });
       } else if (shouldSkipPermissions) {
         options.dangerouslySkipPermissions = true;
-        console.log(`⚠️  DANGER: Skipping all permissions! (STREAMING - Using dangerouslySkipPermissions)`);
-        console.log(`🔧 Permission options set:`, {
-          dangerouslySkipPermissions: true
+        log('warn', 'DANGER: Skipping all permissions!', {
+          method: 'dangerouslySkipPermissions',
+          streaming: true
         });
       } else {
         // Add permission mode only if it's a valid value and we're not skipping permissions
@@ -204,6 +254,15 @@ app.post('/execute-claude-code-stream', async (req, res) => {
         options.addDir = Array.isArray(workingDirectory) ? workingDirectory : workingDirectory.split(',').map(d => d.trim());
       }
 
+      // Log SDK options before execution
+      log('debug', 'SDK options configured', {
+        maxTurns: options.maxTurns,
+        hasSystemPrompt: !!options.systemPrompt,
+        allowedToolsCount: options.allowedTools?.length || 0,
+        dangerouslySkipPermissions: options.dangerouslySkipPermissions,
+        model: options.model || 'default'
+      });
+
       // Stream Claude Code messages in real-time
       for await (const message of query({
         prompt: prompt,
@@ -219,20 +278,66 @@ app.post('/execute-claude-code-stream', async (req, res) => {
           timestamp: Date.now() - startTime
         })}\n\n`);
         
-        // Log progress
-        console.log(`📨 STREAMING: ${message.type}`);
+        // Enhanced message logging with full content
+        const messageData = {
+          type: message.type,
+          messageIndex: messages.length,
+          timestamp: Date.now() - startTime,
+          fullMessage: message // Include the complete message for debugging
+        };
+
         if (message.type === 'text') {
-          console.log(`📝 Text content: ${message.content?.substring(0, 100)}...`);
+          messageData.contentLength = message.content?.length || 0;
+          messageData.contentPreview = message.content?.substring(0, 200) + (message.content?.length > 200 ? '...' : '');
+          messageData.fullContent = message.content; // Full text content
         } else if (message.type === 'tool_use') {
-          console.log(`🔧 Tool use: ${message.name}`);
+          messageData.toolName = message.name;
+          messageData.inputKeys = message.input ? Object.keys(message.input) : [];
+          messageData.toolInput = message.input; // Full tool input
+          messageData.toolUseId = message.id;
+        } else if (message.type === 'tool_result') {
+          messageData.toolUseId = message.tool_use_id;
+          messageData.isError = message.is_error;
+          messageData.resultContent = message.content; // Full tool result content
+          if (message.is_error) {
+            messageData.errorDetails = message.error;
+          }
+        } else {
+          // Log any other message types we might not be handling
+          messageData.unknownType = true;
+          messageData.rawMessage = message;
         }
+
+        log('stream', `Claude message received`, messageData);
+        
+        // Also log a condensed version for easier reading
+        const condensed = {
+          type: message.type,
+          index: messages.length,
+          time: `${Date.now() - startTime}ms`
+        };
+        if (message.type === 'text') {
+          condensed.contentLength = message.content?.length;
+        } else if (message.type === 'tool_use') {
+          condensed.tool = message.name;
+        } else if (message.type === 'tool_result') {
+          condensed.success = !message.is_error;
+        }
+        console.log(`📨 ${JSON.stringify(condensed)}`);
       }
 
       clearTimeout(timeout);
       const duration = Date.now() - startTime;
       
-      console.log(`✅ Claude Code SDK STREAMING completed successfully in ${duration}ms`);
-      console.log(`📊 Total messages: ${messages.length}`);
+      log('success', 'Claude Code SDK streaming completed', {
+        duration: `${duration}ms`,
+        totalMessages: messages.length,
+        messageTypes: messages.reduce((acc, msg) => {
+          acc[msg.type] = (acc[msg.type] || 0) + 1;
+          return acc;
+        }, {}),
+        workingDirectory: targetCwd
+      });
       
       // Send completion message
       res.write(`data: ${JSON.stringify({
@@ -252,7 +357,14 @@ app.post('/execute-claude-code-stream', async (req, res) => {
       clearTimeout(timeout);
       const duration = Date.now() - startTime;
       
-      console.error('❌ Claude Code SDK STREAMING error:', error);
+      log('error', 'Claude Code SDK streaming failed', {
+        duration: `${duration}ms`,
+        errorMessage: error.message,
+        errorType: error.constructor.name,
+        stack: error.stack?.split('\n').slice(0, 5), // First 5 lines of stack
+        messagesReceived: messages.length,
+        workingDirectory: targetCwd
+      });
       
       // Send error message
       res.write(`data: ${JSON.stringify({
@@ -297,7 +409,19 @@ app.post('/execute-claude-code', async (req, res) => {
   // Use explicit dangerouslySkipPermissions parameter
   const shouldSkipPermissions = dangerouslySkipPermissions;
 
+  // Log request details
+  log('info', 'Claude Code regular request received', {
+    promptLength: prompt ? prompt.length : 0,
+    workingDirectory,
+    maxTurns,
+    model,
+    shouldSkipPermissions,
+    hasSystemPrompt: !!systemPrompt,
+    streaming: false
+  });
+
   if (!prompt) {
+    log('error', 'No prompt provided in regular request');
     return res.status(400).json({ 
       error: 'Prompt is required',
       example: { prompt: "Your Claude Code prompt here" }
@@ -535,7 +659,16 @@ app.listen(port, () => {
   console.log(`🔧 Using Claude Code SDK instead of CLI`);
   console.log(`✨ Features: System prompts, Tool permissions, MCP support`);
   console.log(`🛠️ Supports: Model selection, Permission modes, Verbose logging`);
+  console.log(`📊 Enhanced logging: Messages, timings, errors, tool usage`);
+  console.log(`🔍 Verbose logging: ${VERBOSE_LOGGING ? 'ENABLED' : 'DISABLED'} (set VERBOSE_LOGGING=true to enable)`);
   console.log('🎯 ==========================================');
+  
+  log('success', 'Claude Code Server started', {
+    port,
+    features: ['SDK', 'streaming', 'enhanced-logging'],
+    verboseLogging: VERBOSE_LOGGING,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Graceful shutdown
