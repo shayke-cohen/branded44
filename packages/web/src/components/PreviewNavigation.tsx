@@ -1,8 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {usePreview, ScreenType} from '../context/PreviewContext';
 import {getScreens} from '@mobile/screen-templates/templateConfig';
 import { generateCompleteAppPrompt, generateSingleScreenPrompt, generateUpdateExistingPrompt } from '../utils/claudePrompts';
+import { httpClient } from '../utils/robustHttpClient';
+import { webLogger, log } from '../utils/logger';
+
+// Constants for local storage keys
+const STORAGE_KEYS = {
+  EXECUTION_LOGS: 'claude_execution_logs',
+  LAST_PROMPT: 'claude_last_prompt',
+  SCREEN_EXECUTION_LOGS: 'claude_screen_execution_logs',
+  LAST_SCREEN_PROMPT: 'claude_last_screen_prompt',
+  UPDATE_EXECUTION_LOGS: 'claude_update_execution_logs',
+  LAST_UPDATE_PROMPT: 'claude_last_update_prompt',
+};
+
+// Web-safe localStorage utilities
+const webStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.warn('localStorage.getItem error:', error);
+      return null;
+    }
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn('localStorage.setItem error:', error);
+    }
+  },
+  removeItem: async (key: string): Promise<void> => {
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.warn('localStorage.removeItem error:', error);
+    }
+  },
+};
 
 const PreviewNavigation: React.FC = () => {
   const {
@@ -36,6 +74,216 @@ const PreviewNavigation: React.FC = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState<'screen' | 'update' | 'app'>('screen');
 
+  // Connection health monitoring
+  const [connectionHealth, setConnectionHealth] = useState<'healthy' | 'degraded' | 'failed'>('healthy');
+  const [connectionMetrics, setConnectionMetrics] = useState<any>({});
+  const [showLogs, setShowLogs] = useState(false);
+
+  // Local storage helper functions
+  const saveLogsToStorage = async (logs: any[], promptKey: string, logsKey: string, prompt?: string) => {
+    try {
+      await webStorage.setItem(logsKey, JSON.stringify(logs));
+      if (prompt) {
+        await webStorage.setItem(promptKey, prompt);
+      }
+      log.info('claude', 'Claude logs saved to local storage', { 
+        logsCount: logs.length, 
+        promptKey, 
+        logsKey 
+      });
+    } catch (error) {
+      log.error('claude', 'Failed to save logs to local storage', { error });
+    }
+  };
+
+  const loadLogsFromStorage = async () => {
+    try {
+      // Load execution logs and prompt
+      const executionLogsData = await webStorage.getItem(STORAGE_KEYS.EXECUTION_LOGS);
+      const lastPromptData = await webStorage.getItem(STORAGE_KEYS.LAST_PROMPT);
+      
+      // Load screen execution logs and prompt
+      const screenLogsData = await webStorage.getItem(STORAGE_KEYS.SCREEN_EXECUTION_LOGS);
+      const lastScreenPromptData = await webStorage.getItem(STORAGE_KEYS.LAST_SCREEN_PROMPT);
+      
+      // Load update execution logs and prompt
+      const updateLogsData = await webStorage.getItem(STORAGE_KEYS.UPDATE_EXECUTION_LOGS);
+      const lastUpdatePromptData = await webStorage.getItem(STORAGE_KEYS.LAST_UPDATE_PROMPT);
+
+      if (executionLogsData) {
+        const logs = JSON.parse(executionLogsData);
+        setExecutionLogs(logs);
+      }
+      if (lastPromptData) {
+        setLastPrompt(lastPromptData);
+      }
+      
+      if (screenLogsData) {
+        const logs = JSON.parse(screenLogsData);
+        setScreenExecutionLogs(logs);
+      }
+      if (lastScreenPromptData) {
+        setLastScreenPrompt(lastScreenPromptData);
+      }
+      
+      if (updateLogsData) {
+        const logs = JSON.parse(updateLogsData);
+        setUpdateExecutionLogs(logs);
+      }
+      if (lastUpdatePromptData) {
+        setLastUpdatePrompt(lastUpdatePromptData);
+      }
+
+      log.info('claude', 'Claude logs loaded from local storage', {
+        executionLogs: executionLogsData ? JSON.parse(executionLogsData).length : 0,
+        screenLogs: screenLogsData ? JSON.parse(screenLogsData).length : 0,
+        updateLogs: updateLogsData ? JSON.parse(updateLogsData).length : 0,
+      });
+    } catch (error) {
+      log.error('claude', 'Failed to load logs from local storage', { error });
+    }
+  };
+
+  const clearAllLogsFromStorage = async () => {
+    try {
+      await Promise.all([
+        webStorage.removeItem(STORAGE_KEYS.EXECUTION_LOGS),
+        webStorage.removeItem(STORAGE_KEYS.LAST_PROMPT),
+        webStorage.removeItem(STORAGE_KEYS.SCREEN_EXECUTION_LOGS),
+        webStorage.removeItem(STORAGE_KEYS.LAST_SCREEN_PROMPT),
+        webStorage.removeItem(STORAGE_KEYS.UPDATE_EXECUTION_LOGS),
+        webStorage.removeItem(STORAGE_KEYS.LAST_UPDATE_PROMPT),
+      ]);
+      log.info('claude', 'All Claude logs cleared from local storage');
+    } catch (error) {
+      log.error('claude', 'Failed to clear logs from local storage', { error });
+    }
+  };
+
+  // Load logs from storage on component mount
+  useEffect(() => {
+    loadLogsFromStorage();
+  }, []);
+
+  // Save logs to storage whenever they change
+  useEffect(() => {
+    if (executionLogs.length > 0) {
+      saveLogsToStorage(executionLogs, STORAGE_KEYS.LAST_PROMPT, STORAGE_KEYS.EXECUTION_LOGS, lastPrompt);
+    }
+  }, [executionLogs, lastPrompt]);
+
+  useEffect(() => {
+    if (screenExecutionLogs.length > 0) {
+      saveLogsToStorage(screenExecutionLogs, STORAGE_KEYS.LAST_SCREEN_PROMPT, STORAGE_KEYS.SCREEN_EXECUTION_LOGS, lastScreenPrompt);
+    }
+  }, [screenExecutionLogs, lastScreenPrompt]);
+
+  useEffect(() => {
+    if (updateExecutionLogs.length > 0) {
+      saveLogsToStorage(updateExecutionLogs, STORAGE_KEYS.LAST_UPDATE_PROMPT, STORAGE_KEYS.UPDATE_EXECUTION_LOGS, lastUpdatePrompt);
+    }
+  }, [updateExecutionLogs, lastUpdatePrompt]);
+
+  // Monitor connection health and handle HMR issues
+  useEffect(() => {
+    log.info('connection', 'PreviewNavigation initialized');
+    
+    // Set up global flag to prevent webpack interference during Claude operations
+    (window as any).claudeCodeActive = false;
+    
+    // Initial health check
+    httpClient.healthCheck().then(result => {
+      log.info('connection', 'Initial health check', result);
+    });
+
+    // Periodic health monitoring
+    const healthInterval = setInterval(async () => {
+      const metrics = httpClient.getMetrics();
+      setConnectionMetrics(metrics);
+      setConnectionHealth(metrics.connectionHealth);
+      
+      if (metrics.connectionHealth === 'failed') {
+        log.warn('connection', 'Connection health degraded', metrics);
+      }
+    }, 30000); // Check every 30 seconds
+
+    // Handle HMR failures gracefully - but only if Claude isn't active
+    const handleHMRError = (event: any) => {
+      if ((window as any).claudeCodeActive) {
+        log.warn('connection', 'Suppressing HMR during Claude Code operation', {
+          activeOperation: 'Claude Code streaming'
+        });
+        event.preventDefault?.();
+        return false;
+      }
+
+      log.warn('connection', 'HMR update failed - this is normal when Claude modifies mobile files', {
+        error: event.error?.message,
+        source: event.filename
+      });
+      
+      // Don't show HMR errors to users - they're expected when Claude modifies files
+      if (event.error?.message?.includes('not accepted') || 
+          event.error?.message?.includes('Need to do a full reload')) {
+        log.info('connection', 'Ignoring expected HMR failure from Claude file modifications');
+        event.preventDefault?.();
+        return false;
+      }
+    };
+
+    // Override webpack hot reload when Claude is active
+    if (typeof window !== 'undefined' && (window as any).module?.hot) {
+      const originalStatusHandler = (window as any).module.hot.addStatusHandler;
+      (window as any).module.hot.addStatusHandler = (callback: any) => {
+        return originalStatusHandler((status: string) => {
+          if ((window as any).claudeCodeActive && (status === 'check' || status === 'prepare')) {
+            log.warn('connection', `Blocking webpack ${status} during Claude Code operation`);
+            return false;
+          }
+          return callback(status);
+        });
+      };
+    }
+
+    // Block page reloads during Claude operations
+    const preventReloadDuringClaude = (event: BeforeUnloadEvent) => {
+      if ((window as any).claudeCodeActive) {
+        log.warn('connection', 'Preventing page reload during Claude Code operation');
+        event.preventDefault();
+        event.returnValue = 'Claude Code is running. Are you sure you want to leave?';
+        return 'Claude Code is running. Are you sure you want to leave?';
+      }
+    };
+
+    // Listen for unhandled errors that might be HMR-related
+    const handleError = (event: ErrorEvent) => {
+      if ((window as any).claudeCodeActive) {
+        log.warn('connection', 'Suppressing error during Claude Code operation');
+        event.preventDefault();
+        return false;
+      }
+
+      if (event.error?.message?.includes('HMR') || 
+          event.error?.message?.includes('not accepted') ||
+          event.filename?.includes('dev-server')) {
+        handleHMRError(event);
+        event.preventDefault();
+        return false;
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('beforeunload', preventReloadDuringClaude);
+
+    return () => {
+      clearInterval(healthInterval);
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('beforeunload', preventReloadDuringClaude);
+      (window as any).claudeCodeActive = false;
+      log.info('connection', 'PreviewNavigation unmounted');
+    };
+  }, []);
+
   const deviceFrames = [
     {key: 'iphone', label: '📱 iPhone'},
     {key: 'android', label: '🤖 Android'},
@@ -49,7 +297,7 @@ const PreviewNavigation: React.FC = () => {
     label: `${screen.icon || '📱'} ${screen.name}`
   }));
 
-  // Screen creation function
+  // Screen creation function with robust HTTP client
   const createScreen = async () => {
     if (!screenName.trim()) {
       alert('Please enter a screen name.');
@@ -57,6 +305,8 @@ const PreviewNavigation: React.FC = () => {
     }
 
     setIsCreatingScreen(true);
+    (window as any).claudeCodeActive = true; // Block webpack interference
+    log.info('claude', 'Starting screen creation', { screenName, screenDescription, screenCategory, screenIcon });
 
     try {
       const singleScreenPrompt = generateSingleScreenPrompt({
@@ -69,78 +319,49 @@ const PreviewNavigation: React.FC = () => {
       const requestBody = {
         prompt: singleScreenPrompt,
         maxTurns: 20,
-        workingDirectory: '/Users/shayco/claude-code/branded44/packages/mobile',
+        workingDirectory: '/Users/shayco/branded44/packages/mobile',
         dangerouslySkipPermissions: true,
         anthropicBaseUrl: 'http://localhost:3002/api/anthropic-proxy',
         anthropicAuthToken: 'fake-key-for-proxy'
       };
 
-      console.log('🚀 Creating screen with Claude Code SDK...');
-      
       setLastScreenPrompt(singleScreenPrompt);
       setScreenExecutionLogs([]);
+      // Clear previous logs from local storage when generating new prompt
+      await webStorage.removeItem(STORAGE_KEYS.SCREEN_EXECUTION_LOGS);
+      await webStorage.removeItem(STORAGE_KEYS.LAST_SCREEN_PROMPT);
 
-      const response = await fetch('http://localhost:3001/execute-claude-code-stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const messages = await httpClient.streamRequest('/execute-claude-code-stream', {
+        body: requestBody,
+        onConnection: () => {
+          log.success('connection', 'Screen creation streaming connected - webpack interference blocked');
         },
-        body: JSON.stringify(requestBody),
+        onMessage: (data) => {
+          if (data.type === 'message') {
+            setScreenExecutionLogs(prev => [...prev, data.message]);
+          }
+        },
+        onComplete: (finalMessages) => {
+          setScreenExecutionLogs(finalMessages);
+          log.success('claude', 'Screen creation completed', { 
+            messageCount: finalMessages.length,
+            screenName 
+          });
+          
+          // Delay reload to let Claude finish completely
+          setTimeout(() => {
+            log.info('connection', 'Claude Code finished - safe to reload now');
+            window.location.reload();
+          }, 1000);
+        },
+        onError: (error) => {
+          log.error('claude', 'Screen creation failed', { 
+            error: error.message,
+            screenName 
+          });
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('Response body is not readable');
-      }
-
-      let allMessages: any[] = [];
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line.length > 6) {
-            try {
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr) {
-                const data = JSON.parse(jsonStr);
-                
-                if (data.type === 'connection') {
-                  console.log('🌊 Streaming connection established');
-                } else if (data.type === 'message') {
-                  allMessages = [...allMessages, data.message];
-                  setScreenExecutionLogs(allMessages);
-                  console.log(`📨 Received: ${data.message.type}`);
-                } else if (data.type === 'complete') {
-                  setScreenExecutionLogs(data.messages || allMessages);
-                  console.log('✅ Streaming execution completed successfully');
-                } else if (data.type === 'error') {
-                  console.error('❌ Streaming execution failed:', data);
-                  alert(`❌ Claude Code failed: ${data.error}\n\nDetails: ${data.details || 'No details available'}`);
-                }
-              }
-            } catch (e) {
-              console.error('Failed to parse SSE data:', line, e);
-            }
-          }
-        }
-      }
-
-      console.log('✅ Screen creation completed successfully!');
       alert('🚀 Screen creation completed! Check the mobile package for the new screen.');
       
       // Clear the inputs
@@ -150,14 +371,16 @@ const PreviewNavigation: React.FC = () => {
       setScreenIcon('');
 
     } catch (error) {
-      console.error('Screen creation error:', error);
-      alert(`❌ Screen creation failed: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log.error('claude', 'Screen creation error', { error: errorMessage, screenName });
+      alert(`❌ Screen creation failed: ${errorMessage}`);
     } finally {
+      (window as any).claudeCodeActive = false; // Re-enable webpack
       setIsCreatingScreen(false);
     }
   };
 
-  // Update existing function
+  // Update existing function with robust HTTP client  
   const updateExisting = async () => {
     if (!updateDescription.trim()) {
       alert('Please describe what you want to update.');
@@ -165,6 +388,8 @@ const PreviewNavigation: React.FC = () => {
     }
 
     setIsUpdating(true);
+    (window as any).claudeCodeActive = true; // Block webpack interference
+    log.info('claude', 'Starting app update', { updateDescription });
 
     try {
       const updatePrompt = generateUpdateExistingPrompt({
@@ -174,86 +399,58 @@ const PreviewNavigation: React.FC = () => {
       const requestBody = {
         prompt: updatePrompt,
         maxTurns: 20,
-        workingDirectory: '/Users/shayco/claude-code/branded44/packages/mobile',
+        workingDirectory: '/Users/shayco/branded44/packages/mobile',
         dangerouslySkipPermissions: true,
         anthropicBaseUrl: 'http://localhost:3002/api/anthropic-proxy',
         anthropicAuthToken: 'fake-key-for-proxy'
       };
 
-      console.log('🚀 Updating existing app with Claude Code SDK...');
-      
       setLastUpdatePrompt(updatePrompt);
       setUpdateExecutionLogs([]);
+      // Clear previous logs from local storage when generating new prompt
+      await webStorage.removeItem(STORAGE_KEYS.UPDATE_EXECUTION_LOGS);
+      await webStorage.removeItem(STORAGE_KEYS.LAST_UPDATE_PROMPT);
 
-      const response = await fetch('http://localhost:3001/execute-claude-code-stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const messages = await httpClient.streamRequest('/execute-claude-code-stream', {
+        body: requestBody,
+        onConnection: () => {
+          log.success('connection', 'App update streaming connected - blocking webpack reloads');
         },
-        body: JSON.stringify(requestBody),
+        onMessage: (data) => {
+          if (data.type === 'message') {
+            setUpdateExecutionLogs(prev => [...prev, data.message]);
+          }
+        },
+        onComplete: (finalMessages) => {
+          setUpdateExecutionLogs(finalMessages);
+          log.success('claude', 'App update completed', { 
+            messageCount: finalMessages.length,
+            updateDescription 
+          });
+          
+          // Delay reload to let Claude finish completely
+          setTimeout(() => {
+            log.info('connection', 'Claude Code finished - safe to reload now');
+            window.location.reload();
+          }, 1000);
+        },
+        onError: (error) => {
+          log.error('claude', 'App update failed', { 
+            error: error.message,
+            updateDescription 
+          });
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('Response body is not readable');
-      }
-
-      let allMessages: any[] = [];
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line.length > 6) {
-            try {
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr) {
-                const data = JSON.parse(jsonStr);
-                
-                if (data.type === 'connection') {
-                  console.log('🌊 Streaming connection established');
-                } else if (data.type === 'message') {
-                  allMessages = [...allMessages, data.message];
-                  setUpdateExecutionLogs(allMessages);
-                  console.log(`📨 Received: ${data.message.type}`);
-                } else if (data.type === 'complete') {
-                  setUpdateExecutionLogs(data.messages || allMessages);
-                  console.log('✅ Streaming execution completed successfully');
-                } else if (data.type === 'error') {
-                  console.error('❌ Streaming execution failed:', data);
-                  alert(`❌ Claude Code failed: ${data.error}\n\nDetails: ${data.details || 'No details available'}`);
-                }
-              }
-            } catch (e) {
-              console.error('Failed to parse SSE data:', line, e);
-            }
-          }
-        }
-      }
-
-      console.log('✅ App update completed successfully!');
       alert('🚀 App update completed! Check the mobile package for changes.');
-      
       setUpdateDescription('');
 
     } catch (error) {
-      console.error('App update error:', error);
-      alert(`❌ App update failed: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log.error('claude', 'App update error', { error: errorMessage, updateDescription });
+      alert(`❌ App update failed: ${errorMessage}`);
     } finally {
+      (window as any).claudeCodeActive = false; // Re-enable webpack
       setIsUpdating(false);
     }
   };
@@ -266,6 +463,8 @@ const PreviewNavigation: React.FC = () => {
     }
 
     setIsGenerating(true);
+    (window as any).claudeCodeActive = true; // Block webpack interference
+    log.info('claude', 'Starting app generation', { appDescription });
 
     try {
       // ✅ Using centralized prompt from utils/claudePrompts.ts
@@ -277,96 +476,149 @@ const PreviewNavigation: React.FC = () => {
       const requestBody = {
         prompt: completeAppPrompt,
         maxTurns: 20,
-        workingDirectory: '/Users/shayco/claude-code/branded44/packages/mobile',
+        workingDirectory: '/Users/shayco/branded44/packages/mobile',
         dangerouslySkipPermissions: true,
         anthropicBaseUrl: 'http://localhost:3002/api/anthropic-proxy',
         anthropicAuthToken: 'fake-key-for-proxy'
       };
 
-      console.log('🚀 Generating app with Claude Code SDK...');
-      
       // Store the prompt for display
       setLastPrompt(completeAppPrompt);
       setExecutionLogs([]);
+      // Clear previous logs from local storage when generating new prompt
+      await webStorage.removeItem(STORAGE_KEYS.EXECUTION_LOGS);
+      await webStorage.removeItem(STORAGE_KEYS.LAST_PROMPT);
 
-      const response = await fetch('http://localhost:3001/execute-claude-code-stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const messages = await httpClient.streamRequest('/execute-claude-code-stream', {
+        body: requestBody,
+        onConnection: () => {
+          log.success('connection', 'App generation streaming connected - webpack interference blocked');
         },
-        body: JSON.stringify(requestBody),
+        onMessage: (data) => {
+          if (data.type === 'message') {
+            setExecutionLogs(prev => [...prev, data.message]);
+          }
+        },
+        onComplete: (finalMessages) => {
+          setExecutionLogs(finalMessages);
+          log.success('claude', 'App generation completed', { 
+            messageCount: finalMessages.length,
+            appDescription 
+          });
+          
+          // Delay reload to let Claude finish completely
+          setTimeout(() => {
+            log.info('connection', 'Claude Code finished - safe to reload now');
+            window.location.reload();
+          }, 1000);
+        },
+        onError: (error) => {
+          log.error('claude', 'App generation failed', { 
+            error: error.message,
+            appDescription 
+          });
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('Response body is not readable');
-      }
-
-      let allMessages: any[] = [];
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        // Keep the last line in buffer if it doesn't end with \n
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line.length > 6) {
-            try {
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr) {
-                const data = JSON.parse(jsonStr);
-                
-                if (data.type === 'connection') {
-                  console.log('🌊 Streaming connection established');
-                } else if (data.type === 'message') {
-                  allMessages = [...allMessages, data.message];
-                  setExecutionLogs(allMessages);
-                  console.log(`📨 Received: ${data.message.type}`);
-                } else if (data.type === 'complete') {
-                  setExecutionLogs(data.messages || allMessages);
-                  console.log('✅ Streaming execution completed successfully');
-                } else if (data.type === 'error') {
-                  console.error('❌ Streaming execution failed:', data);
-                  alert(`❌ Claude Code failed: ${data.error}\n\nDetails: ${data.details || 'No details available'}`);
-                }
-              }
-            } catch (e) {
-              console.error('Failed to parse SSE data:', line, e);
-            }
-          }
-        }
-      }
-
-      console.log('✅ App generation completed successfully!');
       alert('🚀 App generation completed! Check the mobile package for new screens.');
-      
-      // Clear the input
       setAppDescription('');
 
     } catch (error) {
-      console.error('App generation error:', error);
-      alert(`❌ App generation failed: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log.error('claude', 'App generation error', { error: errorMessage, appDescription });
+      alert(`❌ App generation failed: ${errorMessage}`);
     } finally {
+      (window as any).claudeCodeActive = false; // Re-enable webpack
       setIsGenerating(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { maxHeight: '90vh', overflow: 'auto' } as any]}>
       <Text style={styles.title}>Mobile Preview</Text>
+      
+      {/* Connection Health Indicator */}
+      <View style={styles.healthSection}>
+        <View style={styles.healthIndicator}>
+          <Text style={[styles.healthStatus, { color: connectionHealth === 'healthy' ? '#28a745' : connectionHealth === 'degraded' ? '#ffc107' : '#dc3545' }]}>
+            {connectionHealth === 'healthy' ? '🟢' : connectionHealth === 'degraded' ? '🟡' : '🔴'} {connectionHealth.toUpperCase()}
+          </Text>
+          <TouchableOpacity
+            style={styles.logsButton}
+            onPress={() => setShowLogs(!showLogs)}>
+            <Text style={styles.logsButtonText}>
+              {showLogs ? '📋 Hide Logs' : '📋 Show Logs'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        {connectionMetrics.requestCount > 0 && (
+          <Text style={styles.metricsText}>
+            {connectionMetrics.successCount}/{connectionMetrics.requestCount} requests • 
+            avg {Math.round(connectionMetrics.averageResponseTime)}ms
+          </Text>
+        )}
+        
+        {/* Storage status indicator */}
+        {(executionLogs.length > 0 || screenExecutionLogs.length > 0 || updateExecutionLogs.length > 0) && (
+          <Text style={[styles.metricsText, {color: '#28a745'}]}>
+            💾 Logs restored from storage • 
+            App: {executionLogs.length} • Screen: {screenExecutionLogs.length} • Update: {updateExecutionLogs.length}
+          </Text>
+        )}
+        
+        {showLogs && (
+          <View style={styles.logsContainer}>
+            <View style={{flexDirection: 'row', gap: 8}}>
+              <TouchableOpacity
+                style={styles.clearLogsButton}
+                onPress={() => webLogger.clearLogs()}
+                accessibilityLabel="Clear connection logs only">
+                <Text style={styles.clearLogsButtonText}>🗑️ Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.clearLogsButton, {backgroundColor: '#dc3545'}]}
+                onPress={async () => {
+                  // Clear both web logs and Claude logs from storage
+                  webLogger.clearLogs();
+                  await clearAllLogsFromStorage();
+                  // Clear state as well
+                  setExecutionLogs([]);
+                  setLastPrompt('');
+                  setScreenExecutionLogs([]);
+                  setLastScreenPrompt('');
+                  setUpdateExecutionLogs([]);
+                  setLastUpdatePrompt('');
+                  log.info('claude', 'All Claude logs cleared manually');
+                }}
+                accessibilityLabel="Clear all logs including Claude execution logs from storage">
+                <Text style={styles.clearLogsButtonText}>🗑️ Clear All</Text>
+              </TouchableOpacity>
+            </View>
+            <div style={{
+              maxHeight: '200px',
+              overflow: 'auto',
+              backgroundColor: '#f8f9fa',
+              border: '1px solid #e9ecef',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '11px',
+              fontFamily: 'monospace'
+            }}>
+              {webLogger.getLogs(20).map((logEntry, index) => (
+                <div key={index} style={{
+                  marginBottom: '2px',
+                  color: logEntry.level === 'error' ? '#dc3545' : 
+                        logEntry.level === 'warn' ? '#ffc107' : 
+                        logEntry.level === 'success' ? '#28a745' : '#495057'
+                }}>
+                  [{logEntry.timestamp.split('T')[1].split('.')[0]}] {logEntry.context}: {logEntry.message}
+                </div>
+              ))}
+            </div>
+          </View>
+        )}
+      </View>
       
       {/* Device Frame Selection */}
       <View style={styles.section}>
@@ -635,7 +887,7 @@ const PreviewNavigation: React.FC = () => {
                   onChange={(e) => setUpdateDescription(e.target.value)}
                   placeholder="Describe what you want to update, improve, or modify. E.g., 'Add a search feature to the ProfileScreen', 'Improve the styling of all buttons', 'Add navigation between WorkoutScreen and ProgressScreen'"
                   style={{
-                    ...styles.textArea,
+                    ...htmlStyles.textArea,
                     border: updateDescription.trim() ? '1px solid #e0e0e0' : '2px solid #ff6b6b',
                     backgroundColor: updateDescription.trim() ? '#fff' : '#ffebee',
                   }}
@@ -751,7 +1003,7 @@ const PreviewNavigation: React.FC = () => {
                   onChange={(e) => setAppDescription(e.target.value)}
                   placeholder="e.g., A fitness tracking app where users can log workouts, track progress, and share achievements with friends."
                   style={{
-                    ...styles.textArea,
+                    ...htmlStyles.textArea,
                     border: appDescription.trim() ? '1px solid #e0e0e0' : '2px solid #ff6b6b',
                     backgroundColor: appDescription.trim() ? '#fff' : '#ffebee',
                   }}
@@ -879,8 +1131,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     alignSelf: 'flex-start',
-    maxHeight: '90vh',
-    overflow: 'auto',
   },
   title: {
     fontSize: 24,
@@ -1002,25 +1252,11 @@ const styles = StyleSheet.create({
   inputContainer: {
     marginTop: 8,
   },
-  textArea: {
-    width: '100%',
-    minHeight: '100px',
-    padding: '12px',
-    border: '1px solid #e0e0e0',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    resize: 'vertical',
-    marginBottom: '12px',
-    backgroundColor: '#fff',
-    outline: 'none',
-    lineHeight: '1.4',
-    boxSizing: 'border-box',
-  },
   logsSection: {
     marginTop: 20,
     paddingTop: 16,
-    borderTop: '1px solid #e9ecef',
+    borderTopWidth: 1,
+    borderTopColor: '#e9ecef',
   },
   logsSectionTitle: {
     fontSize: 16,
@@ -1066,6 +1302,75 @@ const styles = StyleSheet.create({
   tabContent: {
     paddingTop: 16,
   },
+  healthSection: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  healthIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  healthStatus: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  logsButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#6c757d',
+    borderRadius: 4,
+  },
+  logsButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  metricsText: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginBottom: 8,
+  },
+  logsContainer: {
+    marginTop: 8,
+  },
+  clearLogsButton: {
+    alignSelf: 'flex-end',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    backgroundColor: '#dc3545',
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  clearLogsButtonText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '500',
+  },
 });
+
+// CSS styles for HTML elements (separate from React Native StyleSheet)
+const htmlStyles = {
+  textArea: {
+    width: '100%',
+    minHeight: '100px',
+    padding: '12px',
+    border: '1px solid #e0e0e0',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    resize: 'vertical' as const,
+    marginBottom: '12px',
+    backgroundColor: '#fff',
+    outline: 'none',
+    lineHeight: '1.4',
+    boxSizing: 'border-box' as const,
+  }
+};
 
 export default PreviewNavigation; 

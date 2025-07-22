@@ -18,11 +18,14 @@ module.exports = {
       '@react-native-async-storage/async-storage$': path.resolve(appDirectory, 'src/polyfills/AsyncStorage.js'),
       // Add alias to mobile package for shared components
       '@mobile': path.resolve(appDirectory, '../mobile/src'),
+      // Ensure single React instance to prevent hook issues - use root node_modules
+      'react': path.resolve(__dirname, '../../node_modules/react'),
+      'react-dom': path.resolve(__dirname, '../../node_modules/react-dom'),
     },
     extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.js', '.js'],
     modules: [
-      path.resolve(appDirectory, 'node_modules'),
-      path.resolve(mobileDirectory, 'node_modules'),
+      path.resolve(__dirname, '../../node_modules'), // Root node_modules first
+      path.resolve(appDirectory, 'node_modules'),     // Web package node_modules
       'node_modules'
     ],
     fallback: {
@@ -96,6 +99,16 @@ module.exports = {
         errors: true,
         warnings: false,
       },
+      // More graceful handling of HMR failures
+      logging: 'info',
     },
+    // Watch files but be more tolerant of HMR failures
+    liveReload: true,
+  },
+  watchOptions: {
+    // Only ignore node_modules, but watch mobile files for updates
+    ignored: /node_modules/,
+    // Reduce polling to avoid excessive file watching
+    poll: 1000,
   },
 }; 

@@ -4,6 +4,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Yarn cache and runtime files (root and subdirectories)
+.yarn/
+*/.yarn/
+**/.yarn/cache
+**/.yarn/unplugged
+**/.yarn/build-state.yml
+**/.yarn/install-state.gz
+.pnp.*
+
 # Production builds
 dist/
 build/

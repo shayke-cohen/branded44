@@ -10,6 +10,45 @@ const port = process.env.PORT || 3001;
 // Enhanced logging function with verbosity control
 const VERBOSE_LOGGING = process.env.VERBOSE_LOGGING === 'true' || false;
 
+// Connection tracking
+const connectionStats = {
+  totalRequests: 0,
+  successfulRequests: 0,
+  failedRequests: 0,
+  averageResponseTime: 0,
+  responseTimes: [],
+  activeConnections: 0,
+  startTime: Date.now()
+};
+
+function updateConnectionStats(success, responseTime) {
+  connectionStats.totalRequests++;
+  if (success) {
+    connectionStats.successfulRequests++;
+  } else {
+    connectionStats.failedRequests++;
+  }
+  
+  connectionStats.responseTimes.push(responseTime);
+  if (connectionStats.responseTimes.length > 100) {
+    connectionStats.responseTimes = connectionStats.responseTimes.slice(-100);
+  }
+  
+  connectionStats.averageResponseTime = 
+    connectionStats.responseTimes.reduce((a, b) => a + b, 0) / connectionStats.responseTimes.length;
+}
+
+function getConnectionHealth() {
+  if (connectionStats.totalRequests === 0) return 'healthy';
+  
+  const successRate = connectionStats.successfulRequests / connectionStats.totalRequests;
+  const avgResponseTime = connectionStats.averageResponseTime;
+  
+  if (successRate >= 0.9 && avgResponseTime < 5000) return 'healthy';
+  if (successRate >= 0.7 && avgResponseTime < 10000) return 'degraded';
+  return 'failed';
+}
+
 function log(level, message, data = null) {
   const timestamp = new Date().toISOString();
   const emoji = {
@@ -18,7 +57,9 @@ function log(level, message, data = null) {
     'error': '❌',
     'warn': '⚠️',
     'debug': '🔍',
-    'stream': '📨'
+    'stream': '📨',
+    'connection': '🔗',
+    'performance': '⚡'
   }[level] || '📋';
   
   console.log(`${emoji} [${timestamp}] ${message}`);
@@ -31,6 +72,10 @@ function log(level, message, data = null) {
       // For stream messages, show condensed version unless verbose
       const { type, messageIndex, timestamp: msgTime, toolName, contentLength } = data;
       console.log(`   ${type} #${messageIndex} (${msgTime}ms)${toolName ? ` tool:${toolName}` : ''}${contentLength ? ` chars:${contentLength}` : ''}`);
+    } else if (level === 'performance') {
+      // Performance metrics condensed
+      const { duration, success, endpoint, method } = data;
+      console.log(`   ${method} ${endpoint} - ${duration}ms ${success ? '✅' : '❌'}`);
     } else {
       // For other levels, show summary
       const keys = Object.keys(data);
@@ -43,15 +88,88 @@ function log(level, message, data = null) {
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Increased limit for large prompts
 
-// Health check endpoint
+// Request tracking middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  req.requestId = requestId;
+  req.startTime = startTime;
+  
+  log('info', `Incoming request`, {
+    requestId,
+    method: req.method,
+    path: req.path,
+    userAgent: req.get('User-Agent'),
+    origin: req.get('Origin'),
+    contentLength: req.get('Content-Length')
+  });
+  
+  connectionStats.activeConnections++;
+  
+  // Override res.end to track response
+  const originalEnd = res.end;
+  res.end = function(...args) {
+    const duration = Date.now() - startTime;
+    const success = res.statusCode < 400;
+    
+    updateConnectionStats(success, duration);
+    connectionStats.activeConnections--;
+    
+    log('performance', 'Request completed', {
+      requestId,
+      method: req.method,
+      endpoint: req.path,
+      duration,
+      status: res.statusCode,
+      success,
+      activeConnections: connectionStats.activeConnections
+    });
+    
+    originalEnd.apply(this, args);
+  };
+  
+  next();
+});
+
+// Health check endpoint with enhanced statistics
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  const uptime = Date.now() - connectionStats.startTime;
+  const health = getConnectionHealth();
+  
+  const healthData = {
+    status: 'OK',
     message: 'Claude Code server is running',
     timestamp: new Date().toISOString(),
     port: port,
-    sdk: 'enabled'
+    sdk: 'enabled',
+    health: {
+      status: health,
+      uptime: uptime,
+      uptimeFormatted: `${Math.floor(uptime / 60000)}m ${Math.floor((uptime % 60000) / 1000)}s`
+    },
+    connections: {
+      total: connectionStats.totalRequests,
+      successful: connectionStats.successfulRequests,
+      failed: connectionStats.failedRequests,
+      active: connectionStats.activeConnections,
+      successRate: connectionStats.totalRequests > 0 ? 
+        Math.round((connectionStats.successfulRequests / connectionStats.totalRequests) * 100) : 100
+    },
+    performance: {
+      averageResponseTime: Math.round(connectionStats.averageResponseTime),
+      recentResponseTimes: connectionStats.responseTimes.slice(-5)
+    }
+  };
+  
+  log('debug', 'Health check requested', {
+    requestId: req.requestId,
+    health: health,
+    totalRequests: connectionStats.totalRequests,
+    activeConnections: connectionStats.activeConnections
   });
+  
+  res.json(healthData);
 });
 
 // Check if Claude Code SDK is available
@@ -79,6 +197,51 @@ app.get('/check-claude-code', (req, res) => {
       details: error.message
     });
   }
+});
+
+// Server statistics endpoint
+app.get('/stats', (req, res) => {
+  const uptime = Date.now() - connectionStats.startTime;
+  const health = getConnectionHealth();
+  
+  const stats = {
+    server: {
+      uptime: uptime,
+      uptimeFormatted: `${Math.floor(uptime / 60000)}m ${Math.floor((uptime % 60000) / 1000)}s`,
+      startTime: new Date(connectionStats.startTime).toISOString(),
+      health: health,
+      verboseLogging: VERBOSE_LOGGING
+    },
+    connections: {
+      total: connectionStats.totalRequests,
+      successful: connectionStats.successfulRequests,
+      failed: connectionStats.failedRequests,
+      active: connectionStats.activeConnections,
+      successRate: connectionStats.totalRequests > 0 ? 
+        (connectionStats.successfulRequests / connectionStats.totalRequests * 100).toFixed(1) : '100.0'
+    },
+    performance: {
+      averageResponseTime: Math.round(connectionStats.averageResponseTime),
+      minResponseTime: connectionStats.responseTimes.length > 0 ? Math.min(...connectionStats.responseTimes) : 0,
+      maxResponseTime: connectionStats.responseTimes.length > 0 ? Math.max(...connectionStats.responseTimes) : 0,
+      recentResponseTimes: connectionStats.responseTimes.slice(-10),
+      responseTimeDistribution: {
+        fast: connectionStats.responseTimes.filter(t => t < 1000).length,
+        medium: connectionStats.responseTimes.filter(t => t >= 1000 && t < 5000).length,
+        slow: connectionStats.responseTimes.filter(t => t >= 5000).length
+      }
+    },
+    memory: process.memoryUsage(),
+    timestamp: new Date().toISOString()
+  };
+  
+  log('debug', 'Server statistics requested', {
+    requestId: req.requestId,
+    health: health,
+    memoryUsage: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`
+  });
+  
+  res.json(stats);
 });
 
 // Execute Claude Code command using SDK with streaming

@@ -23,7 +23,7 @@ const PromptGenerator: React.FC = () => {
   const [permissionMode, setPermissionMode] = useState('default');
   const [verbose, setVerbose] = useState(false);
   const [maxTurns, setMaxTurns] = useState(20);
-  const [workingDirectory, setWorkingDirectory] = useState('/Users/shayco/claude-code/branded44/packages/mobile');
+  const [workingDirectory, setWorkingDirectory] = useState('/Users/shayco/branded44/packages/mobile');
 
   // Additional security/proxy options 
   const [dangerouslySkipPermissions, setDangerouslySkipPermissions] = useState(true);
