@@ -135,7 +135,9 @@ export const logWixConfig = (): void => {
 };
 
 // Auto-validate configuration when module loads
-if (__DEV__) {
+// Use cross-platform development mode detection
+const isDevelopment = (typeof __DEV__ !== 'undefined' && __DEV__) || process.env.NODE_ENV === 'development';
+if (isDevelopment) {
   logWixConfig();
 }
 
