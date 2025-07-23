@@ -5,14 +5,15 @@
  * Only include screens that are relevant to this specific app.
  */
 
-console.log('📱 Importing fitness app screens...');
+console.log('📱 [DEBUG] Starting screen imports...');
 
-// Fitness App Screens (replace everything with these)
-//import '../screens/WorkoutScreen';
-//import '../screens/ProgressScreen';
-//import '../screens/SocialScreen';
-//import '../screens/FitnessProfileScreen';
-import '../screens/SettingsScreen'
-import '../screens/HomeScreen'
+// Fitness App Screens
+console.log('📱 [DEBUG] About to import SettingsScreen...');
+import '../screens/SettingsScreen';
+console.log('📱 [DEBUG] SettingsScreen imported successfully');
 
-console.log('✅ Fitness app screens imported!'); 
+console.log('📱 [DEBUG] About to import HomeScreen...');
+import '../screens/HomeScreen';
+console.log('📱 [DEBUG] HomeScreen imported successfully');
+
+console.log('✅ [DEBUG] All fitness app screens imported successfully!'); 
