@@ -7,6 +7,7 @@ import {StyleSheet, View} from 'react-native';
 console.log('📱 [DEBUG] React Native components imported successfully');
 
 import {ThemeProvider, CartProvider} from './context';
+import {WixCartProvider} from './context/WixCartContext';
 console.log('📱 [DEBUG] Context providers imported successfully');
 
 import {BottomNavigation} from './components';
@@ -66,7 +67,9 @@ const App = () => {
   return (
     <ThemeProvider>
       <CartProvider>
-        <AppContent />
+        <WixCartProvider>
+          <AppContent />
+        </WixCartProvider>
       </CartProvider>
     </ThemeProvider>
   );

@@ -1,6 +1,7 @@
 import React, {useState, Suspense, useCallback} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator} from 'react-native';
 import {ThemeProvider, CartProvider} from '@mobile/context';
+import {WixCartProvider} from '@mobile/context/WixCartContext';
 import {usePreview} from '../context/PreviewContext';
 import WebAppContainer from './WebAppContainer';
 
@@ -236,7 +237,8 @@ const MobileApp: React.FC<MobileAppProps> = ({
   return (
     <ThemeProvider>
       <CartProvider>
-        <View style={styles.container}>
+        <WixCartProvider>
+          <View style={styles.container}>
           <Suspense fallback={<LoadingSpinner />}>
             <View style={styles.content}>
               {renderMainContent()}
@@ -251,6 +253,7 @@ const MobileApp: React.FC<MobileAppProps> = ({
             )}
           </Suspense>
         </View>
+        </WixCartProvider>
       </CartProvider>
     </ThemeProvider>
   );

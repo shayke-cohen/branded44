@@ -7,7 +7,7 @@
 
 console.log('📱 [DEBUG] Starting screen imports...');
 
-// Fitness App Screens
+// Import Fitness App Screens
 console.log('📱 [DEBUG] About to import SettingsScreen...');
 import '../screens/SettingsScreen';
 console.log('📱 [DEBUG] SettingsScreen imported successfully');
@@ -16,4 +16,8 @@ console.log('📱 [DEBUG] About to import HomeScreen...');
 import '../screens/HomeScreen';
 console.log('📱 [DEBUG] HomeScreen imported successfully');
 
-console.log('✅ [DEBUG] All fitness app screens imported successfully!'); 
+console.log('📱 [DEBUG] About to import Wix Store screens...');
+import '../screens/wix';
+console.log('📱 [DEBUG] All Wix store screens imported successfully');
+
+console.log('✅ [DEBUG] All fitness app and store screens imported successfully!'); 
