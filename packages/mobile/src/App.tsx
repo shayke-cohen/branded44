@@ -67,11 +67,11 @@ const App = () => {
   return (
     <ThemeProvider>
       <CartProvider>
-        <WixCartProvider>
-          <MemberProvider>
+        <MemberProvider>
+          <WixCartProvider>
             <AppContent />
-          </MemberProvider>
-        </WixCartProvider>
+          </WixCartProvider>
+        </MemberProvider>
       </CartProvider>
     </ThemeProvider>
   );

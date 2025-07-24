@@ -43,8 +43,8 @@ registerScreen(SettingsScreen, {
 });
 
 registerScreen(MemberAuthScreen, {
-  name: 'Account',
-  shortName: 'Account', // Short text
+  name: 'Profile',
+  shortName: 'Profile', // Short text
   icon: '👤',
   category: 'App',
   hasTab: true,
@@ -65,8 +65,8 @@ import CartScreen from '../screens/wix/CartScreen';
 import CMSScreen from '../screens/wix/CMSScreen';
 
 registerScreen(ProductsNavigation, {
-  name: 'Products',
-  shortName: 'Products', // Short text
+  name: 'Store',
+  shortName: 'Store', // Short text
   icon: '🛍️',
   category: 'Store',
   hasTab: true,

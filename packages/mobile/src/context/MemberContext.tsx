@@ -64,7 +64,16 @@ export const MemberProvider: React.FC<MemberProviderProps> = ({ children }) => {
       console.log('👤 [MEMBER CONTEXT] Status checked:', {
         loggedIn,
         memberEmail: memberData?.email?.address,
+        memberId: memberData?.id,
+        hasStoredMember: !!memberData,
       });
+      
+      // Additional debug info for persistence troubleshooting
+      if (loggedIn && memberData) {
+        console.log('✅ [MEMBER PERSISTENCE] Member successfully restored from storage');
+      } else {
+        console.log('ℹ️ [MEMBER PERSISTENCE] No stored member found or member not logged in');
+      }
     } catch (error) {
       console.error('❌ [MEMBER CONTEXT] Error checking member status:', error);
       setIsLoggedIn(false);
@@ -139,10 +148,17 @@ export const MemberProvider: React.FC<MemberProviderProps> = ({ children }) => {
     return member?.email?.isVerified || false;
   };
 
-  // Initialize member status on mount
+  // Initialize member status on mount with delay to allow wixApiClient to load stored data
   useEffect(() => {
     console.log('👤 [MEMBER CONTEXT] Initializing member context...');
-    checkMemberStatus();
+    
+    // Add small delay to ensure wixApiClient has loaded stored member data
+    const initTimer = setTimeout(() => {
+      console.log('👤 [MEMBER CONTEXT] Checking member status after initialization delay...');
+      checkMemberStatus();
+    }, 100);
+    
+    return () => clearTimeout(initTimer);
   }, []);
 
   // Context value

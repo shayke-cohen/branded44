@@ -25,10 +25,18 @@ module.exports = {
         '../mobile/src/context/ThemeContext.tsx',
       ),
       '../../context/WixCartContext': path.resolve(
-        __dirname,
-        '../mobile/src/context/WixCartContext.tsx',
+        appDirectory,
+        'src/context/WebWixCartContext.tsx',
+      ),
+      '../../context/WixCartContext$': path.resolve(
+        appDirectory,
+        'src/context/WebWixCartContext.tsx',
       ),
       '../../context/MemberContext': path.resolve(
+        appDirectory,
+        'src/context/WebMemberContext.tsx',
+      ),
+      '../mobile/src/context/MemberContext$': path.resolve(
         appDirectory,
         'src/context/WebMemberContext.tsx',
       ),

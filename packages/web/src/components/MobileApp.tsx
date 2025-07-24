@@ -1,7 +1,7 @@
 import React, {useState, Suspense, useCallback} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator} from 'react-native';
 import {ThemeProvider, CartProvider} from '@mobile/context';
-import {WixCartProvider} from '@mobile/context/WixCartContext';
+import {WixCartProvider, MemberProvider} from '../context';
 import {usePreview} from '../context/PreviewContext';
 import WebAppContainer from './WebAppContainer';
 
@@ -237,23 +237,25 @@ const MobileApp: React.FC<MobileAppProps> = ({
   return (
     <ThemeProvider>
       <CartProvider>
-        <WixCartProvider>
-          <View style={styles.container}>
-          <Suspense fallback={<LoadingSpinner />}>
-            <View style={styles.content}>
-              {renderMainContent()}
-            </View>
-            
-            {/* Show bottom navigation for screens mode, but hide when app is active */}
-            {!activeApp && (
-              <BottomNavigation 
-                activeTab={activeTab} 
-                onTabPress={handleTabPress}
-              />
-            )}
-          </Suspense>
-        </View>
-        </WixCartProvider>
+        <MemberProvider>
+          <WixCartProvider>
+            <View style={styles.container}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <View style={styles.content}>
+                {renderMainContent()}
+              </View>
+              
+              {/* Show bottom navigation for screens mode, but hide when app is active */}
+              {!activeApp && (
+                <BottomNavigation 
+                  activeTab={activeTab} 
+                  onTabPress={handleTabPress}
+                />
+              )}
+            </Suspense>
+          </View>
+          </WixCartProvider>
+        </MemberProvider>
       </CartProvider>
     </ThemeProvider>
   );

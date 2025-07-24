@@ -23,11 +23,7 @@ import CartScreen from './examples/CartScreen';
 import CheckoutScreen from './examples/CheckoutScreen';
 import SearchScreen from './examples/SearchScreen';
 
-// Import sample apps
-import {TodoApp} from '../sample-apps/TodoApp';
-import {CalculatorApp} from '../sample-apps/CalculatorApp';
-import {WeatherApp} from '../sample-apps/WeatherApp';
-import {NotesApp} from '../sample-apps/NotesApp';
+
 
 // Import all screens from dedicated file
 import '../config/importScreens';
@@ -62,11 +58,7 @@ export const TEMPLATE_COMPONENTS: Record<string, ComponentType<any>> = {
   'checkout': CheckoutScreen,
   'search': SearchScreen,
   
-  // Sample Apps
-  'todo-app': TodoApp,
-  'calculator-app': CalculatorApp,
-  'weather-app': WeatherApp,
-  'notes-app': NotesApp,
+
 };
 
 // Template configuration data
@@ -271,75 +263,7 @@ export const TEMPLATE_CONFIG: TemplateConfig[] = [
     },
   },
 
-  // Sample Apps
-  {
-    id: 'todo-app',
-    name: 'Todo App',
-    description: 'Complete task management application with categories, priorities, and local persistence.',
-    complexity: 'Apps',
-    componentKey: 'todo-app',
-    icon: '✅',
-    features: [
-      'Add, edit, delete todos',
-      'Categories & priorities', 
-      'Filter & search',
-      'Local storage persistence',
-      'Statistics & progress tracking',
-    ],
-    customizable: false,
-    category: 'Productivity',
-  },
-  {
-    id: 'calculator-app',
-    name: 'Calculator App',
-    description: 'Advanced calculator with history, memory functions, and scientific operations.',
-    complexity: 'Apps',
-    componentKey: 'calculator-app',
-    icon: '🧮',
-    features: [
-      'Basic & advanced operations',
-      'Memory functions (MC, MR, M+, M-)',
-      'Calculation history',
-      'Error handling',
-      'Local storage persistence',
-    ],
-    customizable: false,
-    category: 'Utilities',
-  },
-  {
-    id: 'weather-app',
-    name: 'Weather App',
-    description: 'Beautiful weather forecasting with location search, 7-day forecasts, and weather alerts.',
-    complexity: 'Apps',
-    componentKey: 'weather-app',
-    icon: '🌤️',
-    features: [
-      'Current weather & forecasts',
-      'Location search & saved locations',
-      'Hourly & 7-day forecasts',
-      'Weather alerts & warnings',
-      'Unit preferences (°C/°F, km/h/mph)',
-    ],
-    customizable: false,
-    category: 'Weather',
-  },
-  {
-    id: 'notes-app',
-    name: 'Notes App',
-    description: 'Rich text note-taking with folders, tags, search, and export capabilities.',
-    complexity: 'Apps',
-    componentKey: 'notes-app',
-    icon: '📝',
-    features: [
-      'Rich text editing with formatting',
-      'Folder organization & tagging',
-      'Advanced search & filtering',
-      'Note templates & export',
-      'Pin favorites & auto-save',
-    ],
-    customizable: false,
-    category: 'Productivity',
-  },
+
 ];
 
 // Helper functions for template management
@@ -440,10 +364,7 @@ function initializeUnifiedRegistry(): void {
   registerComponent('CartScreen', CartScreen);
   registerComponent('CheckoutScreen', CheckoutScreen);
   registerComponent('SearchScreen', SearchScreen);
-  registerComponent('todo-app', TodoApp);
-  registerComponent('calculator-app', CalculatorApp);
-  registerComponent('weather-app', WeatherApp);
-  registerComponent('notes-app', NotesApp);
+
   // HomeScreen and SettingsScreen now self-register
 
   // Convert existing template configs to unified entities

@@ -127,6 +127,10 @@ export interface WixCart {
     total: string;
     currency: string;
   };
+  buyerInfo?: {
+    visitorId?: string;
+    memberId?: string;
+  };
 }
 
 // Visitor token types
@@ -765,12 +769,18 @@ class WixApiClient {
   private visitorTokens: VisitorTokens | null = null;
   private memberTokens: MemberTokens | null = null;
   private currentMember: MemberIdentity | null = null;
+  private sessionToken: string | null = null;
+  private wixClient: any = null; // Add Wix SDK client
 
   constructor() {
     console.log('🔗 [DEBUG] WixApiClient initialized');
     console.log(`🔗 [DEBUG] Using Client ID: ${this.clientId}`);
     console.log(`🔗 [DEBUG] Using Site ID: ${this.siteId}`);
     console.log(`🔗 [DEBUG] Using Stores App ID: ${this.storesAppId}`);
+    
+    // Initialize Wix SDK client
+    this.initializeWixClient();
+    
     this.loadStoredAuth();
     this.loadStoredMemberAuth();
     this.initializeVisitorAuthentication();
@@ -783,6 +793,20 @@ class WixApiClient {
           console.warn('⚠️ [DIAGNOSTICS] Authentication diagnostics failed:', error);
         });
       }, 1000);
+    }
+  }
+
+  // Initialize Wix SDK client with OAuth strategy
+  private initializeWixClient(): void {
+    try {
+      this.wixClient = createClient({
+        auth: OAuthStrategy({
+          clientId: this.clientId,
+        }),
+      });
+      console.log('✅ [WIX SDK] Wix SDK client initialized with OAuth strategy');
+    } catch (error) {
+      console.error('❌ [WIX SDK] Failed to initialize Wix SDK client:', error);
     }
   }
 
@@ -975,8 +999,10 @@ class WixApiClient {
     try {
       await AsyncStorage.removeItem('wix_member_tokens');
       await AsyncStorage.removeItem('wix_current_member');
+      await AsyncStorage.removeItem('wix_session_token');
       this.memberTokens = null;
       this.currentMember = null;
+      this.sessionToken = null;
       console.log('🗑️ [MEMBER AUTH] Member logged out successfully');
     } catch (error) {
       console.error('❌ [MEMBER AUTH] Failed to logout member:', error);
@@ -993,6 +1019,12 @@ class WixApiClient {
         this.currentMember = JSON.parse(storedMember);
         console.log('👤 [MEMBER AUTH] Loaded stored member profile');
       }
+      
+      const storedSessionToken = await AsyncStorage.getItem('wix_session_token');
+      if (storedSessionToken) {
+        this.sessionToken = storedSessionToken;
+        console.log('🎫 [MEMBER AUTH] Loaded stored session token');
+      }
     } catch (error) {
       console.error('❌ [MEMBER AUTH] Failed to load stored member auth:', error);
     }
@@ -1004,98 +1036,47 @@ class WixApiClient {
     return tokens.accessToken.expiresAt > now;
   }
 
-  // Convert session token to member tokens (simplified for React Native)
+  // Convert session token to member tokens (FIXED - using proper Wix SDK method)
   private async getMemberTokensFromSession(sessionToken: string): Promise<MemberTokens | null> {
     try {
-      console.log('🔄 [MEMBER AUTH] Converting session token to member tokens...');
+      console.log('🔄 [MEMBER AUTH] Converting session token to member tokens using Wix SDK...');
       
-      // For React Native/mobile apps, the full OAuth flow with redirect sessions 
-      // is complex and may not be necessary for basic member authentication.
-      // We'll try a simplified approach first.
-      
-      // Attempt 1: Direct session token conversion (some Wix APIs support this)
-      console.log('🔧 [MEMBER AUTH] Attempting direct session token conversion...');
-      
-      const directResponse = await fetch('https://www.wixapis.com/oauth2/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'session_token',
-          session_token: sessionToken,
-          client_id: this.clientId,
-        }),
-      });
+      if (!this.wixClient) {
+        console.error('❌ [MEMBER AUTH] Wix SDK client not initialized');
+        return null;
+      }
 
-      if (directResponse.ok) {
-        const tokenData = await directResponse.json();
-        
+      // Use the proper Wix SDK method to convert session token to member tokens
+      console.log('🔧 [MEMBER AUTH] Using getMemberTokensForDirectLogin...');
+      
+      const tokens = await this.wixClient.auth.getMemberTokensForDirectLogin(sessionToken);
+      
+      if (tokens && tokens.accessToken && tokens.refreshToken) {
         const memberTokens: MemberTokens = {
           accessToken: {
-            value: tokenData.access_token,
-            expiresAt: Math.floor(Date.now() / 1000) + tokenData.expires_in,
+            value: tokens.accessToken.value,
+            expiresAt: tokens.accessToken.expiresAt,
           },
           refreshToken: {
-            value: tokenData.refresh_token,
+            value: tokens.refreshToken.value,
           },
         };
 
+        // Store and set the tokens
         await this.storeMemberTokens(memberTokens);
         this.memberTokens = memberTokens;
         
-        console.log('✅ [MEMBER AUTH] Member tokens generated successfully (direct method)');
-        return memberTokens;
-      }
-
-      // Attempt 2: JWT Bearer grant type
-      console.log('🔧 [MEMBER AUTH] Trying JWT Bearer grant type...');
-      
-      const jwtResponse = await fetch('https://www.wixapis.com/oauth2/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-          assertion: sessionToken,
-          client_id: this.clientId,
-        }),
-      });
-
-      if (jwtResponse.ok) {
-        const tokenData = await jwtResponse.json();
+        // Set the tokens as active in the Wix client
+        this.wixClient.auth.setTokens(tokens);
         
-        const memberTokens: MemberTokens = {
-          accessToken: {
-            value: tokenData.access_token,
-            expiresAt: Math.floor(Date.now() / 1000) + tokenData.expires_in,
-          },
-          refreshToken: {
-            value: tokenData.refresh_token,
-          },
-        };
-
-        await this.storeMemberTokens(memberTokens);
-        this.memberTokens = memberTokens;
-        
-        console.log('✅ [MEMBER AUTH] Member tokens generated successfully (JWT Bearer method)');
+        console.log('✅ [MEMBER AUTH] Member tokens generated successfully using Wix SDK');
         return memberTokens;
+      } else {
+        console.warn('⚠️ [MEMBER AUTH] Invalid tokens received from SDK');
+        return null;
       }
-
-      // If both methods fail, log the errors but don't break the flow
-      const directError = await directResponse.text();
-      const jwtError = await jwtResponse.text();
-      
-      console.warn('⚠️ [MEMBER AUTH] Session token conversion failed, but registration was successful');
-      console.warn('🔧 [MEMBER AUTH] Direct method error:', directError);
-      console.warn('🔧 [MEMBER AUTH] JWT Bearer method error:', jwtError);
-      console.log('ℹ️ [MEMBER AUTH] Member registration completed successfully without token conversion');
-      console.log('ℹ️ [MEMBER AUTH] Member can still use the app with visitor-level permissions');
-      
-      return null;
     } catch (error) {
-      console.error('❌ [MEMBER AUTH] Failed to convert session token:', error);
+      console.error('❌ [MEMBER AUTH] Failed to convert session token using SDK:', error);
       console.warn('⚠️ [MEMBER AUTH] Continuing without member tokens - registration still successful');
       console.log('ℹ️ [MEMBER AUTH] Member can still use the app with visitor-level permissions');
       return null;
@@ -1152,12 +1133,19 @@ class WixApiClient {
       const authResponse: AuthResponse = await response.json();
       
       if (authResponse.state === 'SUCCESS' && authResponse.sessionToken) {
+        // Store session token for direct use
+        this.sessionToken = authResponse.sessionToken;
+        await AsyncStorage.setItem('wix_session_token', authResponse.sessionToken);
+        
         // Store member profile first
         this.currentMember = authResponse.identity;
         await AsyncStorage.setItem('wix_current_member', JSON.stringify(this.currentMember));
         
         // Convert session token to member tokens (this may fail, but that's okay)
         await this.getMemberTokensFromSession(authResponse.sessionToken);
+        
+        // Attempt to migrate visitor cart to member cart
+        await this.migrateVisitorCartToMember();
         
         console.log('✅ [MEMBER AUTH] Member registered successfully');
       }
@@ -1214,12 +1202,19 @@ class WixApiClient {
       const authResponse: AuthResponse = await response.json();
       
       if (authResponse.state === 'SUCCESS' && authResponse.sessionToken) {
+        // Store session token for direct use
+        this.sessionToken = authResponse.sessionToken;
+        await AsyncStorage.setItem('wix_session_token', authResponse.sessionToken);
+        
         // Store member profile first
         this.currentMember = authResponse.identity;
         await AsyncStorage.setItem('wix_current_member', JSON.stringify(this.currentMember));
         
         // Convert session token to member tokens (this may fail, but that's okay)
         await this.getMemberTokensFromSession(authResponse.sessionToken);
+        
+        // Attempt to migrate visitor cart to member cart
+        await this.migrateVisitorCartToMember();
         
         console.log('✅ [MEMBER AUTH] Member logged in successfully');
       }
@@ -1256,12 +1251,64 @@ class WixApiClient {
     return false;
   }
 
+  // Check if we have valid member tokens for API calls
+  hasMemberTokens(): boolean {
+    return !!(this.memberTokens && this.isMemberTokenValid(this.memberTokens));
+  }
+
   // Get member authentication header
   private getMemberAuthHeader(): string | null {
     if (this.memberTokens && this.isMemberTokenValid(this.memberTokens)) {
       return `Bearer ${this.memberTokens.accessToken.value}`;
     }
     return null;
+  }
+
+  // Migrate visitor cart to member context after login
+  private async migrateVisitorCartToMember(): Promise<void> {
+    try {
+      console.log('🔄 [CART MIGRATION] Attempting to migrate visitor cart to member...');
+      
+      // Get current visitor cart before authentication switch
+      const visitorCart = await this.getCurrentCart();
+      
+      if (visitorCart && visitorCart.lineItems && visitorCart.lineItems.length > 0) {
+        console.log('🔄 [CART MIGRATION] Found visitor cart with items:', {
+          cartId: visitorCart.id,
+          itemCount: visitorCart.lineItems.length,
+          buyerInfo: visitorCart.buyerInfo
+        });
+        
+        // Attempt to create a new cart with member context that includes existing items
+        console.log('🔄 [CART MIGRATION] Re-adding items to establish member cart ownership...');
+        
+        // Add items one by one to trigger member cart creation
+        for (const item of visitorCart.lineItems) {
+          if (item.catalogReference) {
+            try {
+                             await this.addToCart([{
+                 catalogReference: {
+                   appId: item.catalogReference.appId,
+                   catalogItemId: item.catalogReference.catalogItemId,
+                   options: (item.catalogReference as any).options || {}
+                 },
+                 quantity: item.quantity
+               }]);
+              console.log('✅ [CART MIGRATION] Migrated item:', item.productName?.original || 'Unknown');
+            } catch (error) {
+              console.warn('⚠️ [CART MIGRATION] Failed to migrate item:', item.productName?.original, error);
+            }
+          }
+        }
+        
+        console.log('✅ [CART MIGRATION] Cart migration completed');
+      } else {
+        console.log('ℹ️ [CART MIGRATION] No visitor cart items to migrate');
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ [CART MIGRATION] Cart migration failed (non-critical):', error);
+    }
   }
 
   private async makeRequest<T>(
@@ -1277,9 +1324,21 @@ class WixApiClient {
     // Ensure we have valid visitor tokens
     await this.ensureValidVisitorTokens();
 
-    // Add visitor auth token
-    if (this.visitorTokens?.accessToken) {
+    // Prioritize member authentication context when logged in
+    const memberAuthHeader = this.getMemberAuthHeader();
+    if (memberAuthHeader) {
+      headers['Authorization'] = memberAuthHeader;
+      console.log('🔐 [AUTH] Using member token authentication for API call');
+    } else if (this.currentMember && this.visitorTokens?.accessToken) {
+      // Member is logged in but we don't have member tokens - use visitor tokens with member context
+      // Note: Session tokens from login are stored but not used directly as they cause 428 errors
       headers['Authorization'] = `Bearer ${this.visitorTokens.accessToken}`;
+      headers['X-Wix-Member-Id'] = this.currentMember.id;
+      console.log('👤🔐 [AUTH] Using visitor authentication with member context for API call');
+      console.log('👤🔐 [AUTH] Member ID in context:', this.currentMember.id);
+    } else if (this.visitorTokens?.accessToken) {
+      headers['Authorization'] = `Bearer ${this.visitorTokens.accessToken}`;
+      console.log('👤 [AUTH] Using visitor authentication for API call');
     }
 
     console.log(`🌐 [API] ${options.method || 'GET'} ${endpoint}`);
@@ -1670,7 +1729,52 @@ class WixApiClient {
   async getCurrentCart(): Promise<WixCart | null> {
     try {
       const endpoint = '/ecom/v1/carts/current';
+      
+      // Debug cart authentication context  
+      const hasMemberTokens = this.memberTokens && this.isMemberTokenValid(this.memberTokens);
+      const hasMemberIdentity = !!this.currentMember;
+          console.log('🛒 [GET CART] Authentication context:', {
+      hasMemberTokens,
+      hasMemberIdentity,
+      hasSessionToken: !!this.sessionToken,
+      memberEmail: this.currentMember?.email?.address,
+      tokenType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
+    });
+      
       const response = await this.makeRequest<{ cart: WixCart }>(endpoint);
+      
+      // Log detailed cart information
+      if (response.cart) {
+        console.log('🛒 [GET CART] Cart retrieved:', {
+          cartId: response.cart.id,
+          lineItemsCount: response.cart.lineItems?.length || 0,
+          total: response.cart.totals?.total || '0',
+          currency: response.cart.totals?.currency || 'USD'
+        });
+        
+        if (response.cart.buyerInfo) {
+          console.log('🛒 [GET CART] Cart buyer info:', response.cart.buyerInfo);
+        }
+        
+        // Log individual line items for debugging
+        if (response.cart.lineItems && response.cart.lineItems.length > 0) {
+          console.log('🛒 [GET CART] Line items details:');
+          response.cart.lineItems.forEach((item, index) => {
+            console.log(`🛒 [GET CART] Item ${index + 1}:`, {
+              id: item.id,
+              productName: item.productName?.original || 'Unknown',
+              quantity: item.quantity,
+              price: `${item.price.amount} ${item.price.currency}`,
+              catalogId: item.catalogReference?.catalogItemId
+            });
+          });
+        } else {
+          console.log('🛒 [GET CART] ⚠️ Cart is empty - no line items found');
+        }
+      } else {
+        console.log('🛒 [GET CART] No cart found');
+      }
+      
       return response.cart;
     } catch (error: any) {
       // Handle expected "no cart" scenarios gracefully
@@ -1702,6 +1806,23 @@ class WixApiClient {
     console.log('🛒 [API] Adding to cart - Items:', lineItems.length);
     console.log('🛒 [DEBUG] Site ID:', this.siteId, 'Stores App ID:', this.storesAppId);
     console.log('🛒 [DEBUG] Line items structure:', JSON.stringify(lineItems, null, 2));
+    
+    // Debug cart authentication context
+    const hasMemberTokens = this.memberTokens && this.isMemberTokenValid(this.memberTokens);
+    const hasMemberIdentity = !!this.currentMember;
+    console.log('🛒 [CART AUTH] Authentication context:', {
+      hasMemberTokens,
+      hasMemberIdentity,
+      hasSessionToken: !!this.sessionToken,
+      memberEmail: this.currentMember?.email?.address,
+      tokenType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
+    });
+    
+    // Auto-debug member auth when cart operations happen
+    if (hasMemberIdentity && !hasMemberTokens) {
+      console.log('🔍 [AUTO DEBUG] Member logged in but no tokens - analyzing...');
+      this.autoDebugMemberAuth();
+    }
 
     const requestBody = { lineItems };
 
@@ -1710,7 +1831,41 @@ class WixApiClient {
       body: JSON.stringify(requestBody)
     });
 
-    console.log('🛒 [API] Add to cart response - Line items:', response.cart.lineItems?.length || 0);
+    // Log detailed add to cart response
+    console.log('🛒 [ADD TO CART] Response summary:', {
+      cartId: response.cart.id,
+      lineItemsCount: response.cart.lineItems?.length || 0,
+      total: response.cart.totals?.total || '0',
+      currency: response.cart.totals?.currency || 'USD'
+    });
+    
+    if (response.cart.buyerInfo) {
+      console.log('🛒 [ADD TO CART] Cart buyer info:', response.cart.buyerInfo);
+    }
+    
+    // Log individual line items in response
+    if (response.cart.lineItems && response.cart.lineItems.length > 0) {
+      console.log('🛒 [ADD TO CART] Items in cart after adding:');
+      response.cart.lineItems.forEach((item, index) => {
+        console.log(`🛒 [ADD TO CART] Item ${index + 1}:`, {
+          id: item.id,
+          productName: item.productName?.original || 'Unknown',
+          quantity: item.quantity,
+          price: `${item.price.amount} ${item.price.currency}`,
+          catalogId: item.catalogReference?.catalogItemId
+        });
+      });
+    } else {
+      console.warn('⚠️ [ADD TO CART] Item was NOT added to cart');
+      console.warn('⚠️ [CART WARNING] This usually means:');
+      console.warn('⚠️ [CART WARNING] 1. Product is a demo/template product');
+      console.warn('⚠️ [CART WARNING] 2. Product is not properly configured for eCommerce');
+      console.warn('⚠️ [CART WARNING] 3. Product is out of stock or unavailable');
+      console.warn('⚠️ [CART WARNING] 4. AppId or CatalogItemId is incorrect');
+    }
+    
+    console.log('🛒 [DEBUG] Full cart response:', JSON.stringify(response.cart, null, 2));
+    
     return response.cart;
   }
 
@@ -1742,6 +1897,82 @@ class WixApiClient {
   async createCheckout(cartId?: string): Promise<{ checkoutId: string; checkoutUrl: string }> {
     const endpoint = '/ecom/v1/checkouts';
     
+    const hasMemberTokens = this.hasMemberTokens();
+    const hasMemberIdentity = !!this.currentMember;
+    
+    console.log('🛒 [CHECKOUT] Starting checkout process:', {
+      providedCartId: cartId || 'none (will use current cart)',
+      authType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
+    });
+    
+    // Try to get the current cart and analyze it deeply
+    console.log('🛒 [CHECKOUT] Analyzing cart before checkout...');
+    const currentCart = await this.getCurrentCart();
+    if (currentCart) {
+      console.log('🛒 [CHECKOUT] Current cart analysis:', {
+        cartId: currentCart.id,
+        hasLineItems: !!currentCart.lineItems && currentCart.lineItems.length > 0,
+        lineItemCount: currentCart.lineItems?.length || 0,
+        buyerInfo: currentCart.buyerInfo,
+        subtotal: (currentCart as any).subtotal,
+        currency: (currentCart as any).currency,
+        managedByV2: (currentCart as any).managedByV2
+      });
+      
+      if (currentCart.lineItems && currentCart.lineItems.length > 0) {
+        console.log('🛒 [CHECKOUT] Line items details for checkout:');
+        currentCart.lineItems.forEach((item, index) => {
+          console.log(`🛒 [CHECKOUT] Item ${index + 1}:`, {
+            id: item.id,
+            productName: item.productName?.original,
+            quantity: item.quantity,
+            availability: (item as any).availability?.status,
+            paymentOption: (item as any).paymentOption,
+            customLineItem: (item as any).customLineItem,
+            membersOnly: (item as any).membersOnly
+          });
+        });
+      } else {
+        console.log('⚠️ [CHECKOUT] No line items found in cart - this explains the checkout error');
+        throw new Error('Cart has no line items for checkout');
+      }
+    } else {
+      console.log('⚠️ [CHECKOUT] No current cart found');
+      throw new Error('No cart found for checkout');
+    }
+    
+    // Auto-debug on checkout failure context
+    if (this.currentMember && (!this.memberTokens || !this.isMemberTokenValid(this.memberTokens))) {
+      console.log('🔍 [CHECKOUT DEBUG] Member logged in but using visitor tokens for checkout...');
+      await this.autoDebugMemberAuth();
+    }
+    
+    // If no cartId provided, get current cart for logging
+    if (!cartId) {
+      try {
+        const currentCart = await this.getCurrentCart();
+        if (currentCart) {
+          console.log('🛒 [CHECKOUT] Current cart for checkout:', {
+            cartId: currentCart.id,
+            lineItemsCount: currentCart.lineItems?.length || 0,
+            isEmpty: !currentCart.lineItems || currentCart.lineItems.length === 0
+          });
+          cartId = currentCart.id; // Use the current cart ID
+        } else {
+          console.warn('⚠️ [CHECKOUT] No current cart found');
+        }
+      } catch (error) {
+        console.warn('⚠️ [CHECKOUT] Failed to get current cart for checkout:', error);
+      }
+    }
+    
+    const requestBody = {
+      channelType: 'WEB',
+      ...(cartId ? { cartId } : {})
+    };
+    
+    console.log('🛒 [CHECKOUT] Request body:', JSON.stringify(requestBody, null, 2));
+    
     const response = await this.makeRequest<{ 
       checkout: { 
         id: string; 
@@ -1749,10 +1980,12 @@ class WixApiClient {
       } 
     }>(endpoint, {
       method: 'POST',
-      body: JSON.stringify({
-        channelType: 'WEB',
-        ...(cartId ? { cartId } : {})
-      })
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('🛒 [CHECKOUT] ✅ Checkout created successfully:', {
+      checkoutId: response.checkout.id,
+      checkoutUrl: response.checkout.checkoutUrl
     });
 
     return {
@@ -1830,6 +2063,62 @@ class WixApiClient {
   // Legacy method - kept for backward compatibility
   getStoresAppId(): string {
     return this.storesAppId;
+  }
+
+  // Auto debug member authentication state
+  private async autoDebugMemberAuth(): Promise<void> {
+    try {
+      console.log('🔍 [AUTO DEBUG] === MEMBER AUTHENTICATION ANALYSIS ===');
+      
+      const currentMember = this.getCurrentMember();
+      const isLoggedIn = this.isMemberLoggedIn();
+      const hasMemberTokens = this.hasMemberTokens();
+      
+      console.log('👤 [AUTO DEBUG] Authentication state:', {
+        isLoggedIn,
+        hasMemberTokens,
+        hasSessionToken: !!this.sessionToken,
+        memberId: currentMember?.id,
+        memberEmail: currentMember?.email?.address,
+        memberVerified: currentMember?.email?.isVerified,
+      });
+      
+      // Check stored data
+      const storedMember = await AsyncStorage.getItem('wix_current_member');
+      const storedMemberTokens = await AsyncStorage.getItem('wix_member_tokens');
+      const storedVisitorTokens = await AsyncStorage.getItem('wix_visitor_tokens');
+      const storedSessionToken = await AsyncStorage.getItem('wix_session_token');
+      
+      console.log('💾 [AUTO DEBUG] Stored data:', {
+        hasStoredMember: !!storedMember,
+        hasStoredMemberTokens: !!storedMemberTokens,
+        hasStoredVisitorTokens: !!storedVisitorTokens,
+        hasStoredSessionToken: !!storedSessionToken,
+      });
+      
+      if (storedMemberTokens) {
+        try {
+          const tokens = JSON.parse(storedMemberTokens);
+          const now = Math.floor(Date.now() / 1000);
+          console.log('🔑 [AUTO DEBUG] Member tokens analysis:', {
+            hasAccessToken: !!tokens.accessToken?.value,
+            accessTokenExpiry: tokens.accessToken?.expiresAt,
+            isExpired: tokens.accessToken?.expiresAt <= now,
+            hasRefreshToken: !!tokens.refreshToken?.value,
+            timeUntilExpiry: tokens.accessToken?.expiresAt ? tokens.accessToken.expiresAt - now : 'N/A'
+          });
+        } catch (error) {
+          console.error('❌ [AUTO DEBUG] Failed to parse stored member tokens:', error);
+        }
+      } else {
+        console.log('⚠️ [AUTO DEBUG] No member tokens found in storage');
+        console.log('🔧 [AUTO DEBUG] This explains why cart shows visitor instead of member');
+      }
+      
+      console.log('🔍 [AUTO DEBUG] === END ANALYSIS ===');
+    } catch (error) {
+      console.error('❌ [AUTO DEBUG] Error during auto-debug:', error);
+    }
   }
 
   // Force refresh visitor authentication (useful for debugging auth issues)
@@ -1948,6 +2237,122 @@ export const refreshWixAuth = async (): Promise<void> => {
   await wixApiClient.refreshVisitorAuthentication();
 };
 
+export const debugStoredData = async (): Promise<void> => {
+  console.log('🔍 [DEBUG] Checking stored data...');
+  try {
+    const visitorTokens = await AsyncStorage.getItem('wix_visitor_tokens');
+    const memberTokens = await AsyncStorage.getItem('wix_member_tokens');
+    const currentMember = await AsyncStorage.getItem('wix_current_member');
+    
+    console.log('📱 [STORED DATA] Visitor tokens:', visitorTokens ? 'EXISTS' : 'MISSING');
+    console.log('📱 [STORED DATA] Member tokens:', memberTokens ? 'EXISTS' : 'MISSING');
+    console.log('📱 [STORED DATA] Current member:', currentMember ? 'EXISTS' : 'MISSING');
+    
+    if (currentMember) {
+      const memberData = JSON.parse(currentMember);
+      console.log('👤 [STORED MEMBER]:', {
+        id: memberData.id,
+        email: memberData.email?.address,
+        isVerified: memberData.email?.isVerified,
+      });
+    }
+  } catch (error) {
+    console.error('❌ [DEBUG] Error checking stored data:', error);
+  }
+};
+
+export const clearAllStoredData = async (): Promise<void> => {
+  console.log('🗑️ [DEBUG] Clearing all stored data...');
+  try {
+    await AsyncStorage.multiRemove([
+      'wix_visitor_tokens',
+      'wix_member_tokens', 
+      'wix_current_member',
+      'wix_session_token',
+      '@cart_data', // Local cart storage
+    ]);
+    console.log('✅ [DEBUG] All stored data cleared');
+  } catch (error) {
+    console.error('❌ [DEBUG] Error clearing stored data:', error);
+  }
+};
+
+export const debugProduct = async (productId: string): Promise<void> => {
+  console.log('🔍 [DEBUG] Analyzing product for cart compatibility...');
+  try {
+    const product = await wixApiClient.getProduct(productId);
+    console.log('🛍️ [PRODUCT DEBUG] Product details:', {
+      id: product.id,
+      name: product.name,
+      visible: product.visible,
+      inStock: product.inStock,
+      stock: product.stock,
+      priceData: product.priceData,
+      categoryIds: product.categoryIds,
+    });
+    
+    // Check if it's likely a demo product
+    const isDemoProduct = product.name?.toLowerCase().includes('demo') || 
+                         product.name?.toLowerCase().includes('template') ||
+                         product.name?.toLowerCase().includes('i\'m a product');
+    
+    if (isDemoProduct) {
+      console.warn('⚠️ [PRODUCT DEBUG] This appears to be a demo/template product');
+      console.warn('⚠️ [PRODUCT DEBUG] Demo products often cannot be added to cart');
+      console.warn('⚠️ [PRODUCT DEBUG] Create a real product in your Wix dashboard to test cart functionality');
+    }
+    
+  } catch (error) {
+    console.error('❌ [DEBUG] Error analyzing product:', error);
+  }
+};
+
+export const debugMemberAuth = async (): Promise<void> => {
+  console.log('🔍 [DEBUG] Analyzing member authentication state...');
+  try {
+    const currentMember = wixApiClient.getCurrentMember();
+    const isLoggedIn = wixApiClient.isMemberLoggedIn();
+    const hasMemberTokens = wixApiClient.hasMemberTokens();
+    
+    console.log('👤 [MEMBER DEBUG] Authentication state:', {
+      isLoggedIn,
+      hasMemberTokens,
+      memberId: currentMember?.id,
+      memberEmail: currentMember?.email?.address,
+      memberVerified: currentMember?.email?.isVerified,
+    });
+    
+    // Check stored data
+    const storedMember = await AsyncStorage.getItem('wix_current_member');
+    const storedMemberTokens = await AsyncStorage.getItem('wix_member_tokens');
+    const storedVisitorTokens = await AsyncStorage.getItem('wix_visitor_tokens');
+    
+    console.log('💾 [MEMBER DEBUG] Stored data:', {
+      hasStoredMember: !!storedMember,
+      hasStoredMemberTokens: !!storedMemberTokens,
+      hasStoredVisitorTokens: !!storedVisitorTokens,
+    });
+    
+    if (storedMemberTokens) {
+      try {
+        const tokens = JSON.parse(storedMemberTokens);
+        const now = Math.floor(Date.now() / 1000);
+        console.log('🔑 [MEMBER DEBUG] Member tokens state:', {
+          hasAccessToken: !!tokens.accessToken?.value,
+          accessTokenExpiry: tokens.accessToken?.expiresAt,
+          isExpired: tokens.accessToken?.expiresAt <= now,
+          hasRefreshToken: !!tokens.refreshToken?.value,
+        });
+      } catch (error) {
+        console.error('❌ [MEMBER DEBUG] Failed to parse stored member tokens:', error);
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ [DEBUG] Error analyzing member auth:', error);
+  }
+};
+
 console.log('🛍️ [DEBUG] Wix API Client module loaded with configuration from wixConfig');
 console.log('🗄️ [DEBUG] Wix CMS Client ready for data collection operations'); 
 console.log('🔧 [DEBUG] Debug helpers available: debugWixAuth(), refreshWixAuth()');
@@ -1956,5 +2361,15 @@ console.log('🔧 [DEBUG] Debug helpers available: debugWixAuth(), refreshWixAut
 if (__DEV__ && typeof global !== 'undefined') {
   (global as any).debugWixAuth = debugWixAuth;
   (global as any).refreshWixAuth = refreshWixAuth;
-  console.log('🔧 [DEBUG] Global debug functions registered: global.debugWixAuth(), global.refreshWixAuth()');
+  (global as any).debugStoredData = debugStoredData;
+  (global as any).clearAllStoredData = clearAllStoredData;
+  (global as any).debugProduct = debugProduct;
+  (global as any).debugMemberAuth = debugMemberAuth;
+  console.log('🔧 [DEBUG] Global debug functions registered:');
+  console.log('🔧 [DEBUG] - global.debugWixAuth() - Run auth diagnostics');
+  console.log('🔧 [DEBUG] - global.refreshWixAuth() - Refresh auth tokens');
+  console.log('🔧 [DEBUG] - global.debugStoredData() - Check stored data');
+  console.log('🔧 [DEBUG] - global.clearAllStoredData() - Clear all storage');
+  console.log('🔧 [DEBUG] - global.debugProduct("productId") - Analyze product compatibility');
+  console.log('🔧 [DEBUG] - global.debugMemberAuth() - Analyze member authentication state');
 }

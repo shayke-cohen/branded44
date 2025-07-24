@@ -38,7 +38,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       marginBottom: 2, // Reduced margin
     },
     tabLabel: {
-      fontSize: 10,
+      fontSize: 8,
       fontWeight: '500',
       marginTop: 1,
     },

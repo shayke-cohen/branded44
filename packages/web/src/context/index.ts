@@ -9,7 +9,7 @@
 // Re-export mobile contexts that work fine in web
 export * from '@mobile/context/ThemeContext';
 export * from '@mobile/context/CartContext';
-export * from '@mobile/context/WixCartContext';
 
-// Override MemberContext with web-compatible version
-export {MemberProvider, useMember, withMemberAuth} from './WebMemberContext'; 
+// Override contexts with web-compatible versions
+export {MemberProvider, useMember, withMemberAuth} from './WebMemberContext';
+export {WixCartProvider, useWixCart} from './WebWixCartContext'; 

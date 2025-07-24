@@ -27,8 +27,11 @@ const CartScreen: React.FC = () => {
     updateQuantity,
     removeFromCart,
     refreshCart,
+    syncWithServer,
     getItemCount,
     getTotal,
+    isMemberCart,
+    getCartOwnerInfo,
   } = useWixCart();
 
   const [checkingOut, setCheckingOut] = useState(false);
@@ -115,7 +118,26 @@ const CartScreen: React.FC = () => {
 
     try {
       setCheckingOut(true);
-      console.log('🛒 [DEBUG] Starting checkout process...');
+      console.log('🛒 [CART SCREEN] Starting checkout process...');
+      console.log('🛒 [CART SCREEN] Cart state for checkout:', {
+        cartId: cart.id,
+        lineItemsCount: cart.lineItems?.length || 0,
+        total: getTotal(),
+        hasItems: cart.lineItems && cart.lineItems.length > 0
+      });
+      
+      // Log each item being checked out
+      if (cart.lineItems && cart.lineItems.length > 0) {
+        console.log('🛒 [CART SCREEN] Items being checked out:');
+        cart.lineItems.forEach((item, index) => {
+          console.log(`🛒 [CART SCREEN] Item ${index + 1}:`, {
+            id: item.id,
+            name: item.productName?.original || 'Unknown',
+            quantity: item.quantity,
+            price: `${item.price.amount} ${item.price.currency}`
+          });
+        });
+      }
 
       const { checkoutUrl } = await wixApiClient.createCheckout(cart.id);
       
@@ -130,11 +152,27 @@ const CartScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('❌ [ERROR] Checkout failed:', error);
-      Alert.alert(
-        '🚨 Checkout Error',
-        '💳 Failed to start checkout process. Please try again! 🔄',
-        [{ text: '👍 OK' }]
-      );
+      
+      // Check if this is the demo product checkout error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('cannot create checkout without lineItems')) {
+        Alert.alert(
+          '🛍️ Demo Product Limitation',
+          '⚠️ Cannot checkout with demo/template products.\n\n' +
+          '✅ To test checkout:\n' +
+          '1. Go to manage.wix.com\n' +
+          '2. Create a real product\n' +
+          '3. Add that product to cart\n' +
+          '4. Try checkout again',
+          [{ text: '👍 Got it!' }]
+        );
+      } else {
+        Alert.alert(
+          '🚨 Checkout Error',
+          '💳 Failed to start checkout process. Please try again! 🔄',
+          [{ text: '👍 OK' }]
+        );
+      }
     } finally {
       setCheckingOut(false);
     }
@@ -221,12 +259,43 @@ const CartScreen: React.FC = () => {
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-            Shopping Cart
-          </Text>
-          <Text style={[styles.itemCountText, { color: theme.colors.textSecondary }]}>
-            {itemCount} {itemCount === 1 ? 'item' : 'items'}
-          </Text>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+              Shopping Cart
+            </Text>
+            <Text style={[styles.itemCountText, { color: theme.colors.textSecondary }]}>
+              {itemCount} {itemCount === 1 ? 'item' : 'items'}
+            </Text>
+          </View>
+          
+          <View style={styles.headerButtons}>
+            {/* Debug Member Auth Button */}
+            <TouchableOpacity
+              style={[styles.debugButton, { backgroundColor: '#FFA500' }]}
+              onPress={() => {
+                console.log('🔍 [MANUAL DEBUG] User triggered member auth analysis...');
+                import('../../utils/wixApiClient').then(({ debugMemberAuth }) => {
+                  debugMemberAuth();
+                });
+              }}
+              disabled={loading}
+            >
+              <Text style={styles.syncButtonText}>🔍</Text>
+              <Text style={styles.syncButtonLabel}>Debug</Text>
+            </TouchableOpacity>
+            
+            {/* Sync with Server Button */}
+            <TouchableOpacity
+              style={[styles.syncButton, { backgroundColor: theme.colors.primary }]}
+              onPress={syncWithServer}
+              disabled={loading}
+            >
+              <Text style={styles.syncButtonText}>
+                {loading ? '🔄' : '📡'}
+              </Text>
+              <Text style={styles.syncButtonLabel}>Sync</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Cart Items or Empty State */}
@@ -236,26 +305,21 @@ const CartScreen: React.FC = () => {
             <Text style={styles.emptyMainDescription}>
               Add some products to get started
             </Text>
-            
-            {/* Demo product limitation notice */}
-            <View style={styles.demoNotice}>
-              <Text style={styles.demoTitle}>⚠️ Demo Product Limitation</Text>
-              <Text style={styles.demoText}>
-                The current products are Wix demo/template products. To test full cart functionality:
-              </Text>
-              <Text style={styles.demoInstructions}>
-                1. Go to your Wix dashboard (manage.wix.com){'\n'}
-                2. Click Products → + New Product{'\n'}
-                3. Create a real product with your own details{'\n'}
-                4. Test adding that product to cart
-              </Text>
-            </View>
 
-            {/* Simple instruction instead of navigation button */}
-            <View style={styles.navigationHint}>
-              <Text style={styles.navigationHintText}>
-                💡 Tap the <Text style={styles.boldText}>Products</Text> tab below to browse products
+            {/* Cart owner information */}
+            <View style={styles.cartOwnerInfo}>
+              <Text style={styles.cartOwnerTitle}>
+                🛒 Cart Status: {isMemberCart() ? 'Member Cart' : 'Visitor Cart'}
               </Text>
+              {isMemberCart() ? (
+                <Text style={styles.cartOwnerText}>
+                  ✅ Your cart is saved to your member account ({getCartOwnerInfo().memberEmail})
+                </Text>
+              ) : (
+                <Text style={styles.cartOwnerText}>
+                  ⚠️ This is a temporary visitor cart. Log in to save your cart permanently!
+                </Text>
+              )}
             </View>
           </View>
         ) : (
@@ -323,6 +387,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
@@ -477,57 +544,80 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 24,
   },
-  demoNotice: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  demoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  demoText: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  demoInstructions: {
-    fontSize: 12,
-    textAlign: 'left',
-    fontStyle: 'italic',
-    color: '#666',
-  },
-  startShoppingButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#4CAF50',
-  },
-  startShoppingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  navigationHint: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#e0f7fa',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#b2ebf2',
-  },
-  navigationHintText: {
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#00796b',
-  },
+
   boldText: {
     fontWeight: 'bold',
+  },
+  // Cart owner styles
+  cartOwnerInfo: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  cartOwnerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#495057',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  cartOwnerText: {
+    fontSize: 14,
+    color: '#6c757d',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  // Missing button styles  
+  decreaseButton: {
+    backgroundColor: '#dc3545',
+  },
+  increaseButton: {
+    backgroundColor: '#28a745',
+  },
+  quantityDisplay: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    marginHorizontal: 8,
+  },
+  // Header and sync button styles
+  headerLeft: {
+    flex: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  debugButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    padding: 8,
+  },
+  syncButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    padding: 8,
+  },
+  syncButtonText: {
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  syncButtonLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

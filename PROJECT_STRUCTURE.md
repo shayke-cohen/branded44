@@ -41,11 +41,6 @@ src/
 │   └── index.ts
 ├── constants/           # App constants and configuration
 │   └── index.ts
-├── sample-apps/         # 📚 REFERENCE ONLY - Study patterns
-│   ├── Calculator/
-│   ├── Timer/
-│   ├── Weather/
-│   └── Todo/
 ├── screen-templates/    # 🗑️ REMOVED DURING TRANSFORMATION
 │   └── [various templates...]
 └── index.ts            # Main src exports
@@ -69,7 +64,6 @@ src/
 - **`src/screens/SettingsScreen/`** → Preserved for app preferences
 - **`src/context/ThemeContext.tsx`** → Theme system maintained
 - **`src/constants/`** → App constants preserved
-- **`src/sample-apps/`** → Used as reference patterns only
 
 ## 📐 **Architecture Principles**
 
@@ -181,7 +175,6 @@ Project Orchestrator
 
 ### **For Development:**
 - Follow the `src/` structure for React Native development
-- Use existing patterns from `sample-apps/` as reference
 - Maintain TypeScript strict typing
 - Use theme system for consistent styling
 
