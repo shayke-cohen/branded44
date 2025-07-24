@@ -24,6 +24,9 @@
     "@babel/runtime": "^7.25.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native/new-app-screen": "0.80.1",
+    "@wix/data": "^1.0.267",
+    "@wix/data-collections": "^1.0.5",
+    "@wix/sdk": "^1.15.24",
     "react": "^19.1.0",
     "react-native": "0.80.1"
   },

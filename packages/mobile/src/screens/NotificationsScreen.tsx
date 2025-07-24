@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView} from 'react-native';
 import {useTheme} from '../context';
-import {registerScreen} from '../config/registry';
+
 
 const NotificationsScreen = () => {
   const {theme} = useTheme();
@@ -194,14 +194,4 @@ const NotificationsScreen = () => {
 };
 
 // SINGLE FILE SCREEN CREATION - THIS IS THE ONLY FILE WE NEED! 🎉
-registerScreen(NotificationsScreen, {
-  name: 'Notifications',
-  icon: '🔔',
-  category: 'System',
-  hasTab: true,
-  tabPosition: 3,
-  description: 'App notifications and alerts',
-  tags: ['notifications', 'alerts', 'system', 'updates']
-});
-
 export default NotificationsScreen; 

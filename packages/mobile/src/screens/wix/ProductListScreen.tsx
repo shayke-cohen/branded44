@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,10 @@ import {
   Image,
   SafeAreaView,
   Dimensions,
+  Animated,
+  Easing,
+  Vibration,
+  Platform,
 } from 'react-native';
 import { useTheme } from '../../context';
 import { wixApiClient, WixProduct } from '../../utils/wixApiClient';
@@ -45,6 +49,149 @@ const FILTER_OPTIONS: FilterOption[] = [
 
 const { width } = Dimensions.get('window');
 const PRODUCT_CARD_WIDTH = (width - 48) / 2;
+
+// Fun animated components
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+// Fun loading component with bouncing dots
+const FunLoadingIndicator = ({ theme }: { theme: any }) => {
+  const dot1 = useRef(new Animated.Value(0)).current;
+  const dot2 = useRef(new Animated.Value(0)).current;
+  const dot3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animateDots = () => {
+      const createAnimation = (dot: Animated.Value, delay: number) => {
+        return Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, {
+            toValue: -10,
+            duration: 400,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(dot, {
+            toValue: 0,
+            duration: 400,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]);
+      };
+
+      Animated.loop(
+        Animated.parallel([
+          createAnimation(dot1, 0),
+          createAnimation(dot2, 200),
+          createAnimation(dot3, 400),
+        ])
+      ).start();
+    };
+
+    animateDots();
+  }, []);
+
+  return (
+    <View style={styles.funLoadingContainer}>
+      <Text style={[styles.funLoadingText, { color: theme.colors.text }]}>
+        Loading awesome products
+      </Text>
+      <View style={styles.dotsContainer}>
+        <Animated.View style={[styles.dot, { backgroundColor: theme.colors.primary, transform: [{ translateY: dot1 }] }]} />
+        <Animated.View style={[styles.dot, { backgroundColor: theme.colors.success, transform: [{ translateY: dot2 }] }]} />
+        <Animated.View style={[styles.dot, { backgroundColor: theme.colors.error, transform: [{ translateY: dot3 }] }]} />
+      </View>
+    </View>
+  );
+};
+
+// Fun product card with animations
+const FunProductCard = ({ product, theme, onPress }: { product: WixProduct, theme: any, onPress: () => void }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Shimmer effect for new products
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const handlePressIn = () => {
+    // Haptic feedback
+    if (Platform.OS === 'ios') {
+      Vibration.vibrate(10);
+    }
+    
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 0.95,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 3,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '2deg'],
+  });
+
+  const shimmerOpacity = shimmerAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 1, 0.3],
+  });
+
+  return (
+    <AnimatedTouchableOpacity
+      style={[
+        styles.funProductCard,
+        { 
+          backgroundColor: theme.colors.surface,
+          transform: [{ scale: scaleAnim }, { rotate }]
+        }
+      ]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={0.9}
+    >
+      <Animated.View style={[styles.shimmerOverlay, { opacity: shimmerOpacity }]} />
+      {product}
+    </AnimatedTouchableOpacity>
+  );
+};
 
 interface ProductListScreenProps {
   navigation?: any; // Optional for backward compatibility
@@ -278,12 +425,21 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
                      product.stock?.inStock === true || 
                      product.inStock === true;
 
+    // Fun badges and indicators
+    const isNew = product.lastUpdated && new Date(product.lastUpdated) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const isOnSale = product.priceData?.discountedPrice && product.priceData.discountedPrice < product.priceData.price;
+
     return (
-      <TouchableOpacity
+      <AnimatedTouchableOpacity
         key={product.id}
-        style={[styles.productCard, { backgroundColor: theme.colors.surface }]}
+        style={[styles.funProductCard, { backgroundColor: theme.colors.surface }]}
         onPress={() => handleProductPress(product)}
-        activeOpacity={0.7}
+        onPressIn={() => {
+          if (Platform.OS === 'ios') {
+            Vibration.vibrate(10);
+          }
+        }}
+        activeOpacity={0.8}
       >
         <View style={styles.productImageContainer}>
           {optimizedImageUrl ? (
@@ -298,10 +454,29 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
           ) : (
             <View style={[styles.productImagePlaceholder, { backgroundColor: theme.colors.border }]}>
               <Text style={[styles.imagePlaceholderText, { color: theme.colors.textSecondary }]}>
-                No Image
+                📦
               </Text>
             </View>
           )}
+          
+          {/* Fun badges */}
+          <View style={styles.badgeContainer}>
+            {isNew && (
+              <View style={[styles.badge, styles.newBadge]}>
+                <Text style={styles.badgeText}>✨ NEW</Text>
+              </View>
+            )}
+            {isOnSale && (
+              <View style={[styles.badge, styles.saleBadge]}>
+                <Text style={styles.badgeText}>🔥 SALE</Text>
+              </View>
+            )}
+            {!isInStock && (
+              <View style={[styles.badge, styles.outOfStockBadge]}>
+                <Text style={styles.badgeText}>😴 OUT</Text>
+              </View>
+            )}
+          </View>
         </View>
         
         <View style={styles.productInfo}>
@@ -311,17 +486,19 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
           >
             {productName}
           </Text>
-          <Text style={[styles.productPrice, { color: theme.colors.primary }]}>
-            {productPrice}
-          </Text>
-          
-          {!isInStock && (
-            <Text style={[styles.outOfStockText, { color: theme.colors.error }]}>
-              Out of Stock
+          <View style={styles.priceContainer}>
+            <Text style={[styles.productPrice, { color: theme.colors.primary }]}>
+              {productPrice}
             </Text>
-          )}
+            {isInStock && (
+              <Text style={styles.stockEmoji}>✅</Text>
+            )}
+          </View>
         </View>
-      </TouchableOpacity>
+        
+        {/* Shimmer overlay for visual appeal */}
+        <View style={styles.shimmerOverlay} />
+      </AnimatedTouchableOpacity>
     );
   }, [theme, handleProductPress]);
 
@@ -512,10 +689,7 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.text }]}>
-          Loading store products...
-        </Text>
+        <FunLoadingIndicator theme={theme} />
       </View>
     );
   }
@@ -543,25 +717,41 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Header with Search and Sort/Filter */}
         <View style={styles.headerContainer}>
-          {/* Search Bar */}
+          {/* Fun Header Title */}
+          <View style={styles.funHeaderTitle}>
+            <Text style={[styles.headerTitleText, { color: theme.colors.text }]}>
+              🛍️ Awesome Products
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
+              {products.length} amazing items waiting for you!
+            </Text>
+          </View>
+          
+          {/* Search Bar with fun styling */}
           <View style={styles.searchContainer}>
-            <TextInput
-              style={[
-                styles.searchInput,
-                { 
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text 
-                }
-              ]}
-              placeholder="Search products..."
-              placeholderTextColor={theme.colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={applyFiltersAndSort}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <View style={[styles.funSearchWrapper, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <Text style={styles.searchIcon}>🔍</Text>
+              <TextInput
+                style={[
+                  styles.funSearchInput,
+                  { 
+                    color: theme.colors.text 
+                  }
+                ]}
+                placeholder="What are you looking for? ✨"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={applyFiltersAndSort}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Text style={styles.clearIcon}>❌</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Sort and Filter Controls */}
@@ -741,8 +931,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
+  
+  // Fun loading styles
+  funLoadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  funLoadingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 20,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  
+  // Fun header styles
+  funHeaderTitle: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerTitleText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  
+  // Fun search styles
   searchContainer: {
     marginBottom: 8,
+  },
+  funSearchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 50,
+    borderWidth: 2,
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  searchIcon: {
+    fontSize: 18,
+  },
+  funSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    height: '100%',
+  },
+  clearIcon: {
+    fontSize: 14,
   },
   searchInput: {
     height: 40,
@@ -886,6 +1133,73 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  
+  // Fun product card styles
+  funProductCard: {
+    width: '48%',
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    position: 'relative',
+  },
+  
+  // Badge styles
+  badgeContainer: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    zIndex: 1,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  newBadge: {
+    backgroundColor: '#FF6B6B',
+  },
+  saleBadge: {
+    backgroundColor: '#4ECDC4',
+  },
+  outOfStockBadge: {
+    backgroundColor: '#95A5A6',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  
+  // Price container
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  stockEmoji: {
+    fontSize: 16,
+  },
+  
+  // Shimmer overlay
+  shimmerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
   },
   productImageContainer: {
     width: '100%',

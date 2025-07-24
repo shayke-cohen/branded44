@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity} from 'react-native';
 import {useTheme} from '../context';
-import {registerScreen} from '../config/registry';
+
 
 const SocialScreen = () => {
   const {theme} = useTheme();
@@ -306,14 +306,4 @@ const SocialScreen = () => {
 };
 
 // Self-register this screen
-registerScreen(SocialScreen, {
-  name: 'Social',
-  icon: '👥',
-  category: 'Fitness',
-  hasTab: true,
-  tabPosition: 3,
-  description: 'Feed of friend activities and achievements sharing',
-  tags: ['fitness', 'social', 'friends', 'sharing', 'feed']
-});
-
 export default SocialScreen; 

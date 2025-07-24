@@ -15,7 +15,6 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useWixCart } from '../../context/WixCartContext';
 import { wixApiClient, formatPrice, safeString } from '../../utils/wixApiClient';
-import { registerScreen } from '../../config/registry';
 
 const { width } = Dimensions.get('window');
 
@@ -482,17 +481,6 @@ const styles = StyleSheet.create({
   boldText: {
     fontWeight: 'bold',
   },
-});
-
-// Self-register this screen
-registerScreen(CartScreen, {
-  name: 'Cart',
-  icon: '🛒',
-  category: 'Store',
-  hasTab: true,
-  tabPosition: 4,
-  description: 'View and manage shopping cart items',
-  tags: ['store', 'cart', 'checkout', 'wix']
 });
 
 export default CartScreen;

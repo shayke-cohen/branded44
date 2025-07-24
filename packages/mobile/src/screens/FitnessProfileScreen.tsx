@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity} from 'react-native';
 import {useTheme} from '../context';
-import {registerScreen} from '../config/registry';
+
 
 const FitnessProfileScreen = () => {
   const {theme} = useTheme();
@@ -379,16 +379,5 @@ const FitnessProfileScreen = () => {
     </SafeAreaView>
   );
 };
-
-// Self-register this screen
-registerScreen(FitnessProfileScreen, {
-  name: 'Profile',
-  icon: '👤',
-  category: 'Fitness',
-  hasTab: true,
-  tabPosition: 4,
-  description: 'User profile with fitness goals and settings',
-  tags: ['fitness', 'profile', 'goals', 'settings', 'achievements']
-});
 
 export default FitnessProfileScreen; 

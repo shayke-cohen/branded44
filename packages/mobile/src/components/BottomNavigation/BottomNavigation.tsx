@@ -34,12 +34,13 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       paddingHorizontal: 12,
     },
     tabIcon: {
-      fontSize: 24,
-      marginBottom: 4,
+      fontSize: 28, // Larger icon since no text
+      marginBottom: 2, // Reduced margin
     },
     tabLabel: {
-      fontSize: 12,
+      fontSize: 10,
       fontWeight: '500',
+      marginTop: 1,
     },
     activeTabLabel: {
       color: theme.colors.tabBarActive,
@@ -55,25 +56,33 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.tabContainer}>
-        {navTabs.map(tab => (
-          <TouchableOpacity
-            key={tab.id}
-            style={styles.tab}
-            onPress={() => onTabPress(tab.id)}
-            activeOpacity={0.7}
-            testID={`tab-${tab.id}`}>
-            <Text style={styles.tabIcon}>{tab.icon}</Text>
-            <Text
-              style={[
-                styles.tabLabel,
-                activeTab === tab.id
-                  ? styles.activeTabLabel
-                  : styles.inactiveTabLabel,
-              ]}>
-              {tab.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {navTabs.map(tab => {
+          // Use shortName from metadata if available, otherwise no text
+          const displayName = tab.metadata?.shortName || '';
+          const showLabel = displayName.length > 0;
+          
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={styles.tab}
+              onPress={() => onTabPress(tab.id)}
+              activeOpacity={0.7}
+              testID={`tab-${tab.id}`}>
+              <Text style={styles.tabIcon}>{tab.icon}</Text>
+              {showLabel && (
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    activeTab === tab.id
+                      ? styles.activeTabLabel
+                      : styles.inactiveTabLabel,
+                  ]}>
+                  {displayName}
+                </Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </SafeAreaView>
   );

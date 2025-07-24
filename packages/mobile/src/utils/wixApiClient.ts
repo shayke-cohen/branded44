@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getClientId, getSiteId, getStoresAppId, getApiBaseUrl } from '../config/wixConfig';
+import { createClient, ApiKeyStrategy, OAuthStrategy } from '@wix/sdk';
+import { items } from '@wix/data';
 
 // Cache configuration
 const CACHE_KEYS = {
@@ -139,6 +141,577 @@ interface TokenResponse {
   refresh_token: string;
   expires_in: number; // seconds until expiry
   token_type: string;
+}
+
+// CMS Types for data collections
+export interface WixDataItem {
+  _id?: string;
+  _createdDate?: string;
+  _updatedDate?: string;
+  [key: string]: any; // Allow dynamic fields
+}
+
+export interface WixCollection {
+  id: string;
+  displayName: string;
+  fields: Array<{
+    key: string;
+    type: string;
+    displayName: string;
+  }>;
+}
+
+export interface WixDataQuery {
+  filter?: Record<string, any>;
+  sort?: Array<{ fieldName: string; order: 'asc' | 'desc' }>;
+  limit?: number;
+  skip?: number;
+}
+
+export interface WixDataResponse<T = WixDataItem> {
+  items: T[];
+  totalCount: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+class WixCmsClient {
+  private wixClient: any;
+  private siteId = getSiteId();
+  private clientId = getClientId();
+  private authToken: string | null = null;
+  private visitorTokens: any = null;
+
+  constructor() {
+    console.log('🗄️ [DEBUG] WixCmsClient initialized');
+    console.log(`🗄️ [DEBUG] Using Client ID: ${this.clientId}`);
+    console.log(`🗄️ [DEBUG] Using Site ID: ${this.siteId}`);
+    this.initializeClient();
+    this.loadStoredAuth();
+  }
+
+  private async loadStoredAuth() {
+    try {
+      const storedVisitorTokens = await AsyncStorage.getItem('wix_visitor_tokens');
+      if (storedVisitorTokens) {
+        this.visitorTokens = JSON.parse(storedVisitorTokens);
+        await this.updateClientAuth();
+      }
+    } catch (error) {
+      console.error('❌ [CMS ERROR] Failed to load stored auth:', error);
+    }
+  }
+
+  private initializeClient() {
+    // Initialize the Wix SDK client
+    this.wixClient = createClient({
+      modules: { items },
+    });
+    console.log('✅ [CMS] Wix SDK client initialized');
+  }
+
+  private async updateClientAuth() {
+    if (this.visitorTokens?.accessToken) {
+      // Use OAuth strategy with visitor tokens
+      this.wixClient = createClient({
+        modules: { items },
+        auth: OAuthStrategy({
+          clientId: this.clientId,
+          tokens: {
+            accessToken: this.visitorTokens.accessToken,
+            refreshToken: this.visitorTokens.refreshToken,
+          },
+        }),
+      });
+      console.log('✅ [CMS] Client authenticated with visitor tokens');
+    }
+  }
+
+  // Ensure we have valid authentication before making CMS calls
+  private async ensureAuthenticated(): Promise<void> {
+    try {
+      // Check if we have stored visitor tokens from the main API client
+      const storedVisitorTokens = await AsyncStorage.getItem('wix_visitor_tokens');
+      if (storedVisitorTokens) {
+        const tokens = JSON.parse(storedVisitorTokens);
+        
+        // Check if tokens are still valid (basic check)
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (tokens.expiresAt > currentTime + 300) { // 5 minute buffer
+          this.visitorTokens = tokens;
+          await this.updateClientAuth();
+          return;
+        }
+      }
+
+      console.warn('⚠️ [CMS] No valid visitor tokens found. CMS operations may require authentication.');
+      console.warn('ℹ️ [CMS] Ensure the main wixApiClient has been initialized first.');
+    } catch (error) {
+      console.error('❌ [CMS ERROR] Failed to ensure authentication:', error);
+    }
+  }
+
+  // Ensure Wix Data is enabled by provisioning Velo if needed
+  async ensureWixDataEnabled(): Promise<void> {
+    try {
+      console.log('🔍 [CMS] Checking if Wix Data is enabled...');
+      
+      // Try to list collections first to see if Wix Data is enabled
+      const testUrl = `https://www.wixapis.com/wix-data/v2/collections?paging.limit=1`;
+      const testHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'wix-site-id': this.siteId,
+      };
+
+      if (this.visitorTokens?.accessToken) {
+        testHeaders['Authorization'] = `Bearer ${this.visitorTokens.accessToken}`;
+      }
+
+      const testResponse = await fetch(testUrl, {
+        method: 'GET',
+        headers: testHeaders,
+      });
+
+      if (testResponse.ok) {
+        console.log('✅ [CMS] Wix Data is already enabled');
+        return;
+      }
+
+      if (testResponse.status === 404) {
+        console.log('⚙️ [CMS] Wix Data not enabled, provisioning Velo...');
+        
+        // Provision Wix Code (Velo) to enable Wix Data
+        const provisionUrl = `https://www.wixapis.com/mcp-serverless/v1/velo/provision/`;
+        const provisionResponse = await fetch(provisionUrl, {
+          method: 'POST',
+          headers: testHeaders,
+          body: '{}',
+        });
+
+        if (provisionResponse.ok) {
+          console.log('✅ [CMS] Velo provisioned successfully, Wix Data is now enabled');
+        } else {
+          const errorText = await provisionResponse.text();
+          console.warn(`⚠️ [CMS] Failed to provision Velo: ${provisionResponse.status}: ${errorText}`);
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ [CMS] Failed to check/enable Wix Data:', error);
+    }
+  }
+
+
+
+  // Get all collections in the site
+  async getCollections(): Promise<WixCollection[]> {
+    try {
+      await this.ensureAuthenticated();
+      await this.ensureWixDataEnabled();
+      
+      console.log('🗄️ [CMS] Fetching collections...');
+      
+      // Use correct Wix Data REST API endpoint
+      const endpoint = `/wix-data/v2/collections`;
+      const url = `https://www.wixapis.com${endpoint}`;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'wix-site-id': this.siteId,
+      };
+
+      // Add visitor auth token
+      if (this.visitorTokens?.accessToken) {
+        headers['Authorization'] = `Bearer ${this.visitorTokens.accessToken}`;
+      }
+
+      console.log(`🌐 [CMS API] GET ${endpoint}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ [CMS API ERROR] ${response.status}:`, errorText);
+        
+        if (response.status === 403) {
+          console.error('❌ [CMS] Insufficient permissions for CMS access. Visitor tokens cannot access data collections.');
+          console.error('💡 [CMS] CMS operations require elevated permissions (admin/API key authentication).');
+        } else if (response.status === 404) {
+          console.error('❌ [CMS] Wix Data may not be enabled on this site');
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ [CMS API SUCCESS] ${endpoint}:`, Object.keys(data).join(', '));
+      
+      const collections = (data.collections || []).map((collection: any) => ({
+        id: collection.id,
+        displayName: collection.displayName || collection.id,
+        fields: collection.fields || [],
+      }));
+
+      console.log(`✅ [CMS] Found ${collections.length} collections`);
+      return collections;
+    } catch (error) {
+      console.error('❌ [CMS ERROR] Failed to fetch collections:', error);
+      return [];
+    }
+  }
+
+  // Get available collections (read-only mode for visitor tokens)
+  async getAvailableCollections(): Promise<WixCollection[]> {
+    // Since visitor tokens can't list collections metadata (403 error),
+    // we'll return the known collections that have public read access
+    const knownCollections: WixCollection[] = [
+      {
+        id: 'demo-products',
+        displayName: 'Demo Products',
+        fields: [
+          { key: 'name', displayName: 'Product Name', type: 'TEXT' },
+          { key: 'description', displayName: 'Description', type: 'TEXT' },
+          { key: 'price', displayName: 'Price', type: 'NUMBER' },
+          { key: 'inStock', displayName: 'In Stock', type: 'BOOLEAN' },
+        ],
+      },
+      {
+        id: 'demo-blog-posts',
+        displayName: 'Demo Blog Posts',
+        fields: [
+          { key: 'title', displayName: 'Title', type: 'TEXT' },
+          { key: 'content', displayName: 'Content', type: 'RICH_TEXT' },
+          { key: 'author', displayName: 'Author', type: 'TEXT' },
+          { key: 'publishDate', displayName: 'Publish Date', type: 'DATE' },
+          { key: 'published', displayName: 'Published', type: 'BOOLEAN' },
+        ],
+      },
+    ];
+
+    console.log('✅ [CMS] Using known collections with public read access');
+    return knownCollections;
+  }
+
+  // Query items from a specific collection
+  async queryCollection<T = WixDataItem>(
+    collectionId: string,
+    query: WixDataQuery = {}
+  ): Promise<WixDataResponse<T>> {
+    try {
+      await this.ensureAuthenticated();
+      await this.ensureWixDataEnabled();
+      
+      console.log(`🗄️ [CMS] Querying collection: ${collectionId}`);
+      console.log(`🗄️ [CMS] Query parameters:`, JSON.stringify(query, null, 2));
+
+      // Use correct Wix Data REST API endpoint
+      const endpoint = `/wix-data/v2/items/query`;
+      const url = `https://www.wixapis.com${endpoint}`;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'wix-site-id': this.siteId,
+      };
+
+      // Add visitor auth token
+      if (this.visitorTokens?.accessToken) {
+        headers['Authorization'] = `Bearer ${this.visitorTokens.accessToken}`;
+      }
+
+      // Build request body according to REST API schema
+      const requestBody: any = {
+        dataCollectionId: collectionId,
+        query: {},
+        returnTotalCount: true,
+      };
+
+      // Apply filters
+      if (query.filter) {
+        requestBody.query.filter = query.filter;
+      }
+
+      // Apply sorting
+      if (query.sort && query.sort.length > 0) {
+        requestBody.query.sort = query.sort.map(({ fieldName, order }) => ({
+          fieldName,
+          order: order.toUpperCase(),
+        }));
+      }
+
+      // Apply pagination
+      if (query.limit || query.skip) {
+        requestBody.query.paging = {};
+        if (query.limit) {
+          requestBody.query.paging.limit = query.limit;
+        }
+        if (query.skip) {
+          requestBody.query.paging.offset = query.skip;
+        }
+      }
+
+      console.log(`🌐 [CMS API] POST ${endpoint}`);
+      console.log(`🌐 [CMS API] Request body:`, JSON.stringify(requestBody, null, 2));
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ [CMS API ERROR] ${response.status}:`, errorText);
+        
+        if (response.status === 404) {
+          console.error('❌ [CMS] Collection not found or Wix Data may not be enabled');
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ [CMS API SUCCESS] ${endpoint}:`, Object.keys(data).join(', '));
+      
+      console.log(`✅ [CMS] Found ${data.dataItems?.length || 0} items in collection ${collectionId}`);
+      
+      return {
+        items: (data.dataItems || []).map((item: any) => item.data) as T[],
+        totalCount: data.pagingMetadata?.total || data.dataItems?.length || 0,
+        hasNext: !!data.pagingMetadata?.cursors?.next,
+        hasPrev: !!data.pagingMetadata?.cursors?.prev,
+      };
+    } catch (error) {
+      console.error(`❌ [CMS ERROR] Failed to query collection ${collectionId}:`, error);
+      return {
+        items: [],
+        totalCount: 0,
+        hasNext: false,
+        hasPrev: false,
+      };
+    }
+  }
+
+  // Get a single item by ID
+  async getItem<T = WixDataItem>(collectionId: string, itemId: string): Promise<T | null> {
+    try {
+      await this.ensureAuthenticated();
+      
+      console.log(`🗄️ [CMS] Getting item ${itemId} from collection ${collectionId}`);
+      
+      const response = await this.wixClient.items.getDataItem(itemId, {
+        dataCollectionId: collectionId,
+      });
+      
+      console.log(`✅ [CMS] Retrieved item ${itemId}`);
+      return response.dataItem as T;
+    } catch (error) {
+      console.error(`❌ [CMS ERROR] Failed to get item ${itemId}:`, error);
+      return null;
+    }
+  }
+
+  // Insert a new item
+  async insertItem<T = WixDataItem>(collectionId: string, data: Partial<T>): Promise<T | null> {
+    try {
+      await this.ensureAuthenticated();
+      await this.ensureWixDataEnabled();
+      
+      console.log(`🗄️ [CMS] Inserting item into collection ${collectionId}`);
+      console.log(`🗄️ [CMS] Item data:`, JSON.stringify(data, null, 2));
+      
+      // Use correct Wix Data REST API endpoint
+      const endpoint = `/wix-data/v2/items`;
+      const url = `https://www.wixapis.com${endpoint}`;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'wix-site-id': this.siteId,
+      };
+
+      // Add visitor auth token
+      if (this.visitorTokens?.accessToken) {
+        headers['Authorization'] = `Bearer ${this.visitorTokens.accessToken}`;
+      }
+
+      // Build request body according to REST API schema
+      const requestBody = {
+        dataCollectionId: collectionId,
+        dataItem: {
+          data: data,
+        },
+      };
+
+      console.log(`🌐 [CMS API] POST ${endpoint}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ [CMS API ERROR] ${response.status}:`, errorText);
+        
+        if (response.status === 404) {
+          console.error('❌ [CMS] Collection not found or Wix Data may not be enabled');
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log(`✅ [CMS API SUCCESS] ${endpoint}:`, Object.keys(responseData).join(', '));
+      
+      console.log(`✅ [CMS] Inserted item with ID: ${responseData.dataItem?.id}`);
+      return responseData.dataItem?.data as T;
+    } catch (error) {
+      console.error(`❌ [CMS ERROR] Failed to insert item into collection ${collectionId}:`, error);
+      return null;
+    }
+  }
+
+  // Update an existing item
+  async updateItem<T = WixDataItem>(
+    collectionId: string,
+    itemId: string,
+    data: Partial<T>
+  ): Promise<T | null> {
+    try {
+      await this.ensureAuthenticated();
+      
+      console.log(`🗄️ [CMS] Updating item ${itemId} in collection ${collectionId}`);
+      console.log(`🗄️ [CMS] Update data:`, JSON.stringify(data, null, 2));
+      
+      const response = await this.wixClient.items.updateDataItem(itemId, {
+        dataCollectionId: collectionId,
+        dataItem: { ...data, _id: itemId },
+      });
+      
+      console.log(`✅ [CMS] Updated item ${itemId}`);
+      return response.dataItem as T;
+    } catch (error) {
+      console.error(`❌ [CMS ERROR] Failed to update item ${itemId}:`, error);
+      return null;
+    }
+  }
+
+  // Delete an item
+  async deleteItem(collectionId: string, itemId: string): Promise<boolean> {
+    try {
+      await this.ensureAuthenticated();
+      
+      console.log(`🗄️ [CMS] Deleting item ${itemId} from collection ${collectionId}`);
+      
+      await this.wixClient.items.removeDataItem(itemId, {
+        dataCollectionId: collectionId,
+      });
+      
+      console.log(`✅ [CMS] Deleted item ${itemId}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ [CMS ERROR] Failed to delete item ${itemId}:`, error);
+      return false;
+    }
+  }
+
+  // Helper method to search items by text across multiple fields
+  async searchItems<T = WixDataItem>(
+    collectionId: string,
+    searchTerm: string,
+    searchFields: string[] = [],
+    limit: number = 20
+  ): Promise<WixDataResponse<T>> {
+    try {
+      if (!searchTerm.trim()) {
+        return this.queryCollection<T>(collectionId, { limit });
+      }
+
+      // If no specific fields provided, search in common text fields
+      if (searchFields.length === 0) {
+        searchFields = ['title', 'name', 'description', 'content'];
+      }
+
+      // Build OR query for multiple fields
+      const filters = searchFields.reduce((acc, field) => {
+        acc[field] = { $contains: searchTerm };
+        return acc;
+      }, {} as Record<string, any>);
+
+      return this.queryCollection<T>(collectionId, {
+        filter: filters,
+        limit,
+        sort: [{ fieldName: '_createdDate', order: 'desc' }],
+      });
+    } catch (error) {
+      console.error(`❌ [CMS ERROR] Failed to search items in collection ${collectionId}:`, error);
+      return {
+        items: [],
+        totalCount: 0,
+        hasNext: false,
+        hasPrev: false,
+      };
+    }
+  }
+
+  // Get collection info including field definitions
+  async getCollectionInfo(collectionId: string): Promise<WixCollection | null> {
+    try {
+      await this.ensureAuthenticated();
+      await this.ensureWixDataEnabled();
+      
+      console.log(`🗄️ [CMS] Getting collection info for: ${collectionId}`);
+      
+      // Use correct Wix Data REST API endpoint
+      const endpoint = `/wix-data/v2/collections/${collectionId}`;
+      const url = `https://www.wixapis.com${endpoint}`;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'wix-site-id': this.siteId,
+      };
+
+      // Add visitor auth token
+      if (this.visitorTokens?.accessToken) {
+        headers['Authorization'] = `Bearer ${this.visitorTokens.accessToken}`;
+      }
+
+      console.log(`🌐 [CMS API] GET ${endpoint}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ [CMS API ERROR] ${response.status}:`, errorText);
+        
+        if (response.status === 404) {
+          console.error('❌ [CMS] Collection not found or Wix Data may not be enabled');
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ [CMS API SUCCESS] ${endpoint}:`, Object.keys(data).join(', '));
+      
+      const collection = {
+        id: data.collection.id,
+        displayName: data.collection.displayName || data.collection.id,
+        fields: data.collection.fields || [],
+      };
+
+      console.log(`✅ [CMS] Retrieved collection info for ${collectionId}`);
+      return collection;
+    } catch (error) {
+      console.error(`❌ [CMS ERROR] Failed to get collection info for ${collectionId}:`, error);
+      return null;
+    }
+  }
 }
 
 class WixApiClient {
@@ -864,6 +1437,9 @@ class WixApiClient {
 // Export singleton instance
 export const wixApiClient = new WixApiClient();
 
+// Export CMS client singleton instance
+export const wixCmsClient = new WixCmsClient();
+
 // Helper function to safely render product price
 export const formatPrice = (price?: { currency: string; price: string; discountedPrice?: string }): string => {
   if (!price || !price.price) return 'Price unavailable';
@@ -890,4 +1466,5 @@ export const safeString = (value: any): string => {
   return String(value);
 };
 
-console.log('🛍️ [DEBUG] Wix API Client module loaded with configuration from wixConfig'); 
+console.log('🛍️ [DEBUG] Wix API Client module loaded with configuration from wixConfig');
+console.log('🗄️ [DEBUG] Wix CMS Client ready for data collection operations'); 

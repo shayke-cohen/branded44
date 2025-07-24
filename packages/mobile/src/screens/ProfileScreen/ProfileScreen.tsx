@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView} from 'react-native';
 import {useTheme} from '../../context';
-import {registerScreen} from '../../config/registry';
+
 
 const ProfileScreen = () => {
   const {theme} = useTheme();
@@ -158,14 +158,4 @@ const ProfileScreen = () => {
 };
 
 // Self-register this screen - THIS IS ALL YOU NEED TO ADD A NEW SCREEN! 🎉
-registerScreen(ProfileScreen, {
-  name: 'Profile',
-  icon: '👤',
-  category: 'User',
-  hasTab: true,
-  tabPosition: 4,
-  description: 'User profile and account settings',
-  tags: ['profile', 'user', 'account', 'settings']
-});
-
 export default ProfileScreen; 

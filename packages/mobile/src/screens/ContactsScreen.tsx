@@ -1,7 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView} from 'react-native';
 import {useTheme} from '../context';
-import {registerScreen} from '../config/registry';
 
 const ContactsScreen = () => {
   const {theme} = useTheme();
@@ -156,16 +155,5 @@ const ContactsScreen = () => {
     </SafeAreaView>
   );
 };
-
-// 🎯 SINGLE FILE REGISTRATION - TESTING OUR NEW SYSTEM!
-registerScreen(ContactsScreen, {
-  name: 'Contacts',
-  icon: '👥',
-  category: 'Communication',
-  hasTab: true,
-  tabPosition: 6,
-  description: 'Manage your contacts and communications',
-  tags: ['contacts', 'people', 'communication', 'directory']
-});
 
 export default ContactsScreen; 

@@ -223,6 +223,7 @@ export const searchEntities = (query: string) => {
 // Enhanced screen registration configuration
 export interface ScreenRegistrationConfig {
   name: string;
+  shortName?: string;
   icon?: string;
   category?: string;
   hasTab?: boolean;
@@ -278,7 +279,8 @@ export const registerScreen = (
       category: 'Navigation',
       tags: ['tab', 'navigation', config.name.toLowerCase()],
       metadata: {
-        position: config.tabPosition
+        position: config.tabPosition,
+        shortName: config.shortName
       },
       relationships: {
         defaultScreen: screenId

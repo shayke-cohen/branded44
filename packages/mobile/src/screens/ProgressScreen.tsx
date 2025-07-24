@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {View, Text, StyleSheet, SafeAreaView, ScrollView} from 'react-native';
 import {useTheme} from '../context';
-import {registerScreen} from '../config/registry';
+
 
 const ProgressScreen = () => {
   const {theme} = useTheme();
@@ -298,14 +298,4 @@ const ProgressScreen = () => {
 };
 
 // Self-register this screen
-registerScreen(ProgressScreen, {
-  name: 'Progress',
-  icon: '📊',
-  category: 'Fitness',
-  hasTab: true,
-  tabPosition: 2,
-  description: 'Charts and analytics showing fitness progress over time',
-  tags: ['fitness', 'progress', 'charts', 'analytics', 'goals']
-});
-
 export default ProgressScreen; 

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {useTheme} from '../../context/ThemeContext';
 import {THEME_OPTIONS} from '../../constants';
-import {registerScreen} from '../../config/registry';
+
 
 const SettingsScreen = () => {
   const {theme, themeMode, setThemeMode, isDark} = useTheme();
@@ -189,16 +189,5 @@ const SettingsScreen = () => {
     </SafeAreaView>
   );
 };
-
-// Self-register this screen
-registerScreen(SettingsScreen, {
-  name: 'Settings',
-  icon: '⚙️',
-  category: 'Configuration',
-  hasTab: true,
-  tabPosition: 5,
-  description: 'App settings and preferences',
-  tags: ['settings', 'preferences', 'config']
-});
 
 export default SettingsScreen;

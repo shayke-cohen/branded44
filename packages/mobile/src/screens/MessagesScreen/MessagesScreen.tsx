@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView} from 'react-native';
 import {useTheme} from '../../context';
-import {registerScreen} from '../../config/registry';
+
 
 const MessagesScreen = () => {
   const {theme} = useTheme();
@@ -197,14 +197,4 @@ const MessagesScreen = () => {
 };
 
 // Self-register this screen - NO MANUAL IMPORTS NEEDED ANYWHERE! 🎉
-registerScreen(MessagesScreen, {
-  name: 'Messages',
-  icon: '💬',
-  category: 'Communication',
-  hasTab: true,
-  tabPosition: 2,
-  description: 'Messages and team communication',
-  tags: ['messages', 'chat', 'communication', 'team']
-});
-
 export default MessagesScreen; 
