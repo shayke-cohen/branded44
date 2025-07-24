@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "reset-cache": "cd packages/mobile && npm run reset-cache",
     "dev:server": "cd packages/server && npm run dev",
     "start:server": "cd packages/server && npm start",
     "dev:web": "cd packages/web && npm start",

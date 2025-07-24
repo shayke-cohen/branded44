@@ -6,8 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from 'react-native';
+import { Alert } from '../../../utils/alert';
 import {useTheme, useCart} from '../../../context';
 import {Address, PaymentMethod} from '../../../types';
 import {VALIDATION_MESSAGES} from '../../../constants';

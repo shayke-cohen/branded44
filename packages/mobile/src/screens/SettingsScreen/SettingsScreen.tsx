@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Alert,
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import { Alert } from '../../utils/alert';
 import {useTheme} from '../../context/ThemeContext';
 import {useMember} from '../../context';
 import {wixApiClient} from '../../utils/wixApiClient';

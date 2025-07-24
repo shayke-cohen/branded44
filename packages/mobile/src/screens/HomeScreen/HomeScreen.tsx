@@ -99,6 +99,8 @@ const HomeScreen = () => {
       padding: 20,
       alignItems: 'center',
       justifyContent: 'center',
+      maxWidth: '100%',
+      width: '100%',
     },
     heroContainer: {
       alignItems: 'center',
@@ -146,7 +148,9 @@ const HomeScreen = () => {
       borderRadius: 20,
       padding: 24,
       marginVertical: 20,
-      width: width - 40,
+      width: '100%',
+      maxWidth: Math.min(width - 40, 500), // Constrain max width for web
+      alignSelf: 'center',
       borderWidth: 2,
       borderColor: theme.colors.primary + '20',
       shadowColor: theme.colors.primary,
@@ -161,6 +165,9 @@ const HomeScreen = () => {
       color: theme.colors.text,
       textAlign: 'center',
       marginBottom: 16,
+      flexWrap: 'wrap',
+      maxWidth: '100%',
+      lineHeight: 32, // Better line height for emoji and text
     },
     dreamDescription: {
       fontSize: 16,
@@ -185,8 +192,10 @@ const HomeScreen = () => {
     },
     buttonsContainer: {
       width: '100%',
+      maxWidth: Math.min(width - 40, 500), // Constrain max width for web
       gap: 16,
       marginTop: 20,
+      alignSelf: 'center',
     },
     primaryButton: {
       backgroundColor: theme.colors.primary,
@@ -294,7 +303,7 @@ const HomeScreen = () => {
         style={styles.scrollView}
       >
         <View style={styles.heroContainer}>
-          <Text style={styles.mainTitle}>✨ branded44 AI Builder ✨</Text>
+          <Text style={styles.mainTitle}>✨ Branded44 AI Builder ✨</Text>
           <Text style={styles.subtitle}>Your AI-Powered App Creation Studio</Text>
           
           <Animated.View 

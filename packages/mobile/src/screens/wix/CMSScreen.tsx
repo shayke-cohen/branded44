@@ -6,11 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   SafeAreaView,
 } from 'react-native';
+import { Alert } from '../../utils/alert';
+import { useTheme } from '../../context/ThemeContext';
 import { 
   wixCmsClient, 
   WixDataItem, 
@@ -31,6 +32,7 @@ interface BlogPost extends WixDataItem {
 }
 
 const CMSScreen: React.FC<CMSScreenProps> = ({ navigation }) => {
+  const { theme } = useTheme();
   const [collections, setCollections] = useState<WixCollection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
   const [items, setItems] = useState<WixDataItem[]>([]);
@@ -38,6 +40,8 @@ const CMSScreen: React.FC<CMSScreenProps> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [authError, setAuthError] = useState<string>('');
+
+  const styles = createStyles(theme);
 
   useEffect(() => {
     loadCollections();
@@ -346,41 +350,41 @@ const CMSScreen: React.FC<CMSScreenProps> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   safeAreaContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginVertical: 20,
-    color: '#333',
+    color: theme.colors.text,
   },
   infoContainer: {
-    backgroundColor: '#e8f5e8',
+    backgroundColor: theme.colors.success + '20',
     padding: 12,
     borderRadius: 6,
     margin: 10,
     borderWidth: 1,
-    borderColor: '#c8e6c9',
+    borderColor: theme.colors.success + '40',
   },
   infoText: {
     fontSize: 14,
-    color: '#2e7d32',
+    color: theme.colors.success,
     textAlign: 'center',
   },
   section: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     margin: 10,
     padding: 15,
     borderRadius: 8,
-    shadowColor: '#000',
+    shadowColor: theme.colors.text + '40',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -390,14 +394,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#333',
+    color: theme.colors.text,
   },
   selectorSection: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     margin: 10,
     padding: 15,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: theme.colors.text + '40',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -414,12 +418,12 @@ const styles = StyleSheet.create({
   },
   collectionName: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontStyle: 'italic',
     marginTop: 2,
   },
   countBadge: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -427,7 +431,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -443,21 +447,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   collectionChip: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.colors.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     marginRight: 8,
   },
   selectedChip: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
   },
   chipText: {
-    color: '#333',
+    color: theme.colors.text,
     fontSize: 14,
   },
   selectedChipText: {
-    color: 'white',
+    color: '#FFFFFF',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -468,45 +472,45 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     paddingHorizontal: 10,
   },
   searchIcon: {
     marginRight: 8,
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   searchInput: {
     flex: 1,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.text,
   },
   searchButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
     justifyContent: 'center',
   },
   searchButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
   },
   clearButton: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: theme.colors.border,
   },
   clearButtonText: {
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -515,31 +519,33 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 16,
+    backgroundColor: theme.colors.surface,
+    color: theme.colors.text,
   },
   addButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: theme.colors.success,
     paddingVertical: 12,
     borderRadius: 6,
     alignItems: 'center',
   },
   buttonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
   itemCard: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.surface,
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#e9ecef',
-    shadowColor: '#000',
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.text + '40',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -557,22 +563,22 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginRight: 5,
   },
   itemId: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.text,
   },
   readOnlyBadge: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: theme.colors.primary + '20',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
   },
   readOnlyText: {
-    color: '#1976d2',
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -585,15 +591,15 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#555',
+    color: theme.colors.text,
     marginBottom: 4,
   },
   fieldValueContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: theme.colors.border,
   },
   booleanIndicator: {
     padding: 8,
@@ -601,45 +607,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   booleanTrue: {
-    backgroundColor: '#e8f5e9',
-    borderColor: '#4caf50',
+    backgroundColor: theme.colors.success + '20',
+    borderColor: theme.colors.success,
   },
   booleanFalse: {
-    backgroundColor: '#ffebee',
-    borderColor: '#f44336',
+    backgroundColor: theme.colors.error + '20',
+    borderColor: theme.colors.error,
   },
   booleanText: {
     fontSize: 12,
     fontWeight: 'bold',
   },
   booleanTextTrue: {
-    color: '#4caf50',
+    color: theme.colors.success,
   },
   booleanTextFalse: {
-    color: '#f44336',
+    color: theme.colors.error,
   },
   dateValue: {
     fontSize: 13,
-    color: '#007bff',
+    color: theme.colors.primary,
     fontStyle: 'italic',
   },
   numberValue: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#28a745',
+    color: theme.colors.success,
   },
   contentValue: {
     fontSize: 13,
-    color: '#555',
+    color: theme.colors.text,
   },
   titleValue: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.text,
   },
   textValue: {
     fontSize: 13,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   itemFooter: {
     flexDirection: 'row',
@@ -649,11 +655,11 @@ const styles = StyleSheet.create({
   },
   timestampLabel: {
     fontSize: 12,
-    color: '#999',
+    color: theme.colors.textSecondary,
   },
   timestamp: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontStyle: 'italic',
   },
   loadingContainer: {
@@ -662,42 +668,42 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#666',
+    color: theme.colors.textSecondary,
     padding: 20,
     fontStyle: 'italic',
   },
   errorContainer: {
-    backgroundColor: '#fff3cd',
+    backgroundColor: theme.colors.error + '20',
     padding: 15,
     borderRadius: 8,
     margin: 10,
     borderWidth: 1,
-    borderColor: '#ffeeba',
+    borderColor: theme.colors.error + '40',
   },
   errorTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#856404',
+    color: theme.colors.error,
     marginBottom: 5,
   },
   errorMessage: {
     fontSize: 14,
-    color: '#856404',
+    color: theme.colors.error,
     marginBottom: 10,
   },
   errorNote: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#856404',
+    color: theme.colors.error,
     marginBottom: 5,
   },
   errorList: {
     fontSize: 13,
-    color: '#856404',
+    color: theme.colors.error,
   },
 });
 

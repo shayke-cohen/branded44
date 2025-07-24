@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getClientId, getSiteId, getStoresAppId, getApiBaseUrl } from '../config/wixConfig';
 import { createClient, ApiKeyStrategy, OAuthStrategy } from '@wix/sdk';
 import { items } from '@wix/data';
+import { currentCart } from '@wix/ecom';
+import { redirects } from '@wix/redirects';
 
 // Cache configuration
 const CACHE_KEYS = {
@@ -800,13 +802,64 @@ class WixApiClient {
   private initializeWixClient(): void {
     try {
       this.wixClient = createClient({
+        modules: {
+          currentCart,
+          redirects,
+        },
         auth: OAuthStrategy({
           clientId: this.clientId,
         }),
       });
-      console.log('✅ [WIX SDK] Wix SDK client initialized with OAuth strategy');
+      console.log('✅ [WIX SDK] Wix SDK client initialized with OAuth strategy and eCommerce modules');
     } catch (error) {
       console.error('❌ [WIX SDK] Failed to initialize Wix SDK client:', error);
+    }
+  }
+
+  // Update Wix client authentication with current tokens
+  private async updateWixClientAuth(): Promise<void> {
+    if (!this.wixClient) {
+      console.warn('⚠️ [WIX SDK] Client not initialized');
+      return;
+    }
+
+    try {
+      // Ensure we have valid visitor tokens
+      await this.ensureValidVisitorTokens();
+
+      if (this.memberTokens && this.isMemberTokenValid(this.memberTokens)) {
+        // Use member tokens if available and valid
+        const tokens = {
+          accessToken: {
+            value: this.memberTokens.accessToken.value,
+            expiresAt: this.memberTokens.accessToken.expiresAt,
+          },
+          refreshToken: {
+            value: this.memberTokens.refreshToken.value,
+            role: 'member' as const,
+          },
+        };
+        this.wixClient.auth.setTokens(tokens);
+        console.log('✅ [WIX SDK] Updated client with member tokens');
+      } else if (this.visitorTokens) {
+        // Use visitor tokens as fallback
+        const tokens = {
+          accessToken: {
+            value: this.visitorTokens.accessToken,
+            expiresAt: this.visitorTokens.expiresAt,
+          },
+          refreshToken: {
+            value: this.visitorTokens.refreshToken,
+            role: 'visitor' as const,
+          },
+        };
+        this.wixClient.auth.setTokens(tokens);
+        console.log('✅ [WIX SDK] Updated client with visitor tokens');
+      } else {
+        console.warn('⚠️ [WIX SDK] No authentication tokens available');
+      }
+    } catch (error) {
+      console.error('❌ [WIX SDK] Failed to update client authentication:', error);
     }
   }
 
@@ -1066,8 +1119,8 @@ class WixApiClient {
         await this.storeMemberTokens(memberTokens);
         this.memberTokens = memberTokens;
         
-        // Set the tokens as active in the Wix client
-        this.wixClient.auth.setTokens(tokens);
+        // Update the Wix client authentication with new member tokens
+        await this.updateWixClientAuth();
         
         console.log('✅ [MEMBER AUTH] Member tokens generated successfully using Wix SDK');
         return memberTokens;
@@ -1076,9 +1129,19 @@ class WixApiClient {
         return null;
       }
     } catch (error) {
-      console.error('❌ [MEMBER AUTH] Failed to convert session token using SDK:', error);
-      console.warn('⚠️ [MEMBER AUTH] Continuing without member tokens - registration still successful');
+      // Check if this is the specific crypto/native module error
+      const errorMessage = (error as Error)?.message || '';
+      if (errorMessage.includes('Native module not found') || errorMessage.includes('getRandomValues')) {
+        console.error('❌ [MEMBER AUTH] Crypto polyfill issue detected:', errorMessage);
+        console.warn('⚠️ [MEMBER AUTH] This is a React Native crypto compatibility issue');
+        console.log('ℹ️ [MEMBER AUTH] Try: npm run reset-cache and restart the app');
+      } else {
+        console.error('❌ [MEMBER AUTH] Failed to convert session token using SDK:', error);
+      }
+      
+      console.warn('⚠️ [MEMBER AUTH] Continuing without member tokens - authentication still successful');
       console.log('ℹ️ [MEMBER AUTH] Member can still use the app with visitor-level permissions');
+      console.log('ℹ️ [MEMBER AUTH] Full member functionality requires fixing crypto polyfills');
       return null;
     }
   }
@@ -1725,57 +1788,85 @@ class WixApiClient {
     }
   }
 
-  // Cart API - eCommerce
+  // Cart API - eCommerce (UPDATED to use proper Wix SDK)
   async getCurrentCart(): Promise<WixCart | null> {
     try {
-      const endpoint = '/ecom/v1/carts/current';
-      
       // Debug cart authentication context  
       const hasMemberTokens = this.memberTokens && this.isMemberTokenValid(this.memberTokens);
       const hasMemberIdentity = !!this.currentMember;
-          console.log('🛒 [GET CART] Authentication context:', {
-      hasMemberTokens,
-      hasMemberIdentity,
-      hasSessionToken: !!this.sessionToken,
-      memberEmail: this.currentMember?.email?.address,
-      tokenType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
-    });
-      
-      const response = await this.makeRequest<{ cart: WixCart }>(endpoint);
+      console.log('🛒 [GET CART] Authentication context:', {
+        hasMemberTokens,
+        hasMemberIdentity,
+        hasSessionToken: !!this.sessionToken,
+        memberEmail: this.currentMember?.email?.address,
+        tokenType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
+      });
+
+      // Use Wix SDK instead of manual REST calls
+      if (!this.wixClient) {
+        console.error('❌ [GET CART] Wix SDK client not initialized');
+        return null;
+      }
+
+      // Ensure client has proper authentication
+      await this.updateWixClientAuth();
+
+      console.log('🛒 [GET CART] Using Wix eCommerce SDK...');
+      const cart = await this.wixClient.currentCart.getCurrentCart();
       
       // Log detailed cart information
-      if (response.cart) {
-        console.log('🛒 [GET CART] Cart retrieved:', {
-          cartId: response.cart.id,
-          lineItemsCount: response.cart.lineItems?.length || 0,
-          total: response.cart.totals?.total || '0',
-          currency: response.cart.totals?.currency || 'USD'
+      if (cart) {
+        console.log('🛒 [GET CART] Cart retrieved via SDK:', {
+          cartId: cart._id,
+          lineItemsCount: cart.lineItems?.length || 0,
+          total: cart.priceSummary?.total?.formattedAmount || '0',
+          currency: cart.currency || 'USD'
         });
         
-        if (response.cart.buyerInfo) {
-          console.log('🛒 [GET CART] Cart buyer info:', response.cart.buyerInfo);
+        if (cart.buyerInfo) {
+          console.log('🛒 [GET CART] Cart buyer info:', cart.buyerInfo);
         }
         
         // Log individual line items for debugging
-        if (response.cart.lineItems && response.cart.lineItems.length > 0) {
+        if (cart.lineItems && cart.lineItems.length > 0) {
           console.log('🛒 [GET CART] Line items details:');
-          response.cart.lineItems.forEach((item, index) => {
+          cart.lineItems.forEach((item: any, index: number) => {
             console.log(`🛒 [GET CART] Item ${index + 1}:`, {
-              id: item.id,
+              id: item._id,
               productName: item.productName?.original || 'Unknown',
               quantity: item.quantity,
-              price: `${item.price.amount} ${item.price.currency}`,
+              price: `${item.price?.amount || 0} ${item.price?.currency || 'USD'}`,
               catalogId: item.catalogReference?.catalogItemId
             });
           });
         } else {
           console.log('🛒 [GET CART] ⚠️ Cart is empty - no line items found');
         }
+
+        // Convert to your existing cart format for compatibility
+        return {
+          id: cart._id || '',
+          lineItems: cart.lineItems?.map((item: any) => ({
+            id: item._id || '',
+            quantity: item.quantity || 0,
+            catalogReference: item.catalogReference,
+            price: {
+              amount: item.price?.amount?.toString() || '0',
+              currency: item.price?.currency || 'USD',
+            },
+            productName: item.productName,
+          })) || [],
+          totals: {
+            subtotal: cart.priceSummary?.subtotal?.amount?.toString() || '0',
+            total: cart.priceSummary?.total?.amount?.toString() || '0',
+            currency: cart.currency || 'USD',
+          },
+          buyerInfo: cart.buyerInfo,
+        } as WixCart;
       } else {
         console.log('🛒 [GET CART] No cart found');
+        return null;
       }
-      
-      return response.cart;
     } catch (error: any) {
       // Handle expected "no cart" scenarios gracefully
       if (error?.message?.includes('OWNED_CART_NOT_FOUND') || 
@@ -1791,207 +1882,294 @@ class WixApiClient {
   }
 
   async addToCart(items: WixCartItem[]): Promise<WixCart> {
-    // First try to get current cart, if none exists, it will be created automatically
-    const cartEndpoint = '/ecom/v1/carts/current/add-to-cart';
-    
-    const lineItems = items.map(item => ({
-      catalogReference: {
-        appId: this.storesAppId, // Use the Wix Stores app ID for catalog operations
-        catalogItemId: item.catalogReference.catalogItemId,
-        options: item.catalogReference.options || {}
-      },
-      quantity: item.quantity
-    }));
-
-    console.log('🛒 [API] Adding to cart - Items:', lineItems.length);
-    console.log('🛒 [DEBUG] Site ID:', this.siteId, 'Stores App ID:', this.storesAppId);
-    console.log('🛒 [DEBUG] Line items structure:', JSON.stringify(lineItems, null, 2));
-    
-    // Debug cart authentication context
-    const hasMemberTokens = this.memberTokens && this.isMemberTokenValid(this.memberTokens);
-    const hasMemberIdentity = !!this.currentMember;
-    console.log('🛒 [CART AUTH] Authentication context:', {
-      hasMemberTokens,
-      hasMemberIdentity,
-      hasSessionToken: !!this.sessionToken,
-      memberEmail: this.currentMember?.email?.address,
-      tokenType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
-    });
-    
-    // Auto-debug member auth when cart operations happen
-    if (hasMemberIdentity && !hasMemberTokens) {
-      console.log('🔍 [AUTO DEBUG] Member logged in but no tokens - analyzing...');
-      this.autoDebugMemberAuth();
-    }
-
-    const requestBody = { lineItems };
-
-    const response = await this.makeRequest<{ cart: WixCart }>(cartEndpoint, {
-      method: 'POST',
-      body: JSON.stringify(requestBody)
-    });
-
-    // Log detailed add to cart response
-    console.log('🛒 [ADD TO CART] Response summary:', {
-      cartId: response.cart.id,
-      lineItemsCount: response.cart.lineItems?.length || 0,
-      total: response.cart.totals?.total || '0',
-      currency: response.cart.totals?.currency || 'USD'
-    });
-    
-    if (response.cart.buyerInfo) {
-      console.log('🛒 [ADD TO CART] Cart buyer info:', response.cart.buyerInfo);
-    }
-    
-    // Log individual line items in response
-    if (response.cart.lineItems && response.cart.lineItems.length > 0) {
-      console.log('🛒 [ADD TO CART] Items in cart after adding:');
-      response.cart.lineItems.forEach((item, index) => {
-        console.log(`🛒 [ADD TO CART] Item ${index + 1}:`, {
-          id: item.id,
-          productName: item.productName?.original || 'Unknown',
-          quantity: item.quantity,
-          price: `${item.price.amount} ${item.price.currency}`,
-          catalogId: item.catalogReference?.catalogItemId
-        });
+    try {
+      // Debug cart authentication context
+      const hasMemberTokens = this.memberTokens && this.isMemberTokenValid(this.memberTokens);
+      const hasMemberIdentity = !!this.currentMember;
+      console.log('🛒 [CART AUTH] Authentication context:', {
+        hasMemberTokens,
+        hasMemberIdentity,
+        hasSessionToken: !!this.sessionToken,
+        memberEmail: this.currentMember?.email?.address,
+        tokenType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
       });
-    } else {
-      console.warn('⚠️ [ADD TO CART] Item was NOT added to cart');
-      console.warn('⚠️ [CART WARNING] This usually means:');
-      console.warn('⚠️ [CART WARNING] 1. Product is a demo/template product');
-      console.warn('⚠️ [CART WARNING] 2. Product is not properly configured for eCommerce');
-      console.warn('⚠️ [CART WARNING] 3. Product is out of stock or unavailable');
-      console.warn('⚠️ [CART WARNING] 4. AppId or CatalogItemId is incorrect');
+
+      // Use Wix SDK instead of manual REST calls
+      if (!this.wixClient) {
+        console.error('❌ [ADD TO CART] Wix SDK client not initialized');
+        throw new Error('Wix SDK client not initialized');
+      }
+
+      // Ensure client has proper authentication
+      await this.updateWixClientAuth();
+
+      const lineItems = items.map(item => ({
+        catalogReference: {
+          appId: this.storesAppId, // Use the Wix Stores app ID for catalog operations
+          catalogItemId: item.catalogReference.catalogItemId,
+          options: item.catalogReference.options || {}
+        },
+        quantity: item.quantity
+      }));
+
+      console.log('🛒 [API] Adding to cart via SDK - Items:', lineItems.length);
+      console.log('🛒 [DEBUG] Site ID:', this.siteId, 'Stores App ID:', this.storesAppId);
+      console.log('🛒 [DEBUG] Line items structure:', JSON.stringify(lineItems, null, 2));
+      
+      // Auto-debug member auth when cart operations happen
+      if (hasMemberIdentity && !hasMemberTokens) {
+        console.log('🔍 [AUTO DEBUG] Member logged in but no tokens - analyzing...');
+        this.autoDebugMemberAuth();
+      }
+
+      console.log('🛒 [ADD TO CART] Using Wix eCommerce SDK...');
+      const response = await this.wixClient.currentCart.addToCurrentCart({ 
+        lineItems: lineItems 
+      });
+      const cart = response.cart;
+
+      // Log detailed add to cart response
+      console.log('🛒 [ADD TO CART] Response summary:', {
+        cartId: cart._id,
+        lineItemsCount: cart.lineItems?.length || 0,
+        total: cart.priceSummary?.total?.formattedAmount || '0',
+        currency: cart.currency || 'USD'
+      });
+      
+      if (cart.buyerInfo) {
+        console.log('🛒 [ADD TO CART] Cart buyer info:', cart.buyerInfo);
+      }
+      
+      // Log individual line items in response
+              if (cart.lineItems && cart.lineItems.length > 0) {
+          console.log('🛒 [ADD TO CART] Items in cart after adding:');
+          cart.lineItems.forEach((item: any, index: number) => {
+            console.log(`🛒 [ADD TO CART] Item ${index + 1}:`, {
+              id: item._id,
+              productName: item.productName?.original || 'Unknown',
+              quantity: item.quantity,
+              price: `${item.price?.amount || 0} ${item.price?.currency || 'USD'}`,
+              catalogId: item.catalogReference?.catalogItemId
+            });
+          });
+      } else {
+        console.warn('⚠️ [ADD TO CART] Item was NOT added to cart');
+        console.warn('⚠️ [CART WARNING] This usually means:');
+        console.warn('⚠️ [CART WARNING] 1. Product is a demo/template product');
+        console.warn('⚠️ [CART WARNING] 2. Product is not properly configured for eCommerce');
+        console.warn('⚠️ [CART WARNING] 3. Product is out of stock or unavailable');
+        console.warn('⚠️ [CART WARNING] 4. AppId or CatalogItemId is incorrect');
+      }
+      
+      console.log('🛒 [DEBUG] Full cart response:', JSON.stringify(cart, null, 2));
+      
+      // Convert to your existing cart format for compatibility
+      return {
+        id: cart._id || '',
+        lineItems: cart.lineItems?.map((item: any) => ({
+          id: item._id || '',
+          quantity: item.quantity || 0,
+          catalogReference: item.catalogReference,
+          price: {
+            amount: item.price?.amount?.toString() || '0',
+            currency: item.price?.currency || 'USD',
+          },
+          productName: item.productName,
+        })) || [],
+        totals: {
+          subtotal: cart.priceSummary?.subtotal?.amount?.toString() || '0',
+          total: cart.priceSummary?.total?.amount?.toString() || '0',
+          currency: cart.currency || 'USD',
+        },
+        buyerInfo: cart.buyerInfo,
+      } as WixCart;
+    } catch (error) {
+      console.error('❌ [ADD TO CART] Failed using SDK:', error);
+      throw error;
     }
-    
-    console.log('🛒 [DEBUG] Full cart response:', JSON.stringify(response.cart, null, 2));
-    
-    return response.cart;
   }
 
   async updateCartItemQuantity(lineItemId: string, quantity: number): Promise<WixCart> {
-    const endpoint = '/ecom/v1/carts/current/update-line-items-quantity';
-    
-    const response = await this.makeRequest<{ cart: WixCart }>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify({
-        lineItems: [{ id: lineItemId, quantity }]
-      })
-    });
+    try {
+      if (!this.wixClient) {
+        console.error('❌ [UPDATE CART] Wix SDK client not initialized');
+        throw new Error('Wix SDK client not initialized');
+      }
 
-    return response.cart;
+      // Ensure client has proper authentication
+      await this.updateWixClientAuth();
+
+      console.log('🛒 [UPDATE CART] Using Wix eCommerce SDK...');
+      const response = await this.wixClient.currentCart.updateCurrentCartLineItemQuantity([
+        { _id: lineItemId, quantity }
+      ]);
+      const cart = response.cart;
+
+      // Convert to your existing cart format for compatibility
+      return {
+        id: cart._id || '',
+        lineItems: cart.lineItems?.map((item: any) => ({
+          id: item._id || '',
+          quantity: item.quantity || 0,
+          catalogReference: item.catalogReference,
+          price: {
+            amount: item.price?.amount?.toString() || '0',
+            currency: item.price?.currency || 'USD',
+          },
+          productName: item.productName,
+        })) || [],
+        totals: {
+          subtotal: cart.priceSummary?.subtotal?.amount?.toString() || '0',
+          total: cart.priceSummary?.total?.amount?.toString() || '0',
+          currency: cart.currency || 'USD',
+        },
+        buyerInfo: cart.buyerInfo,
+      } as WixCart;
+    } catch (error) {
+      console.error('❌ [UPDATE CART] Failed using SDK:', error);
+      throw error;
+    }
   }
 
   async removeFromCart(lineItemIds: string[]): Promise<WixCart> {
-    const endpoint = '/ecom/v1/carts/current/remove-line-items';
-    
-    const response = await this.makeRequest<{ cart: WixCart }>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify({ lineItemIds })
-    });
+    try {
+      if (!this.wixClient) {
+        console.error('❌ [REMOVE FROM CART] Wix SDK client not initialized');
+        throw new Error('Wix SDK client not initialized');
+      }
 
-    return response.cart;
+      // Ensure client has proper authentication
+      await this.updateWixClientAuth();
+
+      console.log('🛒 [REMOVE FROM CART] Using Wix eCommerce SDK...');
+      const response = await this.wixClient.currentCart.removeLineItemsFromCurrentCart(lineItemIds);
+      const cart = response.cart;
+
+      // Convert to your existing cart format for compatibility
+      return {
+        id: cart._id || '',
+        lineItems: cart.lineItems?.map((item: any) => ({
+          id: item._id || '',
+          quantity: item.quantity || 0,
+          catalogReference: item.catalogReference,
+          price: {
+            amount: item.price?.amount?.toString() || '0',
+            currency: item.price?.currency || 'USD',
+          },
+          productName: item.productName,
+        })) || [],
+        totals: {
+          subtotal: cart.priceSummary?.subtotal?.amount?.toString() || '0',
+          total: cart.priceSummary?.total?.amount?.toString() || '0',
+          currency: cart.currency || 'USD',
+        },
+        buyerInfo: cart.buyerInfo,
+      } as WixCart;
+    } catch (error) {
+      console.error('❌ [REMOVE FROM CART] Failed using SDK:', error);
+      throw error;
+    }
   }
 
-  // Checkout API
+  // Checkout API (UPDATED to use proper Wix SDK)
   async createCheckout(cartId?: string): Promise<{ checkoutId: string; checkoutUrl: string }> {
-    const endpoint = '/ecom/v1/checkouts';
-    
-    const hasMemberTokens = this.hasMemberTokens();
-    const hasMemberIdentity = !!this.currentMember;
-    
-    console.log('🛒 [CHECKOUT] Starting checkout process:', {
-      providedCartId: cartId || 'none (will use current cart)',
-      authType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
-    });
-    
-    // Try to get the current cart and analyze it deeply
-    console.log('🛒 [CHECKOUT] Analyzing cart before checkout...');
-    const currentCart = await this.getCurrentCart();
-    if (currentCart) {
-      console.log('🛒 [CHECKOUT] Current cart analysis:', {
-        cartId: currentCart.id,
-        hasLineItems: !!currentCart.lineItems && currentCart.lineItems.length > 0,
-        lineItemCount: currentCart.lineItems?.length || 0,
-        buyerInfo: currentCart.buyerInfo,
-        subtotal: (currentCart as any).subtotal,
-        currency: (currentCart as any).currency,
-        managedByV2: (currentCart as any).managedByV2
-      });
+    try {
+      const hasMemberTokens = this.hasMemberTokens();
+      const hasMemberIdentity = !!this.currentMember;
       
-      if (currentCart.lineItems && currentCart.lineItems.length > 0) {
-        console.log('🛒 [CHECKOUT] Line items details for checkout:');
-        currentCart.lineItems.forEach((item, index) => {
-          console.log(`🛒 [CHECKOUT] Item ${index + 1}:`, {
-            id: item.id,
-            productName: item.productName?.original,
-            quantity: item.quantity,
-            availability: (item as any).availability?.status,
-            paymentOption: (item as any).paymentOption,
-            customLineItem: (item as any).customLineItem,
-            membersOnly: (item as any).membersOnly
-          });
+      console.log('🛒 [CHECKOUT] Starting checkout process:', {
+        providedCartId: cartId || 'none (will use current cart)',
+        authType: hasMemberTokens ? 'MEMBER' : (hasMemberIdentity) ? 'VISITOR_WITH_MEMBER_CONTEXT' : 'VISITOR'
+      });
+
+      if (!this.wixClient) {
+        console.error('❌ [CHECKOUT] Wix SDK client not initialized');
+        throw new Error('Wix SDK client not initialized');
+      }
+
+      // Ensure client has proper authentication
+      await this.updateWixClientAuth();
+      
+      // Try to get the current cart and analyze it deeply
+      console.log('🛒 [CHECKOUT] Analyzing cart before checkout...');
+      const currentCart = await this.getCurrentCart();
+      if (currentCart) {
+        console.log('🛒 [CHECKOUT] Current cart analysis:', {
+          cartId: currentCart.id,
+          hasLineItems: !!currentCart.lineItems && currentCart.lineItems.length > 0,
+          lineItemCount: currentCart.lineItems?.length || 0,
+          buyerInfo: currentCart.buyerInfo,
+          subtotal: (currentCart as any).subtotal,
+          currency: (currentCart as any).currency,
+          managedByV2: (currentCart as any).managedByV2
         });
-      } else {
-        console.log('⚠️ [CHECKOUT] No line items found in cart - this explains the checkout error');
-        throw new Error('Cart has no line items for checkout');
-      }
-    } else {
-      console.log('⚠️ [CHECKOUT] No current cart found');
-      throw new Error('No cart found for checkout');
-    }
-    
-    // Auto-debug on checkout failure context
-    if (this.currentMember && (!this.memberTokens || !this.isMemberTokenValid(this.memberTokens))) {
-      console.log('🔍 [CHECKOUT DEBUG] Member logged in but using visitor tokens for checkout...');
-      await this.autoDebugMemberAuth();
-    }
-    
-    // If no cartId provided, get current cart for logging
-    if (!cartId) {
-      try {
-        const currentCart = await this.getCurrentCart();
-        if (currentCart) {
-          console.log('🛒 [CHECKOUT] Current cart for checkout:', {
-            cartId: currentCart.id,
-            lineItemsCount: currentCart.lineItems?.length || 0,
-            isEmpty: !currentCart.lineItems || currentCart.lineItems.length === 0
+        
+        if (currentCart.lineItems && currentCart.lineItems.length > 0) {
+          console.log('🛒 [CHECKOUT] Line items details for checkout:');
+          currentCart.lineItems.forEach((item, index) => {
+            console.log(`🛒 [CHECKOUT] Item ${index + 1}:`, {
+              id: item.id,
+              productName: item.productName?.original,
+              quantity: item.quantity,
+              availability: (item as any).availability?.status,
+              paymentOption: (item as any).paymentOption,
+              customLineItem: (item as any).customLineItem,
+              membersOnly: (item as any).membersOnly
+            });
           });
-          cartId = currentCart.id; // Use the current cart ID
         } else {
-          console.warn('⚠️ [CHECKOUT] No current cart found');
+          console.log('⚠️ [CHECKOUT] No line items found in cart - this explains the checkout error');
+          throw new Error('Cart has no line items for checkout');
         }
-      } catch (error) {
-        console.warn('⚠️ [CHECKOUT] Failed to get current cart for checkout:', error);
+      } else {
+        console.log('⚠️ [CHECKOUT] No current cart found');
+        throw new Error('No cart found for checkout');
       }
+      
+      // Auto-debug on checkout failure context
+      if (this.currentMember && (!this.memberTokens || !this.isMemberTokenValid(this.memberTokens))) {
+        console.log('🔍 [CHECKOUT DEBUG] Member logged in but using visitor tokens for checkout...');
+        await this.autoDebugMemberAuth();
+      }
+      
+      console.log('🛒 [CHECKOUT] Using Wix eCommerce SDK...');
+      const response = await this.wixClient.currentCart.createCheckoutFromCurrentCart({
+        channelType: this.wixClient.currentCart.ChannelType.OTHER_PLATFORM,
+      });
+
+      console.log('🛒 [CHECKOUT] ✅ Checkout created successfully:', {
+        checkoutId: response.checkoutId,
+        checkoutUrl: response.checkoutUrl || 'Will generate via redirect session'
+      });
+
+      // Create redirect session for headless checkout URL
+      console.log('🛒 [CHECKOUT] Creating redirect session for external checkout URL...');
+      const redirectResponse = await this.wixClient.redirects.createRedirectSession({
+        ecomCheckout: {
+          checkoutId: response.checkoutId,
+        },
+        callbacks: {
+          postFlowUrl: 'https://shayco5.wixsite.com/new-store/thank-you', // Return to your site after checkout
+          thankYouPageUrl: 'https://shayco5.wixsite.com/new-store/thank-you', // Custom thank you page
+        },
+        origin: 'https://shayco5.wixsite.com/new-store', // Your site origin
+      });
+
+      const checkoutUrl = redirectResponse.redirectSession?.fullUrl || '';
+      
+      console.log('🛒 [CHECKOUT] ✅ Redirect session created:', {
+        redirectSessionId: redirectResponse.redirectSession?._id,
+        checkoutUrl: checkoutUrl ? 'URL generated successfully' : 'Failed to generate URL'
+      });
+
+      return {
+        checkoutId: response.checkoutId,
+        checkoutUrl: checkoutUrl,
+      };
+    } catch (error) {
+      console.error('❌ [CHECKOUT] Failed using SDK:', error);
+      throw error;
     }
-    
-    const requestBody = {
-      channelType: 'WEB',
-      ...(cartId ? { cartId } : {})
-    };
-    
-    console.log('🛒 [CHECKOUT] Request body:', JSON.stringify(requestBody, null, 2));
-    
-    const response = await this.makeRequest<{ 
-      checkout: { 
-        id: string; 
-        checkoutUrl: string; 
-      } 
-    }>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(requestBody)
-    });
-
-    console.log('🛒 [CHECKOUT] ✅ Checkout created successfully:', {
-      checkoutId: response.checkout.id,
-      checkoutUrl: response.checkout.checkoutUrl
-    });
-
-    return {
-      checkoutId: response.checkout.id,
-      checkoutUrl: response.checkout.checkoutUrl
-    };
   }
 
   // Helper method to get optimized media URL for Wix images

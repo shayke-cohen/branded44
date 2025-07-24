@@ -6,7 +6,7 @@ console.log('📱 [DEBUG] React imported successfully');
 import {StyleSheet, View} from 'react-native';
 console.log('📱 [DEBUG] React Native components imported successfully');
 
-import {ThemeProvider, CartProvider, MemberProvider} from './context';
+import {ThemeProvider, CartProvider, MemberProvider, AlertProvider, ProductCacheProvider} from './context';
 import {WixCartProvider} from './context/WixCartContext';
 console.log('📱 [DEBUG] Context providers imported successfully');
 
@@ -66,13 +66,17 @@ const App = () => {
   console.log('📱 [DEBUG] App component rendering...');
   return (
     <ThemeProvider>
-      <CartProvider>
-        <MemberProvider>
-          <WixCartProvider>
-            <AppContent />
-          </WixCartProvider>
-        </MemberProvider>
-      </CartProvider>
+      <AlertProvider>
+        <CartProvider>
+          <ProductCacheProvider maxCacheSize={50} maxCacheAge={20 * 60 * 1000}>
+            <MemberProvider>
+              <WixCartProvider>
+                <AppContent />
+              </WixCartProvider>
+            </MemberProvider>
+          </ProductCacheProvider>
+        </CartProvider>
+      </AlertProvider>
     </ThemeProvider>
   );
 };

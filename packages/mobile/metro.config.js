@@ -18,10 +18,21 @@ const config = {
       path.resolve(__dirname, 'node_modules'),
       path.resolve(__dirname, '../../node_modules'),
     ],
+    // Add crypto polyfill aliases for better compatibility
+    alias: {
+      crypto: 'react-native-get-random-values',
+    },
   },
   transformer: {
     // Enable experimental require.context for auto-discovery
     unstable_allowRequireContext: true,
+    // Enable polyfill support
+    getTransformOptions: async () => ({
+      transform: {
+        experimentalImportSupport: false,
+        inlineRequires: true,
+      },
+    }),
   },
 };
 

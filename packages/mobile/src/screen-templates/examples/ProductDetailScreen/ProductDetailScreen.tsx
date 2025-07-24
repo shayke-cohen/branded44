@@ -6,8 +6,8 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { Alert } from '../../../utils/alert';
 import {useTheme, useCart} from '../../../context';
 import {Product} from '../../../types';
 import {VALIDATION_MESSAGES} from '../../../constants';

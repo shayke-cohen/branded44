@@ -6,8 +6,8 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Alert,
 } from 'react-native';
+import { Alert } from '../../../utils/alert';
 import {useTheme, useCart} from '../../../context';
 import {CartItem} from '../../../types';
 import {EMPTY_STATE_MESSAGES, VALIDATION_MESSAGES} from '../../../constants';

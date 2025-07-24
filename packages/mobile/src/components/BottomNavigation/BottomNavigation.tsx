@@ -7,6 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import {useTheme} from '../../context/ThemeContext';
+import {useWixCart} from '../../context/WixCartContext';
 import {BottomNavigationProps} from '../../types';
 import {getNavTabs} from '../../screen-templates/templateConfig';
 
@@ -15,6 +16,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onTabPress,
 }) => {
   const {theme} = useTheme();
+  const {getItemCount} = useWixCart();
 
   const styles = StyleSheet.create({
     container: {
@@ -48,10 +50,35 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
     inactiveTabLabel: {
       color: theme.colors.tabBarInactive,
     },
+    tabIconContainer: {
+      position: 'relative',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cartBadge: {
+      position: 'absolute',
+      top: -4,
+      right: -8,
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: '#FF3B30', // Red color for badge
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#FFFFFF',
+    },
+    cartBadgeText: {
+      color: '#FFFFFF',
+      fontSize: 9,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
   });
 
   // Get navigation tabs from unified registry
   const navTabs = getNavTabs();
+  const cartItemCount = getItemCount();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -60,6 +87,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
           // Use shortName from metadata if available, otherwise no text
           const displayName = tab.metadata?.shortName || '';
           const showLabel = displayName.length > 0;
+          const isCartTab = tab.icon === '🛒'; // Identify cart tab by icon
           
           return (
             <TouchableOpacity
@@ -68,7 +96,16 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
               onPress={() => onTabPress(tab.id)}
               activeOpacity={0.7}
               testID={`tab-${tab.id}`}>
-              <Text style={styles.tabIcon}>{tab.icon}</Text>
+              <View style={styles.tabIconContainer}>
+                <Text style={styles.tabIcon}>{tab.icon}</Text>
+                {isCartTab && cartItemCount > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>
+                      {cartItemCount > 99 ? '99+' : cartItemCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
               {showLabel && (
                 <Text
                   style={[

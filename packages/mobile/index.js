@@ -2,6 +2,13 @@
  * @format
  */
 
+// Import polyfills first (before any other imports)
+import 'react-native-get-random-values';
+import 'text-encoding-polyfill';
+
+// Setup global polyfills
+import { polyfillGlobal } from 'react-native-polyfill-globals/auto';
+
 console.log('🚀 [DEBUG] Starting React Native app entry point...');
 
 import { AppRegistry } from 'react-native';

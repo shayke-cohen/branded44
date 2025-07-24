@@ -8,8 +8,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import {useTheme} from '../context';
 
 // Define your form data type here

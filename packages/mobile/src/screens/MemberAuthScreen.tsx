@@ -5,13 +5,14 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   SafeAreaView,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Alert } from '../utils/alert';
+import { useTheme } from '../context/ThemeContext';
 import { wixApiClient } from '../utils/wixApiClient';
 import { useMember } from '../context';
 
@@ -20,6 +21,7 @@ interface MemberAuthScreenProps {
 }
 
 const MemberAuthScreen: React.FC<MemberAuthScreenProps> = () => {
+  const { theme } = useTheme();
   const { isLoggedIn, member, loading: memberLoading, refreshMemberStatus, logout } = useMember();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,8 @@ const MemberAuthScreen: React.FC<MemberAuthScreenProps> = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+
+  const styles = createStyles(theme);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -370,17 +374,17 @@ const MemberAuthScreen: React.FC<MemberAuthScreenProps> = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   safeAreaContainer: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: theme.colors.background,
   },
   keyboardContainer: {
     flex: 1,
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: theme.colors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -396,23 +400,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: theme.colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   formCard: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 4,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: theme.colors.text + '40',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -420,7 +424,7 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#f1f3f4',
+    backgroundColor: theme.colors.border,
     borderRadius: 12,
     padding: 4,
     marginBottom: 24,
@@ -432,15 +436,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeToggle: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
   },
   toggleText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   activeToggleText: {
-    color: 'white',
+    color: '#FFFFFF',
   },
   nameRow: {
     flexDirection: 'row',
@@ -456,18 +460,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1.5,
-    borderColor: '#e1e5e9',
+    borderColor: theme.colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    backgroundColor: '#fafbfc',
-    color: '#333',
+    backgroundColor: theme.colors.background,
+    color: theme.colors.text,
   },
   button: {
     borderRadius: 12,
@@ -477,11 +481,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
     marginTop: 8,
   },
   buttonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -491,37 +495,37 @@ const styles = StyleSheet.create({
   },
   switchModeText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   infoContainer: {
-    backgroundColor: '#e8f4ff',
+    backgroundColor: theme.colors.primary + '20',
     padding: 16,
     marginHorizontal: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#b3d9ff',
+    borderColor: theme.colors.primary + '40',
   },
   infoText: {
     fontSize: 14,
-    color: '#0066cc',
+    color: theme.colors.primary,
     textAlign: 'center',
     fontWeight: '500',
   },
   // Profile styles
   profileCard: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 24,
     marginHorizontal: 4,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: theme.colors.text + '40',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderColor: theme.colors.border,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -529,17 +533,17 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.border,
   },
   avatarContainer: {
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 20,
-    shadowColor: '#007AFF',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -548,7 +552,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#FFFFFF',
   },
   profileInfo: {
     flex: 1,
@@ -557,13 +561,13 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: theme.colors.text,
     marginBottom: 6,
     lineHeight: 28,
   },
   profileEmail: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -574,20 +578,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   verifiedBadge: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: theme.colors.success + '20',
   },
   unverifiedBadge: {
-    backgroundColor: '#fff3cd',
+    backgroundColor: theme.colors.error + '20',
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
   },
   verifiedText: {
-    color: '#2d7d32',
+    color: theme.colors.success,
   },
   unverifiedText: {
-    color: '#856404',
+    color: theme.colors.error,
   },
   profileDetails: {
     marginTop: 8,
@@ -599,33 +603,33 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
+    borderBottomColor: theme.colors.border,
   },
   detailLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#666',
+    color: theme.colors.textSecondary,
     flex: 1,
   },
   detailValue: {
     fontSize: 15,
-    color: '#333',
+    color: theme.colors.text,
     fontWeight: '600',
     textAlign: 'right',
     flex: 1,
   },
   logoutButton: {
-    backgroundColor: '#dc3545',
+    backgroundColor: theme.colors.error,
     marginTop: 8,
     marginHorizontal: 4,
-    shadowColor: '#dc3545',
+    shadowColor: theme.colors.error,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   logoutButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: 'bold',
   },

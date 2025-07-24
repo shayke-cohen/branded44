@@ -17,6 +17,17 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '../../context';
+import { useWixCart } from '../../context/WixCartContext';
+
+// Import cache hook dynamically to test if exports work
+let useProductCache: any;
+try {
+  const cacheModule = require('../../context/ProductCacheContext');
+  useProductCache = cacheModule.useProductCache || (() => ({ setCachedProducts: () => {} }));
+} catch (e) {
+  console.warn('ProductCache not available:', e);
+  useProductCache = () => ({ setCachedProducts: () => {} });
+}
 import { wixApiClient, WixProduct } from '../../utils/wixApiClient';
 import { registerScreen } from '../../config/registry';
 
@@ -188,7 +199,7 @@ const FunProductCard = ({ product, theme, onPress }: { product: WixProduct, them
       activeOpacity={0.9}
     >
       <Animated.View style={[styles.shimmerOverlay, { opacity: shimmerOpacity }]} />
-      {product}
+      {/* TODO: Complete product card UI */}
     </AnimatedTouchableOpacity>
   );
 };
@@ -196,10 +207,13 @@ const FunProductCard = ({ product, theme, onPress }: { product: WixProduct, them
 interface ProductListScreenProps {
   navigation?: any; // Optional for backward compatibility
   onProductPress?: (productId: string) => void; // New callback-based navigation
+  onCartPress?: () => void; // Callback for cart navigation
 }
 
-const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onProductPress }) => {
+const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onProductPress, onCartPress }) => {
   const { theme } = useTheme();
+  const { getItemCount } = useWixCart();
+  const { setCachedProducts } = useProductCache();
 
   // Helper function to safely render strings
   const safeString = (value: any): string => {
@@ -285,13 +299,20 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
       
       const loadedProducts = result.products || [];
       setProducts(loadedProducts);
+      
+      // Cache the loaded products for faster access in detail screens
+      if (loadedProducts.length > 0) {
+        setCachedProducts(loadedProducts, 'list');
+        console.log(`💾 [PRODUCT CACHE] Cached ${loadedProducts.length} products from list`);
+      }
+      
       console.log(`✅ [DEBUG] Loaded ${loadedProducts.length} products`);
       return loadedProducts;
     } catch (err) {
       console.error('❌ [ERROR] Failed to load products:', err);
       throw err;
     }
-  }, []);
+  }, [setCachedProducts]);
 
   const loadCategories = useCallback(async (): Promise<any[]> => {
     try {
@@ -674,9 +695,16 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
 
       // Use client-side filtering for better performance (reduces API calls)
       const result = await wixApiClient.queryProductsWithClientFiltering(filters);
-      setProducts(result.products || []);
+      const filteredProducts = result.products || [];
+      setProducts(filteredProducts);
       
-      console.log(`✅ [DEBUG] Loaded ${result.products?.length || 0} products with filters applied`);
+      // Cache the filtered products as well
+      if (filteredProducts.length > 0) {
+        setCachedProducts(filteredProducts, 'list');
+        console.log(`💾 [PRODUCT CACHE] Cached ${filteredProducts.length} filtered products`);
+      }
+      
+      console.log(`✅ [DEBUG] Loaded ${filteredProducts.length} products with filters applied`);
     } catch (err) {
       console.error('❌ [ERROR] Failed to load products with filters:', err);
       setError('Failed to load products with filters');
@@ -684,7 +712,7 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
       setRefreshing(false);
       setIsFilteringInProgress(false);
     }
-  }, [selectedCategoryId, searchQuery, selectedSort, selectedFilter]);
+  }, [selectedCategoryId, searchQuery, selectedSort, selectedFilter, setCachedProducts]);
 
   if (loading) {
     return (
@@ -773,6 +801,29 @@ const ProductListScreen: React.FC<ProductListScreenProps> = ({ navigation, onPro
               <Text style={[styles.controlButtonText, { color: theme.colors.text }]}>
                 Sort & Filter
               </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.cartButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+              onPress={() => {
+                if (onCartPress) {
+                  onCartPress();
+                } else if (navigation) {
+                  // Fallback to navigation prop if available
+                  navigation.navigate('Cart');
+                } else {
+                  console.log('🛒 [NAV] Cart icon pressed - no navigation handler available');
+                }
+              }}
+            >
+              <View style={styles.cartIconContainer}>
+                <Text style={[styles.cartIcon, { color: theme.colors.text }]}>🛒</Text>
+                {getItemCount() > 0 && (
+                  <View style={[styles.cartBadge, { backgroundColor: theme.colors.error }]}>
+                    <Text style={styles.cartBadgeText}>{getItemCount()}</Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -1299,6 +1350,40 @@ const styles = StyleSheet.create({
   },
   listArrowText: {
     fontSize: 20,
+    fontWeight: 'bold',
+  },
+  cartButton: {
+    width: 50,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartIconContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartIcon: {
+    fontSize: 20,
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: 'bold',
   },
 });

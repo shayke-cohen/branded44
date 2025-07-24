@@ -7,12 +7,30 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Dimensions,
   SafeAreaView,
 } from 'react-native';
-import { useTheme } from '../../context/ThemeContext';
+import { Alert } from '../../utils/alert';
+import { useTheme } from '../../context';
 import { useWixCart } from '../../context/WixCartContext';
+
+// Import cache hook dynamically to test if exports work
+let useCachedProduct: any;
+try {
+  const cacheModule = require('../../context/ProductCacheContext');
+  useCachedProduct = cacheModule.useCachedProduct || (() => ({ 
+    cachedProduct: null, 
+    isCached: false, 
+    setCachedProduct: () => {} 
+  }));
+} catch (e) {
+  console.warn('ProductCache not available:', e);
+  useCachedProduct = () => ({ 
+    cachedProduct: null, 
+    isCached: false, 
+    setCachedProduct: () => {} 
+  });
+}
 import { wixApiClient, formatPrice, safeString, WixProduct } from '../../utils/wixApiClient';
 
 const { width } = Dimensions.get('window');
@@ -21,6 +39,7 @@ interface ProductDetailScreenProps {
   // New callback-based navigation
   productId?: string;
   onBack?: () => void;
+  onCartPress?: () => void; // Callback for cart navigation
   
   // Legacy React Navigation support
   navigation?: any;
@@ -34,24 +53,29 @@ interface ProductDetailScreenProps {
 const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ 
   productId: propProductId, 
   onBack, 
+  onCartPress,
   navigation, 
   route 
 }) => {
   const { theme } = useTheme();
-  const { addToCart } = useWixCart();
-  
-  // State management - all hooks must come before any conditional logic
-  const [product, setProduct] = useState<WixProduct | null>(null);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [addingToCart, setAddingToCart] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { addToCart, getItemCount } = useWixCart();
   
   // Support both new callback-based navigation and legacy route-based navigation
   const productId = propProductId || route?.params?.productId;
   
+  // Use cached product if available
+  const { cachedProduct, isCached, setCachedProduct } = useCachedProduct(productId || '');
+  
+  // State management - all hooks must come before any conditional logic
+  const [product, setProduct] = useState<WixProduct | null>(cachedProduct);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [loading, setLoading] = useState(!isCached); // Don't show loading if we have cached data
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   console.log('🛍️ [DETAIL] ProductDetailScreen loaded for product:', productId);
+  console.log('📦 [PRODUCT CACHE] Cache status:', { isCached, hasCachedProduct: !!cachedProduct });
 
   // Load product data
   useEffect(() => {
@@ -68,7 +92,24 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
       return;
     }
     
-    console.log('🛍️ [DEBUG] Loading product details for:', productId);
+    // Check if we already have the product from cache and it's current
+    if (cachedProduct && !loading) {
+      console.log('✅ [PRODUCT CACHE] Using cached product data for:', productId);
+      
+      // Initialize selected options with first choice of each option
+             if (cachedProduct.options && cachedProduct.options.length > 0) {
+         const initialOptions: Record<string, string> = {};
+         cachedProduct.options.forEach((option: any) => {
+           if (option.choices && option.choices.length > 0) {
+             initialOptions[option.id] = option.choices[0].id;
+           }
+         });
+         setSelectedOptions(initialOptions);
+       }
+      return;
+    }
+    
+    console.log('🛍️ [DEBUG] Loading product details from API for:', productId);
     
     try {
       setLoading(true);
@@ -76,6 +117,10 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
       const productData = await wixApiClient.getProduct(productId);
       setProduct(productData);
+      
+      // Cache the fetched product for future use
+      setCachedProduct(productData);
+      console.log('💾 [PRODUCT CACHE] Cached product from detail API:', productId);
       
       // Initialize selected options with first choice of each option
       if (productData.options && productData.options.length > 0) {
@@ -88,14 +133,14 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
         setSelectedOptions(initialOptions);
       }
 
-      console.log('✅ [DEBUG] Product loaded:', safeString(productData.name));
+      console.log('✅ [DEBUG] Product loaded from API:', safeString(productData.name));
     } catch (err) {
       console.error('❌ [ERROR] Failed to load product:', err);
       setError('Failed to load product details. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [productId]);
+  }, [productId, cachedProduct, loading, setCachedProduct]);
 
   const handleOptionChange = useCallback((optionId: string, choiceId: string) => {
     console.log('🛍️ [DEBUG] Option changed:', { optionId, choiceId });
@@ -445,9 +490,9 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Header with back button */}
-      {onBack && (
-        <View style={[styles.header, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+      {/* Header with back button and cart icon */}
+      <View style={[styles.header, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+        {onBack ? (
           <TouchableOpacity
             style={styles.backButton}
             onPress={onBack}
@@ -455,8 +500,34 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
           >
             <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
+        
+        {/* Cart Icon */}
+        <TouchableOpacity
+          style={[styles.cartButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+          onPress={() => {
+            if (onCartPress) {
+              onCartPress();
+            } else if (navigation) {
+              // Fallback to navigation prop if available
+              navigation.navigate('Cart');
+            } else {
+              console.log('🛒 [NAV] Cart icon pressed - no navigation handler available');
+            }
+          }}
+        >
+          <View style={styles.cartIconContainer}>
+            <Text style={[styles.cartIcon, { color: theme.colors.text }]}>🛒</Text>
+            {getItemCount() > 0 && (
+              <View style={[styles.cartBadge, { backgroundColor: theme.colors.error }]}>
+                <Text style={styles.cartBadgeText}>{getItemCount()}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Product Images */}
@@ -524,17 +595,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
   backButton: {
-    alignSelf: 'flex-start',
     padding: 8,
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  headerSpacer: {
+    flex: 1,
+  },
+  cartButton: {
+    width: 50,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartIconContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartIcon: {
+    fontSize: 20,
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   centerContainer: {
     flex: 1,

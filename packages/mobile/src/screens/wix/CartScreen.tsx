@@ -7,19 +7,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Dimensions,
   Linking,
   SafeAreaView,
   Animated,
 } from 'react-native';
+import { Alert } from '../../utils/alert';
 import { useTheme } from '../../context/ThemeContext';
 import { useWixCart } from '../../context/WixCartContext';
 import { wixApiClient, formatPrice, safeString } from '../../utils/wixApiClient';
 
 const { width } = Dimensions.get('window');
 
-const CartScreen: React.FC = () => {
+interface CartScreenProps {
+  onBack?: () => void; // Optional back navigation callback
+}
+
+const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
   const { theme } = useTheme();
   const {
     cart,
@@ -66,7 +70,12 @@ const CartScreen: React.FC = () => {
 
   const handleQuantityChange = useCallback(async (lineItemId: string, newQuantity: number) => {
     try {
-      console.log('🛒 [DEBUG] Changing quantity:', { lineItemId, newQuantity });
+      console.log('🛒 [CART SCREEN] Button clicked - Changing quantity:', { 
+        lineItemId, 
+        currentQuantity: cart?.lineItems?.find(item => item.id === lineItemId)?.quantity,
+        newQuantity,
+        cartId: cart?.id 
+      });
       
       // Add bounce animation for quantity changes
       Animated.sequence([
@@ -82,11 +91,14 @@ const CartScreen: React.FC = () => {
         }),
       ]).start();
       
+      console.log('🛒 [CART SCREEN] Calling updateQuantity...');
       await updateQuantity(lineItemId, newQuantity);
+      console.log('🛒 [CART SCREEN] updateQuantity completed');
     } catch (error) {
+      console.error('🛒 [CART SCREEN] Error updating quantity:', error);
       Alert.alert('🚨 Oops!', 'Failed to update quantity. Please try again! 🔄');
     }
-  }, [updateQuantity, bounceAnim]);
+  }, [updateQuantity, bounceAnim, cart]);
 
   const handleRemoveItem = useCallback(async (lineItemId: string) => {
     Alert.alert(
@@ -253,48 +265,45 @@ const CartScreen: React.FC = () => {
 
   const itemCount = getItemCount();
   const totalPrice = getTotal();
+  
+  // Debug cart state
+  console.log('🛒 [CART SCREEN] Current cart state:', {
+    cartExists: !!cart,
+    cartId: cart?.id,
+    lineItemsCount: cart?.lineItems?.length || 0,
+    lineItems: cart?.lineItems?.map(item => ({
+      id: item.id,
+      name: item.productName?.original,
+      quantity: item.quantity,
+      price: item.price?.amount
+    })) || [],
+    itemCount,
+    totalPrice,
+    wixCalculatedTotal: cart?.totals?.total,
+    loading
+  });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
+          {onBack && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBack}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
+            </TouchableOpacity>
+          )}
+          <View style={[styles.headerContent, { flex: onBack ? 1 : 0, alignItems: onBack ? 'center' : 'flex-start' }]}>
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
               Shopping Cart
             </Text>
             <Text style={[styles.itemCountText, { color: theme.colors.textSecondary }]}>
               {itemCount} {itemCount === 1 ? 'item' : 'items'}
             </Text>
-          </View>
-          
-          <View style={styles.headerButtons}>
-            {/* Debug Member Auth Button */}
-            <TouchableOpacity
-              style={[styles.debugButton, { backgroundColor: '#FFA500' }]}
-              onPress={() => {
-                console.log('🔍 [MANUAL DEBUG] User triggered member auth analysis...');
-                import('../../utils/wixApiClient').then(({ debugMemberAuth }) => {
-                  debugMemberAuth();
-                });
-              }}
-              disabled={loading}
-            >
-              <Text style={styles.syncButtonText}>🔍</Text>
-              <Text style={styles.syncButtonLabel}>Debug</Text>
-            </TouchableOpacity>
-            
-            {/* Sync with Server Button */}
-            <TouchableOpacity
-              style={[styles.syncButton, { backgroundColor: theme.colors.primary }]}
-              onPress={syncWithServer}
-              disabled={loading}
-            >
-              <Text style={styles.syncButtonText}>
-                {loading ? '🔄' : '📡'}
-              </Text>
-              <Text style={styles.syncButtonLabel}>Sync</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -389,10 +398,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 12,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   headerTitle: {
     fontSize: 24,
@@ -584,40 +600,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 8,
   },
-  // Header and sync button styles
-  headerLeft: {
-    flex: 1,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  debugButton: {
-    flexDirection: 'column',
+  // Header styles
+  headerContent: {
     alignItems: 'center',
-    justifyContent: 'center',
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    padding: 8,
-  },
-  syncButton: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    padding: 8,
-  },
-  syncButtonText: {
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  syncButtonLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#fff',
   },
 });
 

@@ -1,9 +1,21 @@
 import React, {useState, Suspense, useCallback} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator} from 'react-native';
-import {ThemeProvider, CartProvider} from '@mobile/context';
+import {ThemeProvider, CartProvider, AlertProvider, ProductCacheProvider} from '@mobile/context';
 import {WixCartProvider, MemberProvider} from '../context';
 import {usePreview} from '../context/PreviewContext';
 import WebAppContainer from './WebAppContainer';
+
+// Type declarations for React Native Web compatibility
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
+}
+
+// Type assertion helper for React components
+const asReactFC = <T extends any>(Component: T) => Component as React.FC<any>;
 
 // Import the new dynamic template system
 import {
@@ -90,7 +102,8 @@ const MobileApp: React.FC<MobileAppProps> = ({
     const AppComponent = getSampleAppComponent(appId);
     
     if (AppComponent) {
-      return <AppComponent />;
+      const SafeAppComponent = asReactFC(AppComponent);
+      return <SafeAppComponent />;
     }
 
     // Fallback for unknown apps
@@ -108,7 +121,8 @@ const MobileApp: React.FC<MobileAppProps> = ({
     const ScreenComponent = getScreenComponent(screenId);
     if (ScreenComponent) {
       // Pass onAppLaunch to all screens (they can use it if needed)
-      return <ScreenComponent onAppLaunch={handleAppLaunch} />;
+      const SafeScreenComponent = asReactFC(ScreenComponent);
+      return <SafeScreenComponent onAppLaunch={handleAppLaunch} />;
     }
     
     // Fallback to first available screen if not found
@@ -117,7 +131,8 @@ const MobileApp: React.FC<MobileAppProps> = ({
     if (fallbackScreen) {
       const FallbackComponent = getScreenComponent(fallbackScreen.id);
       if (FallbackComponent) {
-        return <FallbackComponent onAppLaunch={handleAppLaunch} />;
+        const SafeFallbackComponent = asReactFC(FallbackComponent);
+        return <SafeFallbackComponent onAppLaunch={handleAppLaunch} />;
       }
     }
     
@@ -142,7 +157,8 @@ const MobileApp: React.FC<MobileAppProps> = ({
     if (appConfig) {
       const AppComponent = getSampleAppComponent(appConfig.id);
       if (AppComponent) {
-        return <AppComponent />;
+        const SafeAppComponent = asReactFC(AppComponent);
+        return <SafeAppComponent />;
       }
     }
     
@@ -169,6 +185,7 @@ const MobileApp: React.FC<MobileAppProps> = ({
       const TemplateComponent = getTemplateComponent(templateId);
       
       if (TemplateComponent && templateConfig) {
+        const SafeTemplateComponent = asReactFC(TemplateComponent);
         return (
           <View style={styles.templateContainer}>
             <View style={styles.templateHeader}>
@@ -180,7 +197,7 @@ const MobileApp: React.FC<MobileAppProps> = ({
               </Text>
             </View>
             <View style={styles.templateContent}>
-              <TemplateComponent {...(templateConfig.defaultProps || {})} />
+              <SafeTemplateComponent {...(templateConfig.defaultProps || {})} />
             </View>
           </View>
         );
@@ -190,8 +207,8 @@ const MobileApp: React.FC<MobileAppProps> = ({
     // Fallback to templates screen from registry if template not found
     const templatesScreenComponent = getScreenComponent('templates-screen');
     if (templatesScreenComponent) {
-      const TemplatesComponent = templatesScreenComponent;
-      return <TemplatesComponent onAppLaunch={handleAppLaunch} />;
+      const SafeTemplatesComponent = asReactFC(templatesScreenComponent);
+      return <SafeTemplatesComponent onAppLaunch={handleAppLaunch} />;
     }
     
     // Ultimate fallback
@@ -236,27 +253,31 @@ const MobileApp: React.FC<MobileAppProps> = ({
 
   return (
     <ThemeProvider>
-      <CartProvider>
-        <MemberProvider>
-          <WixCartProvider>
-            <View style={styles.container}>
-            <Suspense fallback={<LoadingSpinner />}>
-              <View style={styles.content}>
-                {renderMainContent()}
-              </View>
-              
-              {/* Show bottom navigation for screens mode, but hide when app is active */}
-              {!activeApp && (
-                <BottomNavigation 
-                  activeTab={activeTab} 
-                  onTabPress={handleTabPress}
-                />
-              )}
-            </Suspense>
-          </View>
-          </WixCartProvider>
-        </MemberProvider>
-      </CartProvider>
+      <AlertProvider>
+        <CartProvider>
+          <ProductCacheProvider maxCacheSize={30} maxCacheAge={15 * 60 * 1000}>
+            <MemberProvider>
+              <WixCartProvider>
+                <View style={styles.container}>
+              <Suspense fallback={<LoadingSpinner />}>
+                <View style={styles.content}>
+                  {renderMainContent()}
+                </View>
+                
+                {/* Show bottom navigation for screens mode, but hide when app is active */}
+                {!activeApp && (
+                  <BottomNavigation 
+                    activeTab={activeTab} 
+                    onTabPress={handleTabPress}
+                  />
+                )}
+              </Suspense>
+            </View>
+              </WixCartProvider>
+            </MemberProvider>
+          </ProductCacheProvider>
+        </CartProvider>
+      </AlertProvider>
     </ThemeProvider>
   );
 };

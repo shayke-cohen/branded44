@@ -1,15 +1,13 @@
-console.log('🔗 [DEBUG] Starting context exports...');
-
-console.log('🔗 [DEBUG] About to export from ThemeContext...');
+// Core context exports
 export {ThemeProvider, useTheme} from './ThemeContext';
-console.log('🔗 [DEBUG] ThemeContext exports successful');
-
-console.log('🔗 [DEBUG] About to export from CartContext...');
 export {CartProvider, useCart} from './CartContext';
-console.log('🔗 [DEBUG] CartContext exports successful');
+export {MemberProvider, useMember} from './MemberContext';
+export {WixCartProvider, useWixCart} from './WixCartContext';
+export {AlertProvider, useAlert} from './AlertContext';
 
-console.log('🔗 [DEBUG] About to export from MemberContext...');
-export {MemberProvider, useMember, withMemberAuth} from './MemberContext';
-console.log('🔗 [DEBUG] MemberContext exports successful');
+// Product cache exports - export individually to avoid import issues
+export {ProductCacheProvider} from './ProductCacheContext';
+export {useProductCache} from './ProductCacheContext';
+export {useCachedProduct} from './ProductCacheContext';
 
 console.log('✅ [DEBUG] All context exports completed successfully!');

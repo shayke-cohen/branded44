@@ -159,24 +159,36 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
 
   const updateQuantity = useCallback(async (lineItemId: string, quantity: number) => {
     try {
-      console.log('🛒 [DEBUG] Updating cart item quantity:', { lineItemId, quantity });
+      console.log('🛒 [CONTEXT] updateQuantity called:', { 
+        lineItemId, 
+        quantity,
+        currentCart: cart?.id,
+        currentItems: cart?.lineItems?.length || 0
+      });
       setLoading(true);
       
       if (quantity <= 0) {
+        console.log('🛒 [CONTEXT] Quantity <= 0, removing item instead');
         await removeFromCart([lineItemId]);
         return;
       }
       
+      console.log('🛒 [CONTEXT] Calling wixApiClient.updateCartItemQuantity...');
       const updatedCart = await wixApiClient.updateCartItemQuantity(lineItemId, quantity);
+      console.log('🛒 [CONTEXT] API call successful, updating cart state:', {
+        newCartId: updatedCart?.id,
+        newItemCount: updatedCart?.lineItems?.length || 0,
+        newTotal: updatedCart?.totals?.total
+      });
       setCart(updatedCart);
-      console.log('✅ [DEBUG] Cart item quantity updated successfully');
+      console.log('✅ [CONTEXT] Cart item quantity updated successfully');
     } catch (error) {
-      console.error('❌ [ERROR] Failed to update cart item quantity:', error);
+      console.error('❌ [CONTEXT] Failed to update cart item quantity:', error);
       throw error;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cart]);
 
   const removeFromCart = useCallback(async (lineItemIds: string[]) => {
     try {
@@ -199,7 +211,18 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
   }, [cart]);
 
   const getTotal = useCallback((): string => {
-    if (!cart?.lineItems || cart.lineItems.length === 0) return '$0.00';
+    console.log('🛒 [TOTAL] getTotal called:', {
+      hasCart: !!cart,
+      hasLineItems: !!cart?.lineItems,
+      lineItemCount: cart?.lineItems?.length || 0,
+      wixTotal: cart?.totals?.total,
+      wixCurrency: cart?.totals?.currency
+    });
+    
+    if (!cart?.lineItems || cart.lineItems.length === 0) {
+      console.log('🛒 [TOTAL] No cart or line items, returning $0.00');
+      return '$0.00';
+    }
     
     try {
       let amount = 0;
@@ -209,6 +232,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
       if (cart.totals?.total && parseFloat(cart.totals.total) > 0) {
         amount = parseFloat(cart.totals.total);
         currency = cart.totals.currency || 'USD';
+        console.log('🛒 [TOTAL] Using Wix calculated total:', { amount, currency });
       } else {
         // Fallback: Calculate manually from line items (for demo products)
         console.log('🛒 [TOTAL] Wix total is 0, calculating manually from line items...');
@@ -225,10 +249,13 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
         console.log(`🛒 [TOTAL] Manual calculation complete: ${amount} ${currency}`);
       }
       
-      return new Intl.NumberFormat('en-US', {
+      const formattedTotal = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: currency,
       }).format(amount);
+      
+      console.log('🛒 [TOTAL] Returning formatted total:', formattedTotal);
+      return formattedTotal;
     } catch (error) {
       console.error('❌ [TOTAL ERROR] Failed to calculate total:', error);
       return '$0.00';
