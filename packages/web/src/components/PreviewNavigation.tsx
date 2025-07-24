@@ -885,7 +885,7 @@ const PreviewNavigation: React.FC = () => {
                 <textarea
                   value={updateDescription}
                   onChange={(e) => setUpdateDescription(e.target.value)}
-                  placeholder="Describe what you want to update, improve, or modify. E.g., 'Add a search feature to the ProfileScreen', 'Improve the styling of all buttons', 'Add navigation between WorkoutScreen and ProgressScreen'"
+                  placeholder="Describe what you want to update, improve, or modify. E.g., 'Add a search feature to the ProfileScreen', 'Improve the styling of all buttons', 'Add navigation between different screens'"
                   style={{
                     ...htmlStyles.textArea,
                     border: updateDescription.trim() ? '1px solid #e0e0e0' : '2px solid #ff6b6b',

@@ -10,12 +10,18 @@ import {
   SafeAreaView
 } from 'react-native';
 import {useTheme} from '../../context';
+import HamburgerMenu from './HamburgerMenu';
 
 const {width} = Dimensions.get('window');
 
-const HomeScreen = () => {
+interface HomeScreenProps {
+  onMenuPress?: (screen: string) => void; // Callback for menu navigation
+}
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuPress }) => {
   const {theme} = useTheme();
   const [animatedValue] = useState(new Animated.Value(0));
+  const [menuVisible, setMenuVisible] = useState(false);
   const [sparkleAnimation] = useState(new Animated.Value(0));
   const [currentTip, setCurrentTip] = useState(0);
 
@@ -90,6 +96,7 @@ const HomeScreen = () => {
     safeArea: {
       flex: 1,
       backgroundColor: theme.colors.background,
+      position: 'relative',
     },
     scrollView: {
       flex: 1,
@@ -281,6 +288,28 @@ const HomeScreen = () => {
       color: theme.colors.textSecondary,
       textAlign: 'center',
     },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+    },
+    headerSpacer: {
+      flex: 1,
+    },
+    menuButton: {
+      width: 50,
+      height: 40,
+      borderRadius: 8,
+      borderWidth: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    menuIcon: {
+      fontSize: 20,
+    },
 
 
 
@@ -297,6 +326,17 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header with menu icon */}
+      <View style={[styles.header, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+        <TouchableOpacity
+          style={[styles.menuButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+          onPress={() => setMenuVisible(true)}
+        >
+          <Text style={[styles.menuIcon, { color: theme.colors.text }]}>☰</Text>
+        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
+      </View>
+      
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -394,8 +434,20 @@ const HomeScreen = () => {
             💭 "This app is your canvas - paint your digital dreams into reality"
           </Text>
         </View>
-       </ScrollView>
-     </SafeAreaView>
+             </ScrollView>
+
+      <HamburgerMenu
+        isVisible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onNavigate={(screen) => {
+          if (onMenuPress) {
+            onMenuPress(screen);
+          } else {
+            console.log('📱 [NAV] Menu navigation pressed - no handler available');
+          }
+        }}
+      />
+    </SafeAreaView>
    );
  };
 

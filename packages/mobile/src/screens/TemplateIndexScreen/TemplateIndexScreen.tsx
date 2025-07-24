@@ -27,9 +27,10 @@ const {width: screenWidth} = Dimensions.get('window');
 interface TemplateIndexScreenProps {
   navigation?: any;
   onAppLaunch?: (app: {id: string; name: string; icon?: string}) => void;
+  onBack?: () => void;
 }
 
-const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation, onAppLaunch}) => {
+const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation, onAppLaunch, onBack}) => {
   const {theme} = useTheme();
   const [activeTab, setActiveTab] = useState<TemplateComplexity>('Simple');
   const [activeApp, setActiveApp] = useState<TemplateConfig | null>(null);
@@ -232,6 +233,15 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation, on
       color: theme.colors.primary,
       fontWeight: '500',
     },
+    backButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      marginBottom: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
 
   const renderTemplate = (template: TemplateConfig) => {
@@ -346,6 +356,15 @@ const TemplateIndexScreen: React.FC<TemplateIndexScreenProps> = ({navigation, on
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>Live Template Gallery</Text>
         <Text style={styles.subtitle}>
           Interact with actual React Native components. All templates are live and fully

@@ -11,16 +11,16 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Alert } from '../utils/alert';
-import { useTheme } from '../context/ThemeContext';
-import { wixApiClient } from '../utils/wixApiClient';
-import { useMember } from '../context';
+import { Alert } from '../../utils/alert';
+import { useTheme } from '../../context/ThemeContext';
+import { wixApiClient } from '../../utils/wixApiClient';
+import { useMember } from '../../context';
 
 interface MemberAuthScreenProps {
-  // Add any props if needed
+  onBack?: () => void; // Optional back navigation callback
 }
 
-const MemberAuthScreen: React.FC<MemberAuthScreenProps> = () => {
+const MemberAuthScreen: React.FC<MemberAuthScreenProps> = ({ onBack }) => {
   const { theme } = useTheme();
   const { isLoggedIn, member, loading: memberLoading, refreshMemberStatus, logout } = useMember();
   const [isLogin, setIsLogin] = useState(true);
@@ -157,6 +157,19 @@ const MemberAuthScreen: React.FC<MemberAuthScreenProps> = () => {
   if (isLoggedIn && member) {
     return (
       <SafeAreaView style={styles.safeAreaContainer}>
+        {/* Header with back button */}
+        {onBack && (
+          <View style={[styles.navigationHeader, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBack}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
         <ScrollView style={styles.container}>
           <View style={styles.headerContainer}>
             <Text style={styles.title}>👤 Member Profile</Text>
@@ -229,6 +242,19 @@ const MemberAuthScreen: React.FC<MemberAuthScreenProps> = () => {
 
   return (
     <SafeAreaView style={styles.safeAreaContainer}>
+      {/* Header with back button */}
+      {onBack && (
+        <View style={[styles.navigationHeader, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
       <KeyboardAvoidingView 
         style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -632,6 +658,18 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 17,
     fontWeight: 'bold',
+  },
+  navigationHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

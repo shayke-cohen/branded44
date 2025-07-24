@@ -16,19 +16,19 @@ console.log('📱 [DEBUG] Starting centralized screen imports and registration..
 // =============================================================================
 console.log('📱 [DEBUG] Importing and registering core app screens...');
 
-import HomeScreen from '../screens/HomeScreen';
+import HomeNavigation from '../screens/HomeScreen/HomeNavigation';
 import SettingsScreen from '../screens/SettingsScreen';
-import MemberAuthScreen from '../screens/MemberAuthScreen';
+import MemberAuthScreen from '../screens/wix/MemberAuthScreen';
 
-registerScreen(HomeScreen, {
+registerScreen(HomeNavigation, {
   name: 'Home',
   shortName: 'Home', // Short text
   icon: '🏠',
   category: 'Navigation',
   hasTab: true,
   tabPosition: 1,
-  description: 'Welcome screen and app home',
-  tags: ['home', 'main', 'default']
+  description: 'Welcome screen and app home with profile navigation',
+  tags: ['home', 'main', 'default', 'profile']
 });
 
 registerScreen(SettingsScreen, {

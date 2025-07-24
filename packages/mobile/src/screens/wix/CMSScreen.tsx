@@ -21,6 +21,7 @@ import {
 
 interface CMSScreenProps {
   navigation?: any;
+  onBack?: () => void;
 }
 
 interface BlogPost extends WixDataItem {
@@ -31,7 +32,7 @@ interface BlogPost extends WixDataItem {
   category?: string;
 }
 
-const CMSScreen: React.FC<CMSScreenProps> = ({ navigation }) => {
+const CMSScreen: React.FC<CMSScreenProps> = ({ navigation, onBack }) => {
   const { theme } = useTheme();
   const [collections, setCollections] = useState<WixCollection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
@@ -206,6 +207,17 @@ const CMSScreen: React.FC<CMSScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeAreaContainer}>
+      {onBack && (
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView 
         style={styles.container}
         refreshControl={
@@ -704,6 +716,20 @@ const createStyles = (theme: any) => StyleSheet.create({
   errorList: {
     fontSize: 13,
     color: theme.colors.error,
+  },
+  header: {
+    padding: 16,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  backButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

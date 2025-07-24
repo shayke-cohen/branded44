@@ -43,6 +43,12 @@ const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
   const shimmerAnim = new Animated.Value(0);
 
   console.log('🛒 [CART] CartScreen rendered - Items:', getItemCount(), 'Total:', getTotal());
+  console.log('🛒 [CART] Cart object changed:', {
+    cartId: cart?.id,
+    itemsLength: cart?.lineItems?.length,
+    wixTotal: cart?.totals?.total,
+    loading
+  });
 
   // Refresh cart on mount and start shimmer animation
   useEffect(() => {
@@ -67,6 +73,17 @@ const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
     
     return () => shimmer.stop();
   }, [refreshCart]);
+
+  // Track cart changes for debugging
+  useEffect(() => {
+    console.log('🛒 [CART EFFECT] Cart state changed:', {
+      cartId: cart?.id,
+      itemCount: getItemCount(),
+      total: getTotal(),
+      wixTotal: cart?.totals?.total,
+      lineItemsCount: cart?.lineItems?.length || 0
+    });
+  }, [cart, getItemCount, getTotal]);
 
   const handleQuantityChange = useCallback(async (lineItemId: string, newQuantity: number) => {
     try {

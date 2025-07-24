@@ -16,7 +16,11 @@ import {wixApiClient} from '../../utils/wixApiClient';
 import {THEME_OPTIONS} from '../../constants';
 
 
-const SettingsScreen = () => {
+interface SettingsScreenProps {
+  onBack?: () => void;
+}
+
+const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   const {theme, themeMode, setThemeMode, isDark} = useTheme();
   const {isLoggedIn, member, getMemberDisplayName, logout, refreshMemberStatus} = useMember();
   
@@ -352,11 +356,29 @@ const SettingsScreen = () => {
       textAlign: 'center',
       fontWeight: '500',
     },
+    backButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      marginBottom: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>Settings</Text>
       </View>
 
