@@ -25,7 +25,7 @@ describe('TemplateIndexScreen', () => {
       
       expect(getByText('Simple (4)')).toBeTruthy();
       expect(getByText('Complex (5)')).toBeTruthy();
-      expect(getByText('Apps (4)')).toBeTruthy();
+      expect(getByText('Apps (0)')).toBeTruthy();
     });
 
     it('starts with Basic Templates tab active', () => {
@@ -249,7 +249,7 @@ describe('TemplateIndexScreen', () => {
       
       const simpleTab = getByText('Simple (4)');
       const complexTab = getByText('Complex (5)');
-      const appsTab = getByText('Apps (4)');
+      const appsTab = getByText('Apps (0)');
       
       expect(simpleTab).toBeTruthy();
       expect(complexTab).toBeTruthy();

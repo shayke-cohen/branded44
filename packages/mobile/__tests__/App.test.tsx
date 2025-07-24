@@ -6,7 +6,7 @@ import React from 'react';
 import {render, fireEvent, waitFor} from '../src/test/test-utils';
 import App from '../src/App';
 
-// Mock navigation methods
+// Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
   setItem: jest.fn(() => Promise.resolve()),
@@ -18,10 +18,16 @@ describe('App Integration Tests', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    // Clean up any async operations
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
   describe('Initial Rendering', () => {
     it('renders without crashing', () => {
       const {getByText} = render(<App />);
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
     });
 
     it('displays bottom navigation with home and settings tabs', () => {
@@ -47,7 +53,7 @@ describe('App Integration Tests', () => {
       const {getByText} = render(<App />);
       
       // Theme should be applied to all components
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
     });
 
     it('displays themed navigation correctly', () => {
@@ -90,7 +96,7 @@ describe('App Integration Tests', () => {
       fireEvent.press(homeTab);
       
       await waitFor(() => {
-        expect(getByText('Home')).toBeTruthy();
+        expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       });
     });
 
@@ -105,7 +111,7 @@ describe('App Integration Tests', () => {
       fireEvent.press(homeTab);
       
       await waitFor(() => {
-        expect(getByText('Welcome to Your App')).toBeTruthy();
+        expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       });
     });
   });
@@ -114,8 +120,8 @@ describe('App Integration Tests', () => {
     it('displays home screen content correctly', () => {
       const {getByText} = render(<App />);
       
-      expect(getByText('Welcome to Your App')).toBeTruthy();
-      expect(getByText('This is your home screen. Start building your app from here!')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
+      expect(getByText('Your AI-Powered App Creation Studio')).toBeTruthy();
     });
 
     it('displays settings screen when navigated', async () => {
@@ -137,7 +143,7 @@ describe('App Integration Tests', () => {
       const {getByText} = render(<App />);
       
       // Main content should be present
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       
       // Navigation should be present
       expect(getByText('Home')).toBeTruthy();
@@ -148,7 +154,7 @@ describe('App Integration Tests', () => {
       const {getByText, getByTestId} = render(<App />);
       
       // Both content and navigation should be accessible
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       expect(getByTestId('tab-home-tab')).toBeTruthy();
       expect(getByTestId('tab-settings-tab')).toBeTruthy();
     });
@@ -161,7 +167,7 @@ describe('App Integration Tests', () => {
       // App should render without errors
       expect(getByText('Home')).toBeTruthy();
       expect(getByText('Settings')).toBeTruthy();
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
     });
 
     it('maintains functionality after multiple rapid navigation changes', async () => {
@@ -177,7 +183,7 @@ describe('App Integration Tests', () => {
       fireEvent.press(homeTab);
       
       await waitFor(() => {
-        expect(getByText('Welcome to Your App')).toBeTruthy();
+        expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       });
     });
 
@@ -196,7 +202,7 @@ describe('App Integration Tests', () => {
     it('provides theme context to all child components', () => {
       const {getByText} = render(<App />);
       
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       expect(getByText('Home')).toBeTruthy();
       expect(getByText('Settings')).toBeTruthy();
     });
@@ -205,7 +211,7 @@ describe('App Integration Tests', () => {
       const {getByText} = render(<App />);
       
       // Cart context should be available (even if not directly tested)
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
     });
   });
 

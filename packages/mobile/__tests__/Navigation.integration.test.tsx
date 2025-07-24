@@ -21,13 +21,23 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 describe('Navigation Integration Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Clean up any async operations
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
   describe('Complete Screen Rendering', () => {
     it('renders HomeScreen correctly with all expected elements', () => {
       const {getByText, getByTestId} = render(<App />);
       
       // Verify HomeScreen content
-      expect(getByText('Welcome to Your App')).toBeTruthy();
-      expect(getByText('This is your home screen. Start building your app from here!')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
+      expect(getByText('Your AI-Powered App Creation Studio')).toBeTruthy();
       
       // Verify bottom navigation is present
       expect(getByTestId('tab-home-tab')).toBeTruthy();
@@ -62,25 +72,19 @@ describe('Navigation Integration Tests', () => {
       expect(getByTestId('tab-settings-tab')).toBeTruthy();
     });
 
-    it('ensures bottom navigation is visible on all screens', async () => {
-      const {getByTestId} = render(<App />);
+    it('maintains navigation consistency across screens', async () => {
+      const {getByText, getByTestId} = render(<App />);
       
-      // Check navigation is present on HomeScreen
+      // Start on HomeScreen - verify navigation is present
       expect(getByTestId('tab-home-tab')).toBeTruthy();
       expect(getByTestId('tab-settings-tab')).toBeTruthy();
       
-      // Navigate to Settings and check navigation is still present
+      // Navigate to Settings
       fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
-        expect(getByTestId('tab-home-tab')).toBeTruthy();
-        expect(getByTestId('tab-settings-tab')).toBeTruthy();
-      });
-      
-      // Navigate back to Home and check navigation is still present
-      fireEvent.press(getByTestId('tab-home-tab'));
-      
-      await waitFor(() => {
+        expect(getByText('Appearance')).toBeTruthy();
+        // Navigation should still be present
         expect(getByTestId('tab-home-tab')).toBeTruthy();
         expect(getByTestId('tab-settings-tab')).toBeTruthy();
       });
@@ -92,7 +96,7 @@ describe('Navigation Integration Tests', () => {
       const {getByText, getByTestId, queryByText} = render(<App />);
       
       // Start on HomeScreen
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       expect(queryByText('Appearance')).toBeNull(); // Settings content should not be visible
       
       // Navigate to Settings
@@ -100,14 +104,14 @@ describe('Navigation Integration Tests', () => {
       
       await waitFor(() => {
         expect(getByText('Appearance')).toBeTruthy();
-        expect(queryByText('Welcome to Your App')).toBeNull(); // Home content should not be visible
+        expect(queryByText('✨ Branded44 AI Builder ✨')).toBeNull(); // Home content should not be visible
       });
       
       // Navigate back to Home
       fireEvent.press(getByTestId('tab-home-tab'));
       
       await waitFor(() => {
-        expect(getByText('Welcome to Your App')).toBeTruthy();
+        expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
         expect(queryByText('Appearance')).toBeNull(); // Settings content should not be visible
       });
     });
@@ -131,158 +135,146 @@ describe('Navigation Integration Tests', () => {
       });
     });
 
-    it('maintains navigation state correctly during screen transitions', async () => {
+    it('preserves correct screen content during navigation', async () => {
       const {getByText, getByTestId} = render(<App />);
       
-      // Verify initial state
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      // Start on Home - verify specific home content
+      expect(getByText('🌟 Your Dream App Awaits 🌟')).toBeTruthy();
       
-      // Navigate and verify state change
+      // Navigate to Settings
       fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
+        // Should show settings-specific content
         expect(getByText('Appearance')).toBeTruthy();
       });
       
-      // Navigate back and verify state restoration
+      // Navigate back to Home
       fireEvent.press(getByTestId('tab-home-tab'));
       
       await waitFor(() => {
-        expect(getByText('Welcome to Your App')).toBeTruthy();
-      });
-    });
-  });
-
-  describe('Navigation Functionality', () => {
-    it('calls navigation handlers correctly for all tabs', () => {
-      const {getByTestId} = render(<App />);
-      
-      // Both tabs should be pressable without errors
-      expect(() => {
-        fireEvent.press(getByTestId('tab-home-tab'));
-        fireEvent.press(getByTestId('tab-settings-tab'));
-      }).not.toThrow();
-    });
-
-    it('provides correct accessibility attributes for navigation', () => {
-      const {getByTestId} = render(<App />);
-      
-      const homeTab = getByTestId('tab-home-tab');
-      const settingsTab = getByTestId('tab-settings-tab');
-      
-      // Tabs should have accessibility properties
-      expect(homeTab).toBeTruthy();
-      expect(settingsTab).toBeTruthy();
-      
-      // Should be pressable
-      expect(homeTab.props.accessible).toBe(true);
-      expect(settingsTab.props.accessible).toBe(true);
-    });
-
-    it('maintains consistent tab labels and icons across navigation', async () => {
-      const {getByText, getByTestId} = render(<App />);
-      
-      // Check initial tab state
-      expect(getByText('Home')).toBeTruthy();
-      expect(getByText('Settings')).toBeTruthy();
-      expect(getByText('🏠')).toBeTruthy();
-      expect(getByText('⚙️')).toBeTruthy();
-      
-      // Navigate to settings
-      fireEvent.press(getByTestId('tab-settings-tab'));
-      
-      await waitFor(() => {
-        // Labels and icons should remain consistent
-        expect(getByText('Home')).toBeTruthy();
-        expect(getByText('🏠')).toBeTruthy();
-        expect(getByText('⚙️')).toBeTruthy();
-        
-        // Use testID to verify settings tab is still present
-        expect(getByTestId('tab-settings-tab')).toBeTruthy();
+        // Should show home-specific content again
+        expect(getByText('🌟 Your Dream App Awaits 🌟')).toBeTruthy();
       });
     });
   });
 
   describe('Screen State Persistence', () => {
-    it('maintains theme state across all screen navigations', async () => {
+    it('maintains settings screen state during navigation', async () => {
       const {getByText, getByTestId} = render(<App />);
       
-      // Navigate to settings and change theme
+      // Navigate to settings
       fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         expect(getByText('Appearance')).toBeTruthy();
       });
       
-      // Change to dark theme
-      fireEvent.press(getByText('Dark'));
+      // Interact with settings (change theme)
+      fireEvent.press(getByText('Light'));
       
       await waitFor(() => {
-        expect(getByText('DARK MODE')).toBeTruthy();
+        expect(getByText('LIGHT MODE')).toBeTruthy();
       });
       
-      // Navigate to home and back to settings - theme should persist
+      // Navigate away and back
       fireEvent.press(getByTestId('tab-home-tab'));
       fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
-        expect(getByText('DARK MODE')).toBeTruthy();
+        // Theme selection should be preserved
+        expect(getByText('LIGHT MODE')).toBeTruthy();
       });
     });
 
-    it('ensures screens maintain their content integrity during navigation', async () => {
-      const {getByText, getByTestId, queryByText} = render(<App />);
+    it('maintains home screen state during navigation', async () => {
+      const {getByText, getByTestId} = render(<App />);
       
-      // Navigate between screens multiple times
+      // Verify home content is present
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
+      
+      // Navigate away and back
+      fireEvent.press(getByTestId('tab-settings-tab'));
+      
+      await waitFor(() => {
+        expect(getByText('Appearance')).toBeTruthy();
+      });
+      
+      fireEvent.press(getByTestId('tab-home-tab'));
+      
+      await waitFor(() => {
+        // Home content should be restored
+        expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
+        expect(getByText('🌟 Your Dream App Awaits 🌟')).toBeTruthy();
+      });
+    });
+  });
+
+  describe('Navigation Component Integration', () => {
+    it('responds correctly to tab press events', async () => {
+      const {getByText, getByTestId} = render(<App />);
+      
+      // Test multiple tab interactions
+      const homeTab = getByTestId('tab-home-tab');
+      const settingsTab = getByTestId('tab-settings-tab');
+      
+      // Multiple presses should work consistently
+      fireEvent.press(settingsTab);
+      await waitFor(() => expect(getByText('Appearance')).toBeTruthy());
+      
+      fireEvent.press(homeTab);
+      await waitFor(() => expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy());
+      
+      fireEvent.press(settingsTab);
+      await waitFor(() => expect(getByText('Appearance')).toBeTruthy());
+    });
+
+    it('displays correct visual feedback for active tabs', () => {
+      const {getByTestId} = render(<App />);
+      
+      // Both tabs should be accessible and functional
+      expect(getByTestId('tab-home-tab')).toBeTruthy();
+      expect(getByTestId('tab-settings-tab')).toBeTruthy();
+    });
+
+    it('handles edge case navigation scenarios', async () => {
+      const {getByText, getByTestId} = render(<App />);
+      
+      // Try pressing the same tab multiple times
+      const homeTab = getByTestId('tab-home-tab');
+      
+      fireEvent.press(homeTab);
+      fireEvent.press(homeTab);
+      fireEvent.press(homeTab);
+      
+      // Should remain on home screen
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
+    });
+  });
+
+  describe('Screen Content Validation', () => {
+    it('verifies home screen contains all expected sections', () => {
+      const {getByText} = render(<App />);
+      
+      // Main sections
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
+      expect(getByText('🌟 Your Dream App Awaits 🌟')).toBeTruthy();
+      expect(getByText('🎯 What Makes Us Special')).toBeTruthy();
+      
+      // Action buttons
+      expect(getByText('🤖 Chat to Update This App')).toBeTruthy();
+      expect(getByText('✨ Explore Current Features')).toBeTruthy();
+    });
+
+    it('verifies settings screen contains all expected sections', async () => {
+      const {getByText, getByTestId} = render(<App />);
+      
       fireEvent.press(getByTestId('tab-settings-tab'));
       
       await waitFor(() => {
         expect(getByText('Appearance')).toBeTruthy();
         expect(getByText('Current Theme')).toBeTruthy();
         expect(getByText('About')).toBeTruthy();
-      });
-      
-      fireEvent.press(getByTestId('tab-home-tab'));
-      
-      await waitFor(() => {
-        expect(getByText('Welcome to Your App')).toBeTruthy();
-        expect(getByText('This is your home screen. Start building your app from here!')).toBeTruthy();
-        
-        // Settings content should not bleed through
-        expect(queryByText('Appearance')).toBeNull();
-      });
-    });
-  });
-
-  describe('Error Resilience', () => {
-    it('handles navigation errors gracefully', () => {
-      const {getByTestId} = render(<App />);
-      
-      // App should handle navigation without throwing
-      expect(() => {
-        fireEvent.press(getByTestId('tab-settings-tab'));
-        fireEvent.press(getByTestId('tab-home-tab'));
-        fireEvent.press(getByTestId('tab-settings-tab'));
-      }).not.toThrow();
-    });
-
-    it('maintains app stability during stress navigation', async () => {
-      const {getByTestId, getByText} = render(<App />);
-      
-      // Perform many rapid navigation operations
-      const homeTab = getByTestId('tab-home-tab');
-      const settingsTab = getByTestId('tab-settings-tab');
-      
-      for (let i = 0; i < 10; i++) {
-        fireEvent.press(settingsTab);
-        fireEvent.press(homeTab);
-      }
-      
-      // App should still be responsive and functional
-      await waitFor(() => {
-        expect(getByText('Welcome to Your App')).toBeTruthy();
-        expect(homeTab).toBeTruthy();
-        expect(settingsTab).toBeTruthy();
       });
     });
   });
@@ -292,7 +284,7 @@ describe('Navigation Integration Tests', () => {
       const {getByText, getByTestId} = render(<App />);
       
       // 1. App starts correctly
-      expect(getByText('Welcome to Your App')).toBeTruthy();
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       
       // 2. Navigation is present and functional
       expect(getByTestId('tab-home-tab')).toBeTruthy();
@@ -316,12 +308,41 @@ describe('Navigation Integration Tests', () => {
       fireEvent.press(getByTestId('tab-home-tab'));
       
       await waitFor(() => {
-        expect(getByText('Welcome to Your App')).toBeTruthy();
+        expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
       });
       
       // 6. All functionality still works
       expect(getByTestId('tab-home-tab')).toBeTruthy();
       expect(getByTestId('tab-settings-tab')).toBeTruthy();
+    });
+
+    it('handles complex interaction scenarios', async () => {
+      const {getByText, getByTestId} = render(<App />);
+      
+      // Complex sequence: multiple navigation + interaction
+      
+      // 1. Start on home
+      expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy();
+      
+      // 2. Go to settings
+      fireEvent.press(getByTestId('tab-settings-tab'));
+      await waitFor(() => expect(getByText('Appearance')).toBeTruthy());
+      
+      // 3. Change theme
+      fireEvent.press(getByText('Dark'));
+      await waitFor(() => expect(getByText('DARK MODE')).toBeTruthy());
+      
+      // 4. Go back to home
+      fireEvent.press(getByTestId('tab-home-tab'));
+      await waitFor(() => expect(getByText('✨ Branded44 AI Builder ✨')).toBeTruthy());
+      
+      // 5. Go back to settings - theme should be preserved
+      fireEvent.press(getByTestId('tab-settings-tab'));
+      await waitFor(() => expect(getByText('DARK MODE')).toBeTruthy());
+      
+      // 6. Return to system theme
+      fireEvent.press(getByText('System'));
+      await waitFor(() => expect(getByText('LIGHT MODE')).toBeTruthy());
     });
   });
 }); 

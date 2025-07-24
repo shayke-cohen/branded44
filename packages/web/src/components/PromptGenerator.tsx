@@ -22,7 +22,7 @@ const PromptGenerator: React.FC = () => {
   const [model, setModel] = useState('');
   const [permissionMode, setPermissionMode] = useState('default');
   const [verbose, setVerbose] = useState(false);
-  const [maxTurns, setMaxTurns] = useState(20);
+  const [maxTurns, setMaxTurns] = useState(100);
   const [workingDirectory, setWorkingDirectory] = useState('/Users/shayco/branded44/packages/mobile');
 
   // Additional security/proxy options 
@@ -378,8 +378,8 @@ const PromptGenerator: React.FC = () => {
       }
     } catch (error) {
       console.error('Test execution error:', error);
-      alert(`❌ Test execution failed: ${error}`);
-      setTestResult({ success: false, error: error.toString() });
+      alert(`❌ Test execution failed: ${error instanceof Error ? error.message : String(error)}`);
+      setTestResult({ success: false, error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsTestExecuting(false);
     }
@@ -688,7 +688,7 @@ const PromptGenerator: React.FC = () => {
                 <input
                   type="number"
                   value={maxTurns}
-                  onChange={(e) => setMaxTurns(parseInt(e.target.value) || 20)}
+                  onChange={(e) => setMaxTurns(parseInt(e.target.value) || 100)}
                   min="1"
                   max="100"
                   style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}

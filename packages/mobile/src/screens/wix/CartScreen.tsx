@@ -8,14 +8,24 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
-  Linking,
+  Modal,
   SafeAreaView,
   Animated,
+  Platform,
 } from 'react-native';
+
+// Web window type declaration
+declare global {
+  interface Window {
+    open(url: string, target: string): Window | null;
+  }
+}
 import { Alert } from '../../utils/alert';
 import { useTheme } from '../../context/ThemeContext';
 import { useWixCart } from '../../context/WixCartContext';
 import { wixApiClient, formatPrice, safeString } from '../../utils/wixApiClient';
+
+import { CheckoutWebView } from '../../components';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +49,8 @@ const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
   } = useWixCart();
 
   const [checkingOut, setCheckingOut] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string>('');
   const bounceAnim = new Animated.Value(1);
   const shimmerAnim = new Animated.Value(0);
 
@@ -112,7 +124,7 @@ const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
       await updateQuantity(lineItemId, newQuantity);
       console.log('🛒 [CART SCREEN] updateQuantity completed');
     } catch (error) {
-      console.error('🛒 [CART SCREEN] Error updating quantity:', error);
+      console.error('🛒 [CART SCREEN] Error updating quantity:', error instanceof Error ? error.message : String(error));
       Alert.alert('🚨 Oops!', 'Failed to update quantity. Please try again! 🔄');
     }
   }, [updateQuantity, bounceAnim, cart]);
@@ -131,6 +143,7 @@ const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
               console.log('🛒 [DEBUG] Removing item:', lineItemId);
               await removeFromCart([lineItemId]);
             } catch (error) {
+              console.error('🛒 [CART SCREEN] Error removing item:', error instanceof Error ? error.message : String(error));
               Alert.alert('🚨 Oops!', 'Failed to remove item. Please try again! 🔄');
             }
           },
@@ -168,19 +181,15 @@ const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
         });
       }
 
-      const { checkoutUrl } = await wixApiClient.createCheckout(cart.id);
+      const { checkoutUrl: url } = await wixApiClient.createCheckout(cart.id);
       
-      console.log('✅ [DEBUG] Checkout URL created:', checkoutUrl);
+      console.log('✅ [DEBUG] Checkout URL created:', url);
 
-      // Open checkout in browser
-      const supported = await Linking.canOpenURL(checkoutUrl);
-      if (supported) {
-        await Linking.openURL(checkoutUrl);
-      } else {
-        Alert.alert('🚨 Error', '💻 Unable to open checkout. Please try again!');
-      }
+      // Open checkout in WebView modal
+      setCheckoutUrl(url);
+      setShowCheckoutModal(true);
     } catch (error) {
-      console.error('❌ [ERROR] Checkout failed:', error);
+      console.error('❌ [ERROR] Checkout failed:', error instanceof Error ? error.message : String(error));
       
       // Check if this is the demo product checkout error
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -301,7 +310,10 @@ const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
   });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <SafeAreaView style={[
+      { flex: 1, backgroundColor: theme.colors.background },
+      Platform.OS === 'web' && { position: 'relative' }
+    ]}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Header */}
         <View style={styles.header}>
@@ -387,12 +399,189 @@ const CartScreen: React.FC<CartScreenProps> = ({ onBack }) => {
               </TouchableOpacity>
 
               <Text style={[styles.checkoutNote, { color: theme.colors.textSecondary }]}>
-                You'll be redirected to complete your purchase
+                {Platform.OS === 'web' ? 'Secure web checkout interface' : 'Secure checkout within the app'}
               </Text>
             </View>
           </>
         )}
       </View>
+
+      {/* Checkout Modal - Platform Aware */}
+      {Platform.OS === 'web' ? (
+        // Web: Use iframe-based checkout interface positioned within the mobile frame
+        showCheckoutModal && checkoutUrl && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+                        {/* Web Checkout Header - Compact for Mobile Frame */}
+            <div style={{
+              backgroundColor: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 15px',
+              borderBottom: '1px solid #e1e5e9',
+              minHeight: '50px',
+            }}>
+              <h3 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#1a1a1a',
+                margin: 0,
+              }}>
+                🛒 Checkout
+              </h3>
+              
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #dee2e6',
+                    backgroundColor: '#f8f9fa',
+                    color: '#495057',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    if (Platform.OS === 'web' && typeof globalThis !== 'undefined' && (globalThis as any).window) {
+                      (globalThis as any).window.open(checkoutUrl, '_blank');
+                    }
+                    setShowCheckoutModal(false);
+                    setCheckoutUrl('');
+                  }}
+                >
+                  🔗 New Tab
+                </button>
+                
+                <button
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #dc3545',
+                    backgroundColor: '#dc3545',
+                    color: '#fff',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    setShowCheckoutModal(false);
+                    setCheckoutUrl('');
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            {/* Web Checkout Content */}
+            <div style={{ flex: 1, backgroundColor: '#fff' }}>
+              <iframe
+                src={checkoutUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }}
+                title="Secure Checkout"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
+                allow="payment; encrypted-media"
+              />
+            </div>
+          </div>
+        )
+      ) : (
+        // React Native: Use WebView Modal
+        <Modal
+          visible={showCheckoutModal}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setShowCheckoutModal(false)}
+        >
+          {checkoutUrl && CheckoutWebView ? (
+            <CheckoutWebView
+              checkoutUrl={checkoutUrl}
+              onClose={() => {
+                setShowCheckoutModal(false);
+                setCheckoutUrl('');
+              }}
+              onSuccess={() => {
+                // Refresh cart after successful checkout
+                refreshCart();
+                setShowCheckoutModal(false);
+                setCheckoutUrl('');
+                Alert.alert(
+                  '🎉 Success!', 
+                  'Your order has been placed! Check your email for confirmation.',
+                  [{ text: 'Continue Shopping', onPress: () => {} }]
+                );
+              }}
+              onError={(error: string) => {
+                console.error('❌ [CHECKOUT MODAL] Error:', error);
+                setShowCheckoutModal(false);
+                setCheckoutUrl('');
+                Alert.alert(
+                  '⚠️ Checkout Error',
+                  'There was an issue with the checkout process. Please try again.',
+                  [{ text: 'OK', onPress: () => {} }]
+                );
+              }}
+            />
+          ) : checkoutUrl && !CheckoutWebView ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, marginBottom: 20 }}>
+                WebView not available
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#007bff',
+                  padding: 15,
+                  borderRadius: 8,
+                  marginBottom: 10,
+                }}
+                onPress={() => {
+                  // For React Native, we could use Linking to open external browser
+                  if (Platform.OS !== 'web' && typeof require !== 'undefined') {
+                    const Linking = require('react-native').Linking;
+                    Linking.openURL(checkoutUrl);
+                  }
+                  setShowCheckoutModal(false);
+                  setCheckoutUrl('');
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 16 }}>
+                  Open in Browser
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#6c757d',
+                  padding: 15,
+                  borderRadius: 8,
+                }}
+                onPress={() => {
+                  setShowCheckoutModal(false);
+                  setCheckoutUrl('');
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 16 }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </Modal>
+      )}
     </SafeAreaView>
   );
 };
