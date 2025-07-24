@@ -8,4 +8,8 @@ console.log('🔗 [DEBUG] About to export from CartContext...');
 export {CartProvider, useCart} from './CartContext';
 console.log('🔗 [DEBUG] CartContext exports successful');
 
+console.log('🔗 [DEBUG] About to export from MemberContext...');
+export {MemberProvider, useMember, withMemberAuth} from './MemberContext';
+console.log('🔗 [DEBUG] MemberContext exports successful');
+
 console.log('✅ [DEBUG] All context exports completed successfully!');

@@ -143,6 +143,48 @@ interface TokenResponse {
   token_type: string;
 }
 
+// Member authentication types
+interface MemberTokens {
+  accessToken: {
+    value: string;
+    expiresAt: number;
+  };
+  refreshToken: {
+    value: string;
+  };
+}
+
+interface MemberProfile {
+  firstName?: string;
+  lastName?: string;
+  nickname?: string;
+  picture?: string;
+  email?: string;
+  phone?: string;
+  birthdate?: string;
+  privacyStatus?: 'PUBLIC' | 'PRIVATE' | 'UNDEFINED';
+}
+
+interface MemberIdentity {
+  id: string;
+  email: {
+    address: string;
+    isVerified: boolean;
+  };
+  identityProfile: MemberProfile;
+  status: {
+    name: string;
+    reasons: string[];
+  };
+}
+
+interface AuthResponse {
+  state: 'SUCCESS' | 'REQUIRE_EMAIL_VERIFICATION' | 'REQUIRE_OWNER_APPROVAL' | 'STATUS_CHECK';
+  sessionToken?: string;
+  stateToken?: string;
+  identity: MemberIdentity;
+}
+
 // CMS Types for data collections
 export interface WixDataItem {
   _id?: string;
@@ -721,6 +763,8 @@ class WixApiClient {
   private clientId = getClientId();
   private authToken: string | null = null;
   private visitorTokens: VisitorTokens | null = null;
+  private memberTokens: MemberTokens | null = null;
+  private currentMember: MemberIdentity | null = null;
 
   constructor() {
     console.log('🔗 [DEBUG] WixApiClient initialized');
@@ -728,7 +772,18 @@ class WixApiClient {
     console.log(`🔗 [DEBUG] Using Site ID: ${this.siteId}`);
     console.log(`🔗 [DEBUG] Using Stores App ID: ${this.storesAppId}`);
     this.loadStoredAuth();
+    this.loadStoredMemberAuth();
     this.initializeVisitorAuthentication();
+    
+    // Run diagnostics in development mode
+    if (__DEV__) {
+      // Run diagnostics after a short delay to allow initialization to complete
+      setTimeout(() => {
+        this.diagnoseAuthenticationIssues().catch(error => {
+          console.warn('⚠️ [DIAGNOSTICS] Authentication diagnostics failed:', error);
+        });
+      }, 1000);
+    }
   }
 
   private async loadStoredAuth() {
@@ -790,20 +845,39 @@ class WixApiClient {
   private async generateVisitorTokens(): Promise<void> {
     try {
       console.log('🌐 [API] POST /oauth2/token (anonymous visitor tokens)');
+      console.log('🔧 [DEBUG] Generating tokens with site ID:', this.siteId);
+      
+      const requestBody = {
+        clientId: this.clientId,
+        grantType: 'anonymous'
+      };
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Include site ID in headers for proper context
+      if (this.siteId) {
+        headers['wix-site-id'] = this.siteId;
+      }
+
+      console.log('🔧 [DEBUG] Request headers:', JSON.stringify(headers, null, 2));
+      console.log('🔧 [DEBUG] Request body:', JSON.stringify(requestBody, null, 2));
       
       const response = await fetch('https://www.wixapis.com/oauth2/token', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clientId: this.clientId,
-          grantType: 'anonymous'
-        }),
+        headers,
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ [AUTH ERROR] Visitor token generation failed:', {
+          status: response.status,
+          error: errorText,
+          siteId: this.siteId,
+          clientId: this.clientId
+        });
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
@@ -818,6 +892,7 @@ class WixApiClient {
       // Store tokens for future use
       await AsyncStorage.setItem('wix_visitor_tokens', JSON.stringify(this.visitorTokens));
       console.log('✅ [AUTH] Visitor tokens generated and stored successfully');
+      console.log('🔧 [DEBUG] Token expiry:', new Date(this.visitorTokens.expiresAt * 1000).toISOString());
     } catch (error) {
       console.error('❌ [AUTH ERROR] Failed to generate visitor tokens:', error);
       throw error;
@@ -865,6 +940,328 @@ class WixApiClient {
       console.error('❌ [AUTH ERROR] Failed to refresh visitor tokens:', error);
       return false;
     }
+  }
+
+  // Member authentication methods
+  
+  // Store member tokens in AsyncStorage
+  private async storeMemberTokens(tokens: MemberTokens): Promise<void> {
+    try {
+      await AsyncStorage.setItem('wix_member_tokens', JSON.stringify(tokens));
+      console.log('✅ [MEMBER AUTH] Member tokens stored successfully');
+    } catch (error) {
+      console.error('❌ [MEMBER AUTH] Failed to store member tokens:', error);
+    }
+  }
+
+  // Get stored member tokens
+  private async getStoredMemberTokens(): Promise<MemberTokens | null> {
+    try {
+      const stored = await AsyncStorage.getItem('wix_member_tokens');
+      if (stored) {
+        const tokens = JSON.parse(stored);
+        console.log('🔗 [MEMBER AUTH] Loaded stored member tokens');
+        return tokens;
+      }
+      return null;
+    } catch (error) {
+      console.error('❌ [MEMBER AUTH] Failed to load stored member tokens:', error);
+      return null;
+    }
+  }
+
+  // Clear member tokens and logout
+  async logoutMember(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem('wix_member_tokens');
+      await AsyncStorage.removeItem('wix_current_member');
+      this.memberTokens = null;
+      this.currentMember = null;
+      console.log('🗑️ [MEMBER AUTH] Member logged out successfully');
+    } catch (error) {
+      console.error('❌ [MEMBER AUTH] Failed to logout member:', error);
+    }
+  }
+
+  // Load stored member data
+  private async loadStoredMemberAuth(): Promise<void> {
+    try {
+      this.memberTokens = await this.getStoredMemberTokens();
+      
+      const storedMember = await AsyncStorage.getItem('wix_current_member');
+      if (storedMember) {
+        this.currentMember = JSON.parse(storedMember);
+        console.log('👤 [MEMBER AUTH] Loaded stored member profile');
+      }
+    } catch (error) {
+      console.error('❌ [MEMBER AUTH] Failed to load stored member auth:', error);
+    }
+  }
+
+  // Check if member token is valid
+  private isMemberTokenValid(tokens: MemberTokens): boolean {
+    const now = Math.floor(Date.now() / 1000);
+    return tokens.accessToken.expiresAt > now;
+  }
+
+  // Convert session token to member tokens (simplified for React Native)
+  private async getMemberTokensFromSession(sessionToken: string): Promise<MemberTokens | null> {
+    try {
+      console.log('🔄 [MEMBER AUTH] Converting session token to member tokens...');
+      
+      // For React Native/mobile apps, the full OAuth flow with redirect sessions 
+      // is complex and may not be necessary for basic member authentication.
+      // We'll try a simplified approach first.
+      
+      // Attempt 1: Direct session token conversion (some Wix APIs support this)
+      console.log('🔧 [MEMBER AUTH] Attempting direct session token conversion...');
+      
+      const directResponse = await fetch('https://www.wixapis.com/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'session_token',
+          session_token: sessionToken,
+          client_id: this.clientId,
+        }),
+      });
+
+      if (directResponse.ok) {
+        const tokenData = await directResponse.json();
+        
+        const memberTokens: MemberTokens = {
+          accessToken: {
+            value: tokenData.access_token,
+            expiresAt: Math.floor(Date.now() / 1000) + tokenData.expires_in,
+          },
+          refreshToken: {
+            value: tokenData.refresh_token,
+          },
+        };
+
+        await this.storeMemberTokens(memberTokens);
+        this.memberTokens = memberTokens;
+        
+        console.log('✅ [MEMBER AUTH] Member tokens generated successfully (direct method)');
+        return memberTokens;
+      }
+
+      // Attempt 2: JWT Bearer grant type
+      console.log('🔧 [MEMBER AUTH] Trying JWT Bearer grant type...');
+      
+      const jwtResponse = await fetch('https://www.wixapis.com/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+          assertion: sessionToken,
+          client_id: this.clientId,
+        }),
+      });
+
+      if (jwtResponse.ok) {
+        const tokenData = await jwtResponse.json();
+        
+        const memberTokens: MemberTokens = {
+          accessToken: {
+            value: tokenData.access_token,
+            expiresAt: Math.floor(Date.now() / 1000) + tokenData.expires_in,
+          },
+          refreshToken: {
+            value: tokenData.refresh_token,
+          },
+        };
+
+        await this.storeMemberTokens(memberTokens);
+        this.memberTokens = memberTokens;
+        
+        console.log('✅ [MEMBER AUTH] Member tokens generated successfully (JWT Bearer method)');
+        return memberTokens;
+      }
+
+      // If both methods fail, log the errors but don't break the flow
+      const directError = await directResponse.text();
+      const jwtError = await jwtResponse.text();
+      
+      console.warn('⚠️ [MEMBER AUTH] Session token conversion failed, but registration was successful');
+      console.warn('🔧 [MEMBER AUTH] Direct method error:', directError);
+      console.warn('🔧 [MEMBER AUTH] JWT Bearer method error:', jwtError);
+      console.log('ℹ️ [MEMBER AUTH] Member registration completed successfully without token conversion');
+      console.log('ℹ️ [MEMBER AUTH] Member can still use the app with visitor-level permissions');
+      
+      return null;
+    } catch (error) {
+      console.error('❌ [MEMBER AUTH] Failed to convert session token:', error);
+      console.warn('⚠️ [MEMBER AUTH] Continuing without member tokens - registration still successful');
+      console.log('ℹ️ [MEMBER AUTH] Member can still use the app with visitor-level permissions');
+      return null;
+    }
+  }
+
+
+
+  // Public member authentication methods
+
+  // Register a new member
+  async registerMember(email: string, password: string, profile?: Partial<MemberProfile>): Promise<AuthResponse | null> {
+    try {
+      console.log('🆕 [MEMBER AUTH] Registering new member...');
+      
+      // Ensure we have valid visitor tokens with site context
+      await this.ensureValidVisitorTokens();
+      
+      if (!this.visitorTokens?.accessToken) {
+        throw new Error('Missing visitor authentication context. Please ensure visitor tokens are initialized.');
+      }
+      
+      const requestBody = {
+        loginId: { email },
+        password,
+        ...(profile && { profile }),
+      };
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'wix-site-id': this.siteId,
+        'Authorization': `Bearer ${this.visitorTokens.accessToken}`,
+      };
+
+      console.log('🌐 [MEMBER AUTH] Making registration request with site ID:', this.siteId);
+
+      const response = await fetch('https://www.wixapis.com/_api/iam/authentication/v2/register', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [MEMBER AUTH] Registration failed:', {
+          status: response.status,
+          error: errorText,
+          siteId: this.siteId,
+          hasVisitorToken: !!this.visitorTokens?.accessToken
+        });
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const authResponse: AuthResponse = await response.json();
+      
+      if (authResponse.state === 'SUCCESS' && authResponse.sessionToken) {
+        // Store member profile first
+        this.currentMember = authResponse.identity;
+        await AsyncStorage.setItem('wix_current_member', JSON.stringify(this.currentMember));
+        
+        // Convert session token to member tokens (this may fail, but that's okay)
+        await this.getMemberTokensFromSession(authResponse.sessionToken);
+        
+        console.log('✅ [MEMBER AUTH] Member registered successfully');
+      }
+
+      return authResponse;
+    } catch (error) {
+      console.error('❌ [MEMBER AUTH] Failed to register member:', error);
+      return null;
+    }
+  }
+
+  // Login an existing member
+  async loginMember(email: string, password: string): Promise<AuthResponse | null> {
+    try {
+      console.log('🔐 [MEMBER AUTH] Logging in member...');
+      
+      // Ensure we have valid visitor tokens with site context
+      await this.ensureValidVisitorTokens();
+      
+      if (!this.visitorTokens?.accessToken) {
+        throw new Error('Missing visitor authentication context. Please ensure visitor tokens are initialized.');
+      }
+      
+      const requestBody = {
+        loginId: { email },
+        password,
+      };
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'wix-site-id': this.siteId,
+        'Authorization': `Bearer ${this.visitorTokens.accessToken}`,
+      };
+
+      console.log('🌐 [MEMBER AUTH] Making login request with site ID:', this.siteId);
+
+      const response = await fetch('https://www.wixapis.com/_api/iam/authentication/v2/login', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [MEMBER AUTH] Login failed:', {
+          status: response.status,
+          error: errorText,
+          siteId: this.siteId,
+          hasVisitorToken: !!this.visitorTokens?.accessToken
+        });
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const authResponse: AuthResponse = await response.json();
+      
+      if (authResponse.state === 'SUCCESS' && authResponse.sessionToken) {
+        // Store member profile first
+        this.currentMember = authResponse.identity;
+        await AsyncStorage.setItem('wix_current_member', JSON.stringify(this.currentMember));
+        
+        // Convert session token to member tokens (this may fail, but that's okay)
+        await this.getMemberTokensFromSession(authResponse.sessionToken);
+        
+        console.log('✅ [MEMBER AUTH] Member logged in successfully');
+      }
+
+      return authResponse;
+    } catch (error) {
+      console.error('❌ [MEMBER AUTH] Failed to login member:', error);
+      return null;
+    }
+  }
+
+  // Get current member info
+  getCurrentMember(): MemberIdentity | null {
+    return this.currentMember;
+  }
+
+  // Check if member is logged in
+  isMemberLoggedIn(): boolean {
+    // For React Native, we consider a member logged in if we have their identity
+    // even if token conversion failed. This is practical for mobile apps where
+    // session tokens work but full OAuth flow might be complex.
+    if (this.currentMember) {
+      // If we have member tokens and they're valid, definitely logged in
+      if (this.memberTokens && this.isMemberTokenValid(this.memberTokens)) {
+        return true;
+      }
+      
+      // If we have member identity but no tokens (common in mobile),
+      // still consider them logged in for practical purposes
+      console.log('ℹ️ [MEMBER AUTH] Member logged in with identity only (no member tokens)');
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Get member authentication header
+  private getMemberAuthHeader(): string | null {
+    if (this.memberTokens && this.isMemberTokenValid(this.memberTokens)) {
+      return `Bearer ${this.memberTokens.accessToken.value}`;
+    }
+    return null;
   }
 
   private async makeRequest<T>(
@@ -1405,6 +1802,8 @@ class WixApiClient {
         CACHE_KEYS.COLLECTIONS,
         CACHE_KEYS.PRODUCTS_TIMESTAMP,
         CACHE_KEYS.COLLECTIONS_TIMESTAMP,
+        'wix_member_tokens',
+        'wix_current_member',
       ]);
       console.log('🗑️ [CACHE] Cache cleared successfully');
     } catch (err) {
@@ -1431,6 +1830,78 @@ class WixApiClient {
   // Legacy method - kept for backward compatibility
   getStoresAppId(): string {
     return this.storesAppId;
+  }
+
+  // Force refresh visitor authentication (useful for debugging auth issues)
+  async refreshVisitorAuthentication(): Promise<void> {
+    try {
+      console.log('🔄 [AUTH] Force refreshing visitor authentication...');
+      
+      // Clear existing tokens
+      this.visitorTokens = null;
+      await AsyncStorage.removeItem('wix_visitor_tokens');
+      
+      // Generate new tokens
+      await this.generateVisitorTokens();
+      
+      console.log('✅ [AUTH] Visitor authentication refreshed successfully');
+    } catch (error) {
+      console.error('❌ [AUTH ERROR] Failed to refresh visitor authentication:', error);
+      throw error;
+    }
+  }
+
+  // Diagnose authentication issues
+  async diagnoseAuthenticationIssues(): Promise<void> {
+    console.log('🔍 [DIAGNOSTICS] Running authentication diagnostics...');
+    
+    // Check site ID
+    if (!this.siteId || this.siteId === 'YOUR_SITE_ID_HERE') {
+      console.error('❌ [DIAGNOSTICS] Invalid site ID:', this.siteId);
+      console.error('💡 [FIX] Update WIX_SITE_ID in wixConfig.ts with your actual site ID');
+      return;
+    }
+    
+    // Check client ID
+    if (!this.clientId) {
+      console.error('❌ [DIAGNOSTICS] Missing client ID');
+      console.error('💡 [FIX] Update WIX_CLIENT_ID in wixConfig.ts');
+      return;
+    }
+    
+    // Check visitor tokens
+    if (!this.visitorTokens) {
+      console.warn('⚠️ [DIAGNOSTICS] No visitor tokens found');
+      console.log('🔄 [DIAGNOSTICS] Attempting to generate visitor tokens...');
+      try {
+        await this.generateVisitorTokens();
+        console.log('✅ [DIAGNOSTICS] Visitor tokens generated successfully');
+      } catch (error) {
+        console.error('❌ [DIAGNOSTICS] Failed to generate visitor tokens:', error);
+        return;
+      }
+    }
+    
+    // Check token validity
+    if (this.visitorTokens && !this.isTokenValid(this.visitorTokens)) {
+      console.warn('⚠️ [DIAGNOSTICS] Visitor tokens are expired');
+      console.log('🔄 [DIAGNOSTICS] Attempting to refresh visitor tokens...');
+      try {
+        await this.refreshVisitorTokens();
+        console.log('✅ [DIAGNOSTICS] Visitor tokens refreshed successfully');
+      } catch (error) {
+        console.error('❌ [DIAGNOSTICS] Failed to refresh visitor tokens:', error);
+        return;
+      }
+    }
+    
+    console.log('✅ [DIAGNOSTICS] Authentication diagnostics completed successfully');
+    console.log('🔧 [DIAGNOSTICS] Current state:', {
+      siteId: this.siteId,
+      clientId: this.clientId,
+      hasVisitorTokens: !!this.visitorTokens,
+      tokenExpiry: this.visitorTokens ? new Date(this.visitorTokens.expiresAt * 1000).toISOString() : 'N/A'
+    });
   }
 }
 
@@ -1466,5 +1937,24 @@ export const safeString = (value: any): string => {
   return String(value);
 };
 
+// Export debugging helpers
+export const debugWixAuth = async (): Promise<void> => {
+  console.log('🔧 [DEBUG] Running Wix authentication diagnostics...');
+  await wixApiClient.diagnoseAuthenticationIssues();
+};
+
+export const refreshWixAuth = async (): Promise<void> => {
+  console.log('🔄 [DEBUG] Force refreshing Wix authentication...');
+  await wixApiClient.refreshVisitorAuthentication();
+};
+
 console.log('🛍️ [DEBUG] Wix API Client module loaded with configuration from wixConfig');
 console.log('🗄️ [DEBUG] Wix CMS Client ready for data collection operations'); 
+console.log('🔧 [DEBUG] Debug helpers available: debugWixAuth(), refreshWixAuth()');
+
+// For debugging in development console
+if (__DEV__ && typeof global !== 'undefined') {
+  (global as any).debugWixAuth = debugWixAuth;
+  (global as any).refreshWixAuth = refreshWixAuth;
+  console.log('🔧 [DEBUG] Global debug functions registered: global.debugWixAuth(), global.refreshWixAuth()');
+}

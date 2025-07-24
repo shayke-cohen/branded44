@@ -4,6 +4,7 @@ import MobilePreview from './components/MobilePreview';
 import PreviewNavigation from './components/PreviewNavigation';
 import PromptGenerator from './components/PromptGenerator';
 import {PreviewProvider} from './context/PreviewContext';
+import {MemberProvider} from './context/WebMemberContext';
 
 // Initialize self-registering screens for web preview
 import './utils/initializeScreens';
@@ -13,7 +14,8 @@ const App: React.FC = () => {
 
   return (
     <PreviewProvider>
-      <View style={styles.container}>
+      <MemberProvider>
+        <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Branded44 Mobile Development</Text>
           <Text style={styles.subtitle}>
@@ -54,6 +56,7 @@ const App: React.FC = () => {
           )}
         </View>
       </View>
+      </MemberProvider>
     </PreviewProvider>
   );
 };

@@ -11,6 +11,7 @@ import {
   Dimensions,
   Linking,
   SafeAreaView,
+  Animated,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useWixCart } from '../../context/WixCartContext';
@@ -31,38 +32,74 @@ const CartScreen: React.FC = () => {
   } = useWixCart();
 
   const [checkingOut, setCheckingOut] = useState(false);
+  const bounceAnim = new Animated.Value(1);
+  const shimmerAnim = new Animated.Value(0);
 
   console.log('🛒 [CART] CartScreen rendered - Items:', getItemCount(), 'Total:', getTotal());
 
-  // Refresh cart on mount
+  // Refresh cart on mount and start shimmer animation
   useEffect(() => {
     refreshCart();
+    
+    // Start shimmer animation for loading states
+    const shimmer = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmer.start();
+    
+    return () => shimmer.stop();
   }, [refreshCart]);
 
   const handleQuantityChange = useCallback(async (lineItemId: string, newQuantity: number) => {
     try {
       console.log('🛒 [DEBUG] Changing quantity:', { lineItemId, newQuantity });
+      
+      // Add bounce animation for quantity changes
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: 0.8,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      
       await updateQuantity(lineItemId, newQuantity);
     } catch (error) {
-      Alert.alert('Error', 'Failed to update quantity. Please try again.');
+      Alert.alert('🚨 Oops!', 'Failed to update quantity. Please try again! 🔄');
     }
-  }, [updateQuantity]);
+  }, [updateQuantity, bounceAnim]);
 
   const handleRemoveItem = useCallback(async (lineItemId: string) => {
     Alert.alert(
-      'Remove Item',
-      'Are you sure you want to remove this item from your cart?',
+      '🗑️ Remove Item',
+      '💔 Are you sure you want to remove this item from your cart?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: '❌ Cancel', style: 'cancel' },
         {
-          text: 'Remove',
+          text: '🗑️ Remove',
           style: 'destructive',
           onPress: async () => {
             try {
               console.log('🛒 [DEBUG] Removing item:', lineItemId);
               await removeFromCart([lineItemId]);
             } catch (error) {
-              Alert.alert('Error', 'Failed to remove item. Please try again.');
+              Alert.alert('🚨 Oops!', 'Failed to remove item. Please try again! 🔄');
             }
           },
         },
@@ -72,7 +109,7 @@ const CartScreen: React.FC = () => {
 
   const handleCheckout = useCallback(async () => {
     if (!cart || cart.lineItems.length === 0) {
-      Alert.alert('Empty Cart', 'Please add items to your cart before checking out.');
+      Alert.alert('🛒 Empty Cart', '🛍️ Please add items to your cart before checking out!');
       return;
     }
 
@@ -89,14 +126,14 @@ const CartScreen: React.FC = () => {
       if (supported) {
         await Linking.openURL(checkoutUrl);
       } else {
-        Alert.alert('Error', 'Unable to open checkout. Please try again.');
+        Alert.alert('🚨 Error', '💻 Unable to open checkout. Please try again!');
       }
     } catch (error) {
       console.error('❌ [ERROR] Checkout failed:', error);
       Alert.alert(
-        'Checkout Error',
-        'Failed to start checkout process. Please try again.',
-        [{ text: 'OK' }]
+        '🚨 Checkout Error',
+        '💳 Failed to start checkout process. Please try again! 🔄',
+        [{ text: '👍 OK' }]
       );
     } finally {
       setCheckingOut(false);
@@ -111,35 +148,46 @@ const CartScreen: React.FC = () => {
     });
 
     return (
-      <View key={item.id} style={[styles.cartItem, { backgroundColor: theme.colors.surface }]}>
+      <Animated.View 
+        key={item.id} 
+        style={[
+          styles.cartItem, 
+          { 
+            backgroundColor: theme.colors.surface,
+            transform: [{ scale: bounceAnim }]
+          }
+        ]}
+      >
         <View style={styles.itemInfo}>
           <Text style={[styles.itemName, { color: theme.colors.text }]} numberOfLines={2}>
-            {productName}
+            🛍️ {productName}
           </Text>
-          <Text style={[styles.itemPrice, { color: theme.colors.primary }]}>
-            {price} each
+          <Text style={[styles.itemPrice, { color: '#FF6B6B' }]}>
+            💰 {price} each
           </Text>
         </View>
 
         <View style={styles.quantityControls}>
           <TouchableOpacity
-            style={[styles.quantityButton, { backgroundColor: theme.colors.border }]}
+            style={[styles.quantityButton, styles.decreaseButton]}
             onPress={() => handleQuantityChange(item.id, item.quantity - 1)}
             disabled={loading}
           >
-            <Text style={[styles.quantityButtonText, { color: theme.colors.text }]}>-</Text>
+            <Text style={styles.quantityButtonText}>➖</Text>
           </TouchableOpacity>
 
-          <Text style={[styles.quantityText, { color: theme.colors.text }]}>
-            {item.quantity}
-          </Text>
+          <View style={styles.quantityDisplay}>
+            <Text style={[styles.quantityText, { color: theme.colors.text }]}>
+              {item.quantity}
+            </Text>
+          </View>
 
           <TouchableOpacity
-            style={[styles.quantityButton, { backgroundColor: theme.colors.border }]}
+            style={[styles.quantityButton, styles.increaseButton]}
             onPress={() => handleQuantityChange(item.id, item.quantity + 1)}
             disabled={loading}
           >
-            <Text style={[styles.quantityButtonText, { color: theme.colors.text }]}>+</Text>
+            <Text style={styles.quantityButtonText}>➕</Text>
           </TouchableOpacity>
         </View>
 
@@ -148,11 +196,11 @@ const CartScreen: React.FC = () => {
           onPress={() => handleRemoveItem(item.id)}
           disabled={loading}
         >
-          <Text style={[styles.removeButtonText, { color: theme.colors.error }]}>Remove</Text>
+          <Text style={styles.removeButtonText}>🗑️</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     );
-  }, [theme, loading, handleQuantityChange, handleRemoveItem]);
+  }, [theme, loading, handleQuantityChange, handleRemoveItem, bounceAnim]);
 
   if (loading && !cart) {
     return (

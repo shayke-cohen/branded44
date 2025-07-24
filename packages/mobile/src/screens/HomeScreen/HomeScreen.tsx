@@ -1,165 +1,393 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  Animated, 
+  Dimensions,
+  SafeAreaView
+} from 'react-native';
 import {useTheme} from '../../context';
+
+const {width} = Dimensions.get('window');
 
 const HomeScreen = () => {
   const {theme} = useTheme();
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [stopperActive, setStopperActive] = useState(false);
+  const [animatedValue] = useState(new Animated.Value(0));
+  const [sparkleAnimation] = useState(new Animated.Value(0));
+  const [currentTip, setCurrentTip] = useState(0);
+
+  const dreamAppTips = [
+    "🎯 This app can be updated to match any vision you have!",
+    "🚀 Describe changes and watch AI implement them instantly",
+    "💡 Your imagination is the only limit to what this app can become",
+    "🌟 Every feature you dream of can be added with simple conversation",
+    "🎨 AI can redesign any screen to match your perfect vision",
+    "🔮 This living app evolves with your needs and desires!"
+  ];
+
+
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+    // Main bounce animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
 
-    return () => clearInterval(timer);
+    // Sparkle animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleAnimation, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleAnimation, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Cycle through tips
+    const tipInterval = setInterval(() => {
+      setCurrentTip((prev) => (prev + 1) % dreamAppTips.length);
+    }, 3000);
+
+    return () => clearInterval(tipInterval);
   }, []);
 
+  const bounceTransform = animatedValue.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 1.1, 1],
+  });
+
+  const sparkleOpacity = sparkleAnimation.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 1, 0.3],
+  });
+
+  const sparkleRotate = sparkleAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   const styles = StyleSheet.create({
-    container: {
+    safeArea: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      justifyContent: 'center',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+      padding: 20,
       alignItems: 'center',
-      padding: 20,
+      justifyContent: 'center',
     },
-    title: {
-      fontSize: 24,
-      fontWeight: '600',
-      color: theme.colors.text,
-      marginBottom: 16,
-      textAlign: 'center',
+    heroContainer: {
+      alignItems: 'center',
+      marginBottom: 30,
     },
-    subtitle: {
-      fontSize: 16,
-      color: theme.colors.textSecondary,
-      textAlign: 'center',
-      lineHeight: 24,
-    },
-    clockContainer: {
-      marginTop: 30,
-      padding: 20,
-      backgroundColor: theme.colors.surface,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-    },
-    timeText: {
+    mainTitle: {
       fontSize: 32,
       fontWeight: 'bold',
       color: theme.colors.primary,
       textAlign: 'center',
       marginBottom: 8,
     },
-    dateText: {
+    subtitle: {
+      fontSize: 18,
+      color: theme.colors.text,
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    aiIconContainer: {
+      position: 'relative',
+      marginVertical: 20,
+    },
+    aiIcon: {
+      fontSize: 80,
+      textAlign: 'center',
+    },
+    sparkle: {
+      position: 'absolute',
+      fontSize: 20,
+    },
+    sparkle1: {
+      top: -10,
+      right: -10,
+    },
+    sparkle2: {
+      bottom: -10,
+      left: -10,
+    },
+    sparkle3: {
+      top: 10,
+      left: -20,
+    },
+    dreamCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      padding: 24,
+      marginVertical: 20,
+      width: width - 40,
+      borderWidth: 2,
+      borderColor: theme.colors.primary + '20',
+      shadowColor: theme.colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    dreamTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    dreamDescription: {
       fontSize: 16,
       color: theme.colors.textSecondary,
       textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: 20,
     },
-    stopperContainer: {
+    tipContainer: {
+      backgroundColor: theme.colors.primary + '10',
+      borderRadius: 15,
+      padding: 16,
+      marginVertical: 20,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.colors.primary,
+    },
+    tipText: {
+      fontSize: 16,
+      color: theme.colors.text,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+    buttonsContainer: {
+      width: '100%',
+      gap: 16,
+      marginTop: 20,
+    },
+    primaryButton: {
+      backgroundColor: theme.colors.primary,
+      paddingVertical: 16,
+      paddingHorizontal: 32,
+      borderRadius: 12,
+      alignItems: 'center',
+      shadowColor: theme.colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    primaryButtonText: {
+      color: '#FFFFFF',
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    buttonDescription: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      opacity: 0.9,
+      textAlign: 'center',
+    },
+    secondaryButton: {
+      backgroundColor: 'transparent',
+      paddingVertical: 16,
+      paddingHorizontal: 32,
+      borderRadius: 12,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.colors.primary,
+    },
+    secondaryButtonText: {
+      color: theme.colors.primary,
+      fontSize: 16,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    buttonDescriptionSecondary: {
+      color: theme.colors.primary,
+      fontSize: 14,
+      opacity: 0.8,
+      textAlign: 'center',
+    },
+    featuresContainer: {
+      width: '100%',
       marginTop: 30,
-      padding: 20,
+    },
+    featuresTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    featureRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
       backgroundColor: theme.colors.surface,
       borderRadius: 12,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      alignItems: 'center',
+      marginBottom: 12,
     },
-    stopperTitle: {
-      fontSize: 18,
-      fontWeight: '600',
+    featureIcon: {
+      fontSize: 24,
+      marginRight: 16,
+      width: 32,
+    },
+    featureText: {
+      flex: 1,
+      fontSize: 16,
       color: theme.colors.text,
-      marginBottom: 16,
     },
-    stopperStatus: {
-      fontSize: 16,
-      marginBottom: 16,
-      fontWeight: '500',
-    },
-    buttonContainer: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    button: {
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 8,
-      minWidth: 80,
+    footer: {
+      marginTop: 40,
       alignItems: 'center',
     },
-    startButton: {
-      backgroundColor: theme.colors.success,
+    footerText: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
     },
-    stopButton: {
-      backgroundColor: theme.colors.error,
-    },
-    buttonText: {
-      color: '#ffffff',
-      fontSize: 16,
-      fontWeight: '600',
-    },
+
+
+
   });
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    });
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const handleStartStopper = () => {
-    setStopperActive(true);
-  };
-
-  const handleStopStopper = () => {
-    setStopperActive(false);
-  };
+  const features = [
+    { icon: '🤖', text: 'AI-Powered App Updates' },
+    { icon: '⚡', text: 'Instant Feature Implementation' },
+    { icon: '🎨', text: 'Dynamic UI Customization' },
+    { icon: '🔧', text: 'No-Code Modifications' },
+    { icon: '📱', text: 'Live App Transformation' },
+    { icon: '🚀', text: 'Real-Time Dream Realization' },
+  ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Your App</Text>
-      <Text style={styles.subtitle}>
-        This is your home screen. Start building your app from here!
-      </Text>
-      <View style={styles.clockContainer}>
-        <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-        <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
-      </View>
-      <View style={styles.stopperContainer}>
-        <Text style={styles.stopperTitle}>Stopper Control</Text>
-        <Text style={[styles.stopperStatus, { 
-          color: stopperActive ? theme.colors.error : theme.colors.success 
-        }]}>
-          Status: {stopperActive ? 'ACTIVE' : 'STOPPED'}
-        </Text>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.startButton]}
-            onPress={handleStartStopper}
-            disabled={stopperActive}>
-            <Text style={styles.buttonText}>Start</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollView}
+      >
+        <View style={styles.heroContainer}>
+          <Text style={styles.mainTitle}>✨ branded44 AI Builder ✨</Text>
+          <Text style={styles.subtitle}>Your AI-Powered App Creation Studio</Text>
+          
+          <Animated.View 
+            style={[
+              styles.aiIconContainer,
+              { transform: [{ scale: bounceTransform }] }
+            ]}
+          >
+            <Text style={styles.aiIcon}>🤖</Text>
+            <Animated.Text 
+              style={[
+                styles.sparkle, 
+                styles.sparkle1,
+                { 
+                  opacity: sparkleOpacity,
+                  transform: [{ rotate: sparkleRotate }]
+                }
+              ]}
+            >
+              ✨
+            </Animated.Text>
+            <Animated.Text 
+              style={[
+                styles.sparkle, 
+                styles.sparkle2,
+                { 
+                  opacity: sparkleOpacity,
+                  transform: [{ rotate: sparkleRotate }]
+                }
+              ]}
+            >
+              ⭐
+            </Animated.Text>
+            <Animated.Text 
+              style={[
+                styles.sparkle, 
+                styles.sparkle3,
+                { 
+                  opacity: sparkleOpacity,
+                  transform: [{ rotate: sparkleRotate }]
+                }
+              ]}
+            >
+              💫
+            </Animated.Text>
+          </Animated.View>
+        </View>
+
+
+
+        <View style={styles.dreamCard}>
+          <Text style={styles.dreamTitle}>🌟 Your Dream App Awaits 🌟</Text>
+          <Text style={styles.dreamDescription}>
+            This app was intelligently created with AI and can be continuously updated to match your exact vision! 
+            Simply describe what you want to change, add, or improve, and watch as AI transforms this app into 
+            your perfect digital companion. Your imagination is the only limit!
+          </Text>
+          
+          <View style={styles.tipContainer}>
+            <Text style={styles.tipText}>{dreamAppTips[currentTip]}</Text>
+          </View>
+        </View>
+
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity style={styles.primaryButton}>
+            <Text style={styles.primaryButtonText}>🤖 Chat to Update This App</Text>
+            <Text style={styles.buttonDescription}>Describe changes and watch AI transform this app</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, styles.stopButton]}
-            onPress={handleStopStopper}
-            disabled={!stopperActive}>
-            <Text style={styles.buttonText}>Stop</Text>
+          
+          <TouchableOpacity style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>✨ Explore Current Features</Text>
+            <Text style={styles.buttonDescriptionSecondary}>See what this app can already do for you</Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </View>
-  );
-};
+
+        <View style={styles.featuresContainer}>
+          <Text style={styles.featuresTitle}>🎯 What Makes Us Special</Text>
+          {features.map((feature, index) => (
+            <View key={index} style={styles.featureRow}>
+              <Text style={styles.featureIcon}>{feature.icon}</Text>
+              <Text style={styles.featureText}>{feature.text}</Text>
+            </View>
+          ))}
+        </View>
+
+                <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            💭 "This app is your canvas - paint your digital dreams into reality"
+          </Text>
+        </View>
+       </ScrollView>
+     </SafeAreaView>
+   );
+ };
 
 export default HomeScreen; 

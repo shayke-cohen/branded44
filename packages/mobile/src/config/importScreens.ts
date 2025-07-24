@@ -18,6 +18,7 @@ console.log('📱 [DEBUG] Importing and registering core app screens...');
 
 import HomeScreen from '../screens/HomeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import MemberAuthScreen from '../screens/MemberAuthScreen';
 
 registerScreen(HomeScreen, {
   name: 'Home',
@@ -36,9 +37,20 @@ registerScreen(SettingsScreen, {
   icon: '⚙️',
   category: 'App',
   hasTab: true,
-  tabPosition: 5,
+  tabPosition: 6,
   description: 'App settings and configuration options',
   tags: ['settings', 'config', 'preferences']
+});
+
+registerScreen(MemberAuthScreen, {
+  name: 'Account',
+  shortName: 'Account', // Short text
+  icon: '👤',
+  category: 'App',
+  hasTab: true,
+  tabPosition: 5,
+  description: 'Member login, signup, and profile management',
+  tags: ['member', 'auth', 'login', 'signup', 'profile']
 });
 
 console.log('✅ [DEBUG] Core app screens registered');
@@ -97,6 +109,7 @@ console.log('   🏠  Home (1): Welcome and dashboard');
 console.log('   🛍️  Products (2): Wix store product browsing');
 console.log('   🛒  Cart (3): Shopping cart management');
 console.log('   🗄️  CMS (4): Wix data collections');
-console.log('   ⚙️  Settings (5): App configuration');
+console.log('   👤  Account (5): Member login, signup, and profile');
+console.log('   ⚙️  Settings (6): App configuration');
 console.log('');
 console.log('✨ [SUCCESS] Navigation with icons + short text labels implemented!'); 

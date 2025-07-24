@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
 
 const appDirectory = path.resolve(__dirname);
 const mobileDirectory = path.resolve(appDirectory, '../mobile');
@@ -14,15 +15,45 @@ module.exports = {
   resolve: {
     alias: {
       'react-native$': 'react-native-web',
-      // Use our custom AsyncStorage polyfill for web
-      '@react-native-async-storage/async-storage$': path.resolve(appDirectory, 'src/polyfills/AsyncStorage.js'),
-      // Add alias to mobile package for shared components
-      '@mobile': path.resolve(appDirectory, '../mobile/src'),
-      // Ensure single React instance to prevent hook issues - use root node_modules
-      'react': path.resolve(__dirname, '../../node_modules/react'),
-      'react-dom': path.resolve(__dirname, '../../node_modules/react-dom'),
+      '@mobile': path.resolve(__dirname, '../mobile/src'),
+      '@react-native-async-storage/async-storage': path.resolve(
+        appDirectory,
+        'src/polyfills/AsyncStorage.js',
+      ),
+      '../../context/ThemeContext': path.resolve(
+        __dirname,
+        '../mobile/src/context/ThemeContext.tsx',
+      ),
+      '../../context/WixCartContext': path.resolve(
+        __dirname,
+        '../mobile/src/context/WixCartContext.tsx',
+      ),
+      '../../context/MemberContext': path.resolve(
+        appDirectory,
+        'src/context/WebMemberContext.tsx',
+      ),
+      '../../context': path.resolve(
+        appDirectory,
+        'src/context',
+      ),
+      '../context$': path.resolve(
+        appDirectory,
+        'src/context',
+      ),
+      '@mobile/context': path.resolve(
+        appDirectory,
+        'src/context',
+      ),
+      react: path.resolve(__dirname, '../../node_modules/react'),
     },
-    extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.js', '.js'],
+    extensions: [
+      '.web.tsx',
+      '.web.ts',
+      '.tsx',
+      '.ts',
+      '.web.js',
+      '.js',
+    ],
     modules: [
       path.resolve(__dirname, '../../node_modules'), // Root node_modules first
       path.resolve(appDirectory, 'node_modules'),     // Web package node_modules
@@ -84,6 +115,9 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.resolve(appDirectory, 'public/index.html'),
       inject: 'body',
+    }),
+    new webpack.DefinePlugin({
+      __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
     }),
   ],
   devServer: {

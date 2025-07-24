@@ -6,7 +6,7 @@ console.log('📱 [DEBUG] React imported successfully');
 import {StyleSheet, View} from 'react-native';
 console.log('📱 [DEBUG] React Native components imported successfully');
 
-import {ThemeProvider, CartProvider} from './context';
+import {ThemeProvider, CartProvider, MemberProvider} from './context';
 import {WixCartProvider} from './context/WixCartContext';
 console.log('📱 [DEBUG] Context providers imported successfully');
 
@@ -68,7 +68,9 @@ const App = () => {
     <ThemeProvider>
       <CartProvider>
         <WixCartProvider>
-          <AppContent />
+          <MemberProvider>
+            <AppContent />
+          </MemberProvider>
         </WixCartProvider>
       </CartProvider>
     </ThemeProvider>

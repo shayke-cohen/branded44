@@ -10,6 +10,4 @@ console.log('🌐 Web: Initializing screens from mobile imports...');
 // Import mobile screen registrations - this triggers all registerScreen calls
 import '@mobile/config/importScreens';
 
-// TemplateIndexScreen registration removed for clean app preview
-
-console.log('✅ Web: All mobile screens imported and registered!'); 
+console.log('✅ Web: Screen initialization completed!'); 
