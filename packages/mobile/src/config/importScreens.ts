@@ -1,115 +1,126 @@
 /**
- * Centralized Screen Registration
+ * Screen Registry and Import Configuration
  * 
- * This is the SINGLE SOURCE OF TRUTH for all screen registration and navigation configuration.
- * All screen imports and registrations happen here - nowhere else.
- * 
- * ⚠️ IMPORTANT: Do not import screens or call registerScreen elsewhere!
+ * This file centralizes all screen imports and navigation configuration.
+ * It provides a single source of truth for screen registration and metadata.
  */
 
 import { registerScreen } from './registry';
 
-console.log('📱 [DEBUG] Starting centralized screen imports and registration...');
-
-// =============================================================================
-// CORE APP SCREENS
-// =============================================================================
-console.log('📱 [DEBUG] Importing and registering core app screens...');
-
-import HomeNavigation from '../screens/HomeScreen/HomeNavigation';
+// Import existing screens
+import HomeScreen from '../screens/HomeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import MemberAuthScreen from '../screens/wix/MemberAuthScreen';
+import TemplateIndexScreen from '../screens/TemplateIndexScreen';
 
-registerScreen(HomeNavigation, {
+// Import Wix screens
+import CartScreen from '../screens/wix/CartScreen';
+import MemberAuthScreen from '../screens/wix/MemberAuthScreen';
+import ProductDetailScreen from '../screens/wix/ProductDetailScreen';
+import ProductListScreen from '../screens/wix/ProductListScreen';
+
+// Import demo screens
+import AuthDemoScreen from '../screens/AuthDemoScreen';
+import ComponentsShowcaseScreen from '../screens/ComponentsShowcaseScreen';
+
+// Register existing screens
+registerScreen(HomeScreen, {
   name: 'Home',
-  shortName: 'Home', // Short text
+  shortName: 'Home',
   icon: '🏠',
-  category: 'Navigation',
+  category: 'Main',
   hasTab: true,
   tabPosition: 1,
-  description: 'Welcome screen and app home with profile navigation',
-  tags: ['home', 'main', 'default', 'profile']
+  description: 'Main dashboard with navigation',
+  tags: ['main', 'dashboard', 'navigation']
+});
+
+registerScreen(TemplateIndexScreen, {
+  name: 'Templates',
+  shortName: 'Templates',
+  icon: '📱',
+  category: 'Core',
+  hasTab: true,
+  tabPosition: 2,
+  description: 'Browse available screen templates',
+  tags: ['templates', 'examples', 'screens']
 });
 
 registerScreen(SettingsScreen, {
   name: 'Settings',
-  shortName: 'Settings', // Short text
+  shortName: 'Settings',
   icon: '⚙️',
-  category: 'App',
+  category: 'Core',
   hasTab: true,
-  tabPosition: 6,
-  description: 'App settings and configuration options',
+  tabPosition: 3,
+  description: 'App configuration and preferences',
   tags: ['settings', 'config', 'preferences']
 });
 
-registerScreen(MemberAuthScreen, {
-  name: 'Profile',
-  shortName: 'Profile', // Short text
-  icon: '👤',
-  category: 'App',
-  hasTab: true,
-  tabPosition: 5,
-  description: 'Member login, signup, and profile management',
-  tags: ['member', 'auth', 'login', 'signup', 'profile']
-});
-
-console.log('✅ [DEBUG] Core app screens registered');
-
-// =============================================================================
-// WIX STORE SCREENS (eCommerce + CMS) - PRIMARY TABS
-// =============================================================================
-console.log('📱 [DEBUG] Importing and registering Wix store screens...');
-
-import ProductsNavigation from '../screens/wix/navigation/ProductsNavigation';
-import CartScreen from '../screens/wix/CartScreen';
-import CMSScreen from '../screens/wix/CMSScreen';
-
-registerScreen(ProductsNavigation, {
-  name: 'Store',
-  shortName: 'Store', // Short text
+// Register Wix screens
+registerScreen(ProductListScreen, {
+  name: 'Wix Products',
+  shortName: 'Products',
   icon: '🛍️',
-  category: 'Store',
+  category: 'Wix',
   hasTab: true,
-  tabPosition: 2,
-  description: 'Browse and search store products with navigation to product details',
-  tags: ['store', 'products', 'shop', 'wix', 'navigation']
+  tabPosition: 4,
+  description: 'Wix e-commerce product listing',
+  tags: ['wix', 'products', 'ecommerce']
 });
 
 registerScreen(CartScreen, {
-  name: 'Cart',
-  shortName: 'Cart', // Short text
+  name: 'Wix Cart',
+  shortName: 'Cart',
   icon: '🛒',
-  category: 'Store',
+  category: 'Wix',
   hasTab: true,
-  tabPosition: 3,
-  description: 'View and manage shopping cart items',
-  tags: ['store', 'cart', 'checkout', 'wix']
+  tabPosition: 5,
+  description: 'Wix shopping cart functionality',
+  tags: ['wix', 'cart', 'shopping']
 });
 
-registerScreen(CMSScreen, {
-  name: 'CMS',
-  shortName: 'CMS', // Short text
-  icon: '🗄️',
-  category: 'Store',
+registerScreen(MemberAuthScreen, {
+  name: 'Wix Auth',
+  shortName: 'Auth',
+  icon: '👤',
+  category: 'Wix',
   hasTab: true,
-  tabPosition: 4,
-  description: 'Browse and manage Wix data collections',
-  tags: ['cms', 'data', 'collections', 'wix']
+  tabPosition: 6,
+  description: 'Wix member authentication',
+  tags: ['wix', 'auth', 'members']
 });
 
-console.log('✅ [DEBUG] Wix store screens registered');
+registerScreen(AuthDemoScreen, {
+  name: 'Auth Demo',
+  shortName: 'Auth', // Short text
+  icon: '🔐',
+  category: 'Demo',
+  hasTab: true,
+  tabPosition: 7,
+  description: 'Showcase of new authentication block components',
+  tags: ['demo', 'components', 'auth', 'forms', 'blocks']
+});
 
+registerScreen(ComponentsShowcaseScreen, {
+  name: 'Component Library',
+  shortName: 'Library',
+  icon: '🎨',
+  category: 'Demo',
+  hasTab: true,
+  tabPosition: 8,
+  description: 'Comprehensive showcase of all 15+ components and templates',
+  tags: ['showcase', 'components', 'library', 'blocks', 'templates']
+});
 
-// =============================================================================
-// SUMMARY
-// =============================================================================
-console.log('🎉 [DEBUG] All screens imported and registered successfully!');
-console.log('📊 [DEBUG] Screen registration summary:');
-console.log('   🏠  Home (1): Welcome and dashboard');
-console.log('   🛍️  Products (2): Wix store product browsing');
-console.log('   🛒  Cart (3): Shopping cart management');
-console.log('   🗄️  CMS (4): Wix data collections');
-console.log('   👤  Account (5): Member login, signup, and profile');
-console.log('   ⚙️  Settings (6): App configuration');
+// Log registered screens summary
+console.log('📱 Screen Registration Complete:');
+console.log('   🏠  Home (1): Main dashboard and navigation hub');
+console.log('   📱  Templates (2): Template system browser and examples');
+console.log('   ⚙️  Settings (3): Configuration and preferences');
+console.log('   🛍️  Wix Products (4): E-commerce product listings');
+console.log('   🛒  Wix Cart (5): Shopping cart and checkout');
+console.log('   👤  Wix Auth (6): Member authentication and profiles');
+console.log('   🔐  Auth Demo (7): NEW! Authentication block components showcase');
+console.log('   🎨  Component Library (8): NEW! Complete component library showcase');
 console.log('');
-console.log('✨ [SUCCESS] Navigation with icons + short text labels implemented!'); 
+console.log('🎯 Total: 8 screens registered (2 new component showcases)'); 

@@ -11,6 +11,8 @@ const config = {
   watchFolders: [
     // Include the root of the yarn workspace
     path.resolve(__dirname, '../..'),
+    // Explicitly watch the ~ directory
+    path.resolve(__dirname, '~'),
   ],
   resolver: {
     // Look for modules in both local and root node_modules
@@ -21,7 +23,12 @@ const config = {
     // Add crypto polyfill aliases for better compatibility
     alias: {
       crypto: 'react-native-get-random-values',
+      // Direct mapping for tilde path
+      '~': path.resolve(__dirname, '~'),
     },
+    // More comprehensive resolver config
+    unstable_enablePackageExports: true,
+    platforms: ['ios', 'android', 'native', 'web'],
   },
   transformer: {
     // Enable experimental require.context for auto-discovery
