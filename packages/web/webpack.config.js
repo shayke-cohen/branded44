@@ -20,6 +20,37 @@ module.exports = {
         appDirectory,
         'src/polyfills/AsyncStorage.js',
       ),
+      // React Native Reanimated polyfill
+      'react-native-reanimated': path.resolve(
+        appDirectory,
+        'src/polyfills/ReactNativeReanimated.js',
+      ),
+      // React Native Cookies polyfill
+      '@react-native-cookies/cookies': path.resolve(
+        appDirectory,
+        'src/polyfills/ReactNativeCookies.js',
+      ),
+      // RN Primitives polyfills
+      '@rn-primitives/checkbox': path.resolve(
+        appDirectory,
+        'src/polyfills/checkbox.js',
+      ),
+      '@rn-primitives/label': path.resolve(
+        appDirectory,
+        'src/polyfills/label.js',
+      ),
+      '@rn-primitives/progress': path.resolve(
+        appDirectory,
+        'src/polyfills/progress.js',
+      ),
+      '@rn-primitives/slot': path.resolve(
+        appDirectory,
+        'src/polyfills/slot.js',
+      ),
+      '../../context/ProductCacheContext': path.resolve(
+        __dirname,
+        '../mobile/src/context/ProductCacheContext.tsx',
+      ),
       '../../context/ThemeContext': path.resolve(
         __dirname,
         '../mobile/src/context/ThemeContext.tsx',

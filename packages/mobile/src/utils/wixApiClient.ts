@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { getClientId, getSiteId, getStoresAppId, getApiBaseUrl } from '../config/wixConfig';
 import { createClient, ApiKeyStrategy, OAuthStrategy } from '@wix/sdk';
 import { items } from '@wix/data';
@@ -2179,7 +2180,6 @@ class WixApiClient {
     try {
       // Check if URL is already a Wix static media URL
       if (mediaUrl.includes('static.wixstatic.com')) {
-        // For Wix static URLs, use path-based optimization instead of query params
         const baseUrl = mediaUrl.split('?')[0]; // Remove any existing query params
         
         // Check if it already has optimization path parameters
@@ -2188,8 +2188,22 @@ class WixApiClient {
           return baseUrl.replace(/\/$/, ''); // Remove trailing slash
         }
         
-        // Add Wix path-based optimization
+        // For web platform, use query parameters instead of path-based optimization
+        // to avoid CORS issues with the Wix CDN path-based optimization
+        if (Platform.OS === 'web') {
+          const url = new URL(baseUrl);
+          url.searchParams.set('w', width.toString());
+          url.searchParams.set('h', height.toString());
+          url.searchParams.set('fit', 'cover');
+          url.searchParams.set('q', '90');
+          const optimizedUrl = url.toString();
+          console.log('🌐 [WEB IMAGE] Generated web-optimized URL:', optimizedUrl);
+          return optimizedUrl;
+        }
+        
+        // For mobile platforms, use path-based optimization
         const optimizedUrl = `${baseUrl}/v1/fit/w_${width},h_${height},q_90/file.jpg`;
+        console.log('📱 [MOBILE IMAGE] Generated mobile-optimized URL:', optimizedUrl);
         return optimizedUrl;
       }
       

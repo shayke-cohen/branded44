@@ -30,7 +30,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Button } from '../../../../~/components/ui/button';
 import { Input } from '../../../../~/components/ui/input';
 import { Card } from '../../../../~/components/ui/card';
@@ -176,7 +176,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   validationRules = {},
   buttonText = 'Sign In',
   title = 'Welcome Back',
-  subtitle = 'Sign in to your account to continue',
+  subtitle = 'Sign in to continue your journey',
   rememberMe = false,
   onRememberToggle,
   className,
@@ -453,38 +453,66 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   const isLoading = loading || isSubmitting;
 
+  const styles = StyleSheet.create({
+    card: {
+      padding: SPACING.xl,
+      margin: SPACING.md,
+      borderRadius: 20,
+      shadowColor: COLORS.secondary[900],
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 24,
+      elevation: 8,
+      borderWidth: 1,
+      borderColor: COLORS.secondary[100],
+      backgroundColor: COLORS.white,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: SPACING.xl,
+      width: '100%',
+      paddingHorizontal: SPACING.sm,
+    },
+    title: {
+      fontSize: TYPOGRAPHY.fontSize['3xl'],
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      color: COLORS.secondary[900],
+      letterSpacing: -0.5,
+      marginBottom: SPACING.sm,
+    },
+    subtitle: {
+      fontSize: TYPOGRAPHY.fontSize.base,
+      color: COLORS.secondary[500],
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: 24,
+      textAlign: 'center',
+      backgroundColor: 'rgba(255,0,0,0.1)',
+      padding: 8,
+      marginTop: 8,
+      flexWrap: 'wrap',
+      alignSelf: 'center',
+      maxWidth: '90%',
+    },
+    form: {
+      width: '100%',
+      gap: SPACING.lg,
+    },
+  });
+
   return (
     <Card
-      style={[
-        {
-          padding: SPACING.lg,
-          margin: SPACING.md,
-          backgroundColor: COLORS.white,
-        },
-        style,
-      ]}
+      style={[styles.card, style]}
       testID={testID}
       accessibilityLabel={accessibilityLabel}
       {...props}
     >
       {/* Header */}
-      <View style={{ marginBottom: SPACING.lg, alignItems: 'center' }}>
-        <Text style={{
-          fontSize: TYPOGRAPHY.fontSize['2xl'],
-          fontWeight: TYPOGRAPHY.fontWeight.bold,
-          color: COLORS.secondary[900],
-          marginBottom: SPACING.xs,
-          textAlign: 'center',
-        }}>
+      <View style={styles.header}>
+        <Text style={styles.title}>
           {title}
         </Text>
         {subtitle && (
-          <Text style={{
-            fontSize: TYPOGRAPHY.fontSize.base,
-            color: COLORS.secondary[600],
-            textAlign: 'center',
-            lineHeight: TYPOGRAPHY.lineHeight.relaxed,
-          }}>
+          <Text style={styles.subtitle}>
             {subtitle}
           </Text>
         )}
@@ -511,12 +539,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       )}
 
       {/* Form Fields */}
-      <View style={{ gap: SPACING.md }}>
+      <View style={styles.form}>
         {/* Email Field */}
         <View>
-          <Label htmlFor="email">Email Address</Label>
+          <Label htmlFor="email" style={{
+            fontSize: TYPOGRAPHY.fontSize.base,
+            fontWeight: TYPOGRAPHY.fontWeight.semibold,
+            color: COLORS.secondary[700],
+            marginBottom: SPACING.sm,
+          }}>
+            Email Address
+          </Label>
           <Input
-             placeholder="Enter your email"
+            placeholder="Enter your email"
             value={formData.email}
             onChangeText={(value) => handleInputChange('email', value)}
             onBlur={() => handleInputBlur('email')}
@@ -528,6 +563,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             accessibilityLabel="Email address input"
             style={{
               borderColor: errors.email ? COLORS.error[500] : COLORS.secondary[300],
+              borderWidth: 2,
+              borderRadius: 12,
+              paddingHorizontal: SPACING.md,
+              paddingVertical: SPACING.md,
+              fontSize: TYPOGRAPHY.fontSize.base,
+              backgroundColor: COLORS.secondary[50],
             }}
           />
           {errors.email && (
@@ -535,6 +576,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               color: COLORS.error[600],
               fontSize: TYPOGRAPHY.fontSize.sm,
               marginTop: SPACING.xs,
+              fontWeight: TYPOGRAPHY.fontWeight.medium,
             }}>
               {errors.email}
             </Text>
@@ -543,7 +585,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
         {/* Password Field */}
         <View>
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" style={{
+            fontSize: TYPOGRAPHY.fontSize.base,
+            fontWeight: TYPOGRAPHY.fontWeight.semibold,
+            color: COLORS.secondary[700],
+            marginBottom: SPACING.sm,
+          }}>
+            Password
+          </Label>
           <View style={{ position: 'relative' }}>
             <Input
               placeholder="Enter your password"
@@ -558,7 +607,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               accessibilityLabel="Password input"
               style={{
                 borderColor: errors.password ? COLORS.error[500] : COLORS.secondary[300],
+                borderWidth: 2,
+                borderRadius: 12,
+                paddingHorizontal: SPACING.md,
+                paddingVertical: SPACING.md,
                 paddingRight: 50,
+                fontSize: TYPOGRAPHY.fontSize.base,
+                backgroundColor: COLORS.secondary[50],
               }}
             />
             <TouchableOpacity
@@ -587,6 +642,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               color: COLORS.error[600],
               fontSize: TYPOGRAPHY.fontSize.sm,
               marginTop: SPACING.xs,
+              fontWeight: TYPOGRAPHY.fontWeight.medium,
             }}>
               {errors.password}
             </Text>
@@ -601,14 +657,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           testID={`${testID}-submit-button`}
           accessibilityLabel={`${buttonText} button`}
           style={{
-            marginTop: SPACING.sm,
-            backgroundColor: COLORS.primary[600],
+            marginTop: SPACING.lg,
+            backgroundColor: isLoading || disabled ? COLORS.secondary[400] : COLORS.primary[600],
+            borderRadius: 12,
+            paddingVertical: SPACING.md,
+            shadowColor: COLORS.primary[600],
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 4,
           }}
         >
           <Text style={{
             color: COLORS.white,
-            fontSize: TYPOGRAPHY.fontSize.base,
-            fontWeight: TYPOGRAPHY.fontWeight.semibold,
+            fontSize: TYPOGRAPHY.fontSize.lg,
+            fontWeight: TYPOGRAPHY.fontWeight.bold,
+            textAlign: 'center',
           }}>
             {isLoading ? 'Signing In...' : buttonText}
           </Text>

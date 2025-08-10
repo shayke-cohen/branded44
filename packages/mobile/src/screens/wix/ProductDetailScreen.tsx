@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import { Alert } from '../../utils/alert';
 import { useTheme } from '../../context';
@@ -256,6 +257,11 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const renderProductImages = useCallback(() => {
     const images = getProductImages();
     
+    console.log('🖼️ [IMAGE DEBUG] Platform:', Platform.OS, 'Images found:', images.length);
+    if (images.length > 0) {
+      console.log('🖼️ [IMAGE DEBUG] First image URL:', images[0]?.url);
+    }
+    
     if (images.length === 0) {
       return (
         <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.border }]}>
@@ -267,8 +273,17 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
     }
 
     const selectedImage = images[selectedImageIndex] || images[0];
+    
+    // Use platform-specific image dimensions for optimization
+    const imageWidth = Platform.OS === 'web' ? Math.min(width, 600) : width;
+    const imageHeight = Platform.OS === 'web' ? Math.min(width * 0.75, 400) : width;
+    
     const imageUrl = selectedImage?.url ? 
-      wixApiClient.getOptimizedImageUrl(selectedImage.url, width, width) : null;
+      wixApiClient.getOptimizedImageUrl(selectedImage.url, imageWidth, imageHeight) : null;
+    
+    console.log('🖼️ [IMAGE DEBUG] Original URL:', selectedImage?.url);
+    console.log('🖼️ [IMAGE DEBUG] Platform:', Platform.OS, 'Container dimensions:', imageWidth, 'x', imageHeight);
+    console.log('🖼️ [IMAGE DEBUG] Optimized URL:', imageUrl);
 
     return (
       <View style={styles.imageContainer}>
@@ -281,6 +296,10 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
               resizeMode="cover"
               onError={(error) => {
                 console.warn('⚠️ [IMAGE] Failed to load main image:', imageUrl, error);
+                console.log('🔍 [IMAGE DEBUG] Platform:', Platform.OS, 'Screen width:', width);
+              }}
+              onLoad={() => {
+                console.log('✅ [IMAGE] Successfully loaded main image:', imageUrl);
               }}
             />
           ) : (
@@ -676,10 +695,17 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     marginBottom: 20,
+    // Center content on web with max width for better UX
+    ...(Platform.OS === 'web' && {
+      maxWidth: 600,
+      alignSelf: 'center',
+      width: '100%',
+    }),
   },
   mainImageContainer: {
     width: '100%',
-    height: width,
+    // Platform-specific height: mobile uses full width (square), web uses reasonable aspect ratio
+    height: Platform.OS === 'web' ? Math.min(width * 0.75, 400) : width,
     backgroundColor: '#f5f5f5',
   },
   mainImage: {

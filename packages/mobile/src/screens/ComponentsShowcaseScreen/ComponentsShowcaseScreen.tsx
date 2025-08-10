@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { useTheme } from '../../context';
+import { SPACING } from '../../lib/constants';
 import { 
-  LoginForm, SignupForm, ContactForm, SearchForm,
+  LoginForm, SignupForm, ForgotPasswordForm, OTPVerificationForm, ProfileCard, SocialLoginButtons, ContactForm, SearchForm,
   UserList, ProductGrid,
   ProductCard, CartItem,
   type UserListItem, type Product, type ProductCardData, type CartItemData,
   type ContactFormData, type SearchFormData
 } from '../../components/blocks';
+import { type User } from '../../lib/types';
 import { ShopScreen, CartScreen } from '../../components/templates/ecommerce';
 
 export interface ComponentsShowcaseScreenProps {
@@ -158,6 +160,24 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
     Alert.alert('Signup Success', `Account created for ${data.email}!`);
   };
 
+  const handlePasswordReset = async (email: string) => {
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setLoading(false);
+    Alert.alert('Reset Link Sent', `Password reset link sent to ${email}`);
+  };
+
+  const handleOTPVerification = async (otp: string) => {
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setLoading(false);
+    Alert.alert('Success', `OTP ${otp} verified successfully!`);
+  };
+
+  const handleResendOTP = async () => {
+    Alert.alert('Info', 'New OTP sent to +1 (555) 123-4567');
+  };
+
   const handleContactSubmit = async (data: ContactFormData) => {
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -245,11 +265,70 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
       case 'auth':
         return (
           <View style={styles.componentContainer}>
-            <Text style={styles.componentTitle}>🔐 Authentication Components</Text>
             <LoginForm
               onLogin={handleLogin}
               socialLogin={true}
               loading={loading}
+              title="Welcome Back"
+              subtitle="Sign in to continue your journey"
+            />
+            
+            <SignupForm
+              onSignup={handleSignup}
+              socialSignup={true}
+              loading={loading}
+              title="Create Your Account"
+              subtitle="Join us and start your journey today"
+              style={{ marginTop: 20 }}
+            />
+            
+            <ForgotPasswordForm
+              onResetRequest={handlePasswordReset}
+              loading={loading}
+              title="Reset Password"
+              description="Enter your email and we'll send you a recovery link"
+              style={{ marginTop: 20 }}
+            />
+            
+            <OTPVerificationForm
+              onVerify={handleOTPVerification}
+              onResendOTP={handleResendOTP}
+              contactInfo="+1 (555) 123-4567"
+              verificationType="phone"
+              title="Verify Your Phone Number"
+              loading={loading}
+              length={6}
+              autoSubmit={true}
+              style={{ marginTop: 20 }}
+            />
+            
+            <ProfileCard
+              user={{
+                id: "demo-user-1",
+                email: "john.doe@example.com",
+                firstName: "John",
+                lastName: "Doe",
+                avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+                createdAt: "2023-01-01T00:00:00Z",
+                updatedAt: "2024-01-01T00:00:00Z",
+                isVerified: true,
+                isActive: true,
+                role: "user",
+                preferences: {
+                  theme: "light",
+                  notifications: true,
+                  language: "en"
+                }
+              }}
+              style={{ marginTop: 20 }}
+            />
+            
+            <SocialLoginButtons
+              onGoogleLogin={() => Alert.alert('Google Login')}
+              onAppleLogin={() => Alert.alert('Apple Login')}
+              onFacebookLogin={() => Alert.alert('Facebook Login')}
+              loading={loading}
+              style={{ marginTop: 20 }}
             />
           </View>
         );
@@ -257,7 +336,6 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
       case 'forms':
         return (
           <View style={styles.componentContainer}>
-            <Text style={styles.componentTitle}>📝 Form Components</Text>
             <ContactForm
               onSubmit={handleContactSubmit}
               loading={loading}
@@ -270,7 +348,6 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
       case 'lists':
         return (
           <View style={styles.componentContainer}>
-            <Text style={styles.componentTitle}>📋 List Components</Text>
             <UserList
               users={mockUsers}
               onUserSelect={handleUserSelect}
@@ -286,7 +363,6 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
       case 'ecommerce':
         return (
           <View style={styles.componentContainer}>
-            <Text style={styles.componentTitle}>🛒 E-commerce Components</Text>
             <ProductGrid
               products={mockProducts}
               onProductSelect={(product) => Alert.alert('Product', product.name)}

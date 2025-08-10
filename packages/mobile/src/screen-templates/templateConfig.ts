@@ -17,7 +17,7 @@ import FormScreenTemplate from './FormScreenTemplate';
 import ListScreenTemplate from './ListScreenTemplate';
 
 // Import complex examples
-import ProductListScreen from './examples/ProductListScreen';
+// ProductListScreen removed - using actual Wix screen instead
 import ProductDetailScreen from './examples/ProductDetailScreen';
 import CartScreen from './examples/CartScreen';
 import CheckoutScreen from './examples/CheckoutScreen';
@@ -52,7 +52,7 @@ export const TEMPLATE_COMPONENTS: Record<string, ComponentType<any>> = {
   'list-template': ListScreenTemplate,
   
   // Complex Examples
-  'product-list': ProductListScreen,
+  // 'product-list': ProductListScreen, // Removed - using actual Wix screen
   'product-detail': ProductDetailScreen,
   'cart': CartScreen,
   'checkout': CheckoutScreen,
@@ -176,23 +176,7 @@ export const TEMPLATE_CONFIG: TemplateConfig[] = [
   },
 
   // Complex Examples
-  {
-    id: 'product-list',
-    name: 'Product List Screen',
-    description: 'Full e-commerce product listing with filtering, sorting, wishlist, and cart integration.',
-    complexity: 'Complex',
-    componentKey: 'product-list',
-    icon: '🛍️',
-    features: ['Product filtering', 'Sort options', 'Wishlist', 'Cart integration', 'Search'],
-    customizable: true,
-    category: 'E-commerce',
-    defaultProps: {
-      onProductPress: (product: any) => console.log('Product pressed:', product.name),
-      showFilters: true,
-      showSort: true,
-      showSearch: true,
-    },
-  },
+  // Product List Screen removed - using actual Wix screen instead
   {
     id: 'product-detail',
     name: 'Product Detail Screen',
@@ -359,7 +343,7 @@ function initializeUnifiedRegistry(): void {
   registerComponent('DashboardScreenTemplate', DashboardScreenTemplate);
   registerComponent('FormScreenTemplate', FormScreenTemplate);
   registerComponent('ListScreenTemplate', ListScreenTemplate);
-  registerComponent('ProductListScreen', ProductListScreen);
+  // ProductListScreen removed - using actual Wix screen instead
   registerComponent('ProductDetailScreen', ProductDetailScreen);
   registerComponent('CartScreen', CartScreen);
   registerComponent('CheckoutScreen', CheckoutScreen);

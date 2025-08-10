@@ -187,69 +187,102 @@ const OTPVerificationForm: React.FC<OTPVerificationFormProps> = ({
       width: '100%',
     },
     card: {
-      padding: SPACING.lg,
+      padding: SPACING.xl,
       margin: SPACING.md,
       alignItems: 'center',
+      borderRadius: 20,
+      shadowColor: COLORS.secondary[900],
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 24,
+      elevation: 8,
+      borderWidth: 1,
+      borderColor: COLORS.secondary[100],
+      backgroundColor: COLORS.white,
     },
     header: {
       alignItems: 'center',
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.xl,
+      width: '100%',
+      paddingHorizontal: SPACING.sm,
     },
     title: {
-      fontSize: TYPOGRAPHY.fontSize.xl,
+      fontSize: TYPOGRAPHY.fontSize['3xl'],
       fontWeight: TYPOGRAPHY.fontWeight.bold,
-      color: COLORS.neutral[900],
-      textAlign: 'center',
+      color: COLORS.secondary[900],
+      letterSpacing: -0.5,
       marginBottom: SPACING.sm,
     },
     description: {
-              fontSize: TYPOGRAPHY.fontSize.base,
-      color: COLORS.neutral[600],
+      fontSize: TYPOGRAPHY.fontSize.base,
+      color: COLORS.secondary[500],
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: 24,
       textAlign: 'center',
-      lineHeight: TYPOGRAPHY.lineHeight.relaxed,
+      backgroundColor: 'rgba(255,0,0,0.1)',
+      padding: 8,
+      marginTop: 8,
+      flexWrap: 'wrap',
+      alignSelf: 'center',
+      maxWidth: '90%',
     },
     contactInfo: {
-      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
       color: COLORS.primary[600],
+      fontSize: TYPOGRAPHY.fontSize.lg,
     },
     otpContainer: {
       flexDirection: 'row',
       justifyContent: 'center',
-      gap: SPACING.sm,
-      marginBottom: SPACING.lg,
+      gap: SPACING.md,
+      marginBottom: SPACING.xl,
+      paddingHorizontal: SPACING.sm,
     },
     otpInput: {
-      width: 45,
-      height: 55,
+      width: 50,
+      height: 60,
       borderWidth: 2,
-      borderColor: COLORS.neutral[300],
-      borderRadius: 8,
+      borderColor: COLORS.secondary[300],
+      borderRadius: 12,
       textAlign: 'center',
-      fontSize: TYPOGRAPHY.fontSize.xl,
+      fontSize: TYPOGRAPHY.fontSize['2xl'],
       fontWeight: TYPOGRAPHY.fontWeight.bold,
-      color: COLORS.neutral[900],
-      backgroundColor: COLORS.neutral[50],
+      color: COLORS.secondary[900],
+      backgroundColor: COLORS.secondary[50],
     },
     otpInputActive: {
       borderColor: COLORS.primary[500],
       backgroundColor: COLORS.primary[50],
+      shadowColor: COLORS.primary[500],
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 2,
     },
     otpInputFilled: {
       borderColor: COLORS.primary[600],
       backgroundColor: COLORS.primary[100],
     },
     errorText: {
-              color: COLORS.error[600],
+      color: COLORS.error[600],
       fontSize: TYPOGRAPHY.fontSize.sm,
       textAlign: 'center',
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
     },
     buttonContainer: {
       width: '100%',
-      gap: SPACING.sm,
+      gap: SPACING.md,
     },
     verifyButton: {
       backgroundColor: COLORS.primary[600],
+      borderRadius: 12,
+      paddingVertical: SPACING.md,
+      shadowColor: COLORS.primary[600],
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
     },
     resendContainer: {
       flexDirection: 'row',
@@ -305,14 +338,18 @@ const OTPVerificationForm: React.FC<OTPVerificationFormProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{defaultTitle}</Text>
-          <Text style={styles.description}>
+          <Text 
+            style={styles.description}
+            numberOfLines={0}
+            ellipsizeMode="clip"
+          >
             We've sent a {length}-digit code to{' '}
             {contactInfo && <Text style={styles.contactInfo}>{contactInfo}</Text>}
             {!contactInfo && `your ${verificationType}`}
           </Text>
         </View>
 
-        {/* OTP Input */}
+        {/* OTP Inputs */}
         <View style={styles.otpContainer}>
           {otp.map((digit, index) => (
             <TextInput

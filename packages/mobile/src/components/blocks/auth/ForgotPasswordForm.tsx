@@ -58,8 +58,8 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
   onBack,
   onError,
   loading = false,
-  title = "Forgot Password?",
-  description = "Enter your email address and we'll send you a link to reset your password.",
+  title = "Reset Password",
+  description = "Enter your email and we'll send you a recovery link",
   showBackButton = true,
   style,
   testID = 'forgot-password-form',
@@ -122,46 +122,81 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
       width: '100%',
     },
     card: {
-      padding: SPACING.lg,
+      padding: SPACING.xl,
       margin: SPACING.md,
+      borderRadius: 20,
+      shadowColor: COLORS.secondary[900],
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 24,
+      elevation: 8,
+      borderWidth: 1,
+      borderColor: COLORS.secondary[100],
+      backgroundColor: COLORS.white,
     },
     header: {
       alignItems: 'center',
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.xl,
+      width: '100%',
+      paddingHorizontal: SPACING.sm,
     },
     title: {
-      fontSize: TYPOGRAPHY.fontSize.xl,
+      fontSize: TYPOGRAPHY.fontSize['3xl'],
       fontWeight: TYPOGRAPHY.fontWeight.bold,
-      color: COLORS.neutral[900],
-      textAlign: 'center',
+      color: COLORS.secondary[900],
+      letterSpacing: -0.5,
       marginBottom: SPACING.sm,
     },
-          description: {
-        fontSize: TYPOGRAPHY.fontSize.base,
-        color: COLORS.neutral[600],
-        textAlign: 'center',
-        lineHeight: TYPOGRAPHY.lineHeight.relaxed,
-      },
+    description: {
+      fontSize: TYPOGRAPHY.fontSize.base,
+      color: COLORS.secondary[500],
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: 24,
+      textAlign: 'center',
+      backgroundColor: 'rgba(255,0,0,0.1)',
+      padding: 8,
+      marginTop: 8,
+      flexWrap: 'wrap',
+      alignSelf: 'center',
+      maxWidth: '90%',
+    },
     inputContainer: {
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.lg,
     },
     label: {
-      marginBottom: SPACING.xs,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      color: COLORS.secondary[700],
+      marginBottom: SPACING.sm,
     },
     input: {
+      borderWidth: 2,
+      borderRadius: 12,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.md,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      backgroundColor: COLORS.secondary[50],
       marginBottom: SPACING.xs,
     },
           errorText: {
         color: COLORS.error[600],
         fontSize: TYPOGRAPHY.fontSize.sm,
         marginTop: SPACING.xs,
+        fontWeight: TYPOGRAPHY.fontWeight.medium,
       },
     buttonContainer: {
-      marginTop: SPACING.md,
-      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+      gap: SPACING.md,
     },
     resetButton: {
       backgroundColor: COLORS.primary[600],
+      borderRadius: 12,
+      paddingVertical: SPACING.md,
+      shadowColor: COLORS.primary[600],
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
     },
     backButton: {
       backgroundColor: 'transparent',
@@ -188,11 +223,17 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
 
   return (
     <View style={[styles.container, style]} testID={testID} {...props}>
-      <Card style={styles.card}>
+      <Card style={[styles.card, style]} testID={testID} {...props}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.description}>{description}</Text>
+          <Text 
+            style={styles.description}
+            numberOfLines={0}
+            ellipsizeMode="clip"
+          >
+            {description}
+          </Text>
         </View>
 
         {/* Success Message */}

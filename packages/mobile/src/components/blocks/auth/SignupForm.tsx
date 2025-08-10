@@ -33,7 +33,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Button } from '../../../../~/components/ui/button';
 import { Input } from '../../../../~/components/ui/input';
 import { Card } from '../../../../~/components/ui/card';
@@ -211,7 +211,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
   validationRules = {},
   buttonText = 'Create Account',
   title = 'Create Your Account',
-  subtitle = 'Join us today and get started',
+  subtitle = 'Join us and start your journey today',
   passwordRequirements = {},
   className,
   style,
@@ -594,39 +594,80 @@ export const SignupForm: React.FC<SignupFormProps> = ({
 
   const isLoading = loading || isSubmitting;
 
+  const styles = StyleSheet.create({
+    card: {
+      padding: SPACING.xl,
+      margin: SPACING.md,
+      borderRadius: 20,
+      shadowColor: COLORS.secondary[900],
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 24,
+      elevation: 8,
+      borderWidth: 1,
+      borderColor: COLORS.secondary[100],
+      backgroundColor: COLORS.white,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: SPACING.xl,
+      width: '100%',
+      paddingHorizontal: SPACING.sm,
+    },
+    title: {
+      fontSize: TYPOGRAPHY.fontSize['3xl'],
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      color: COLORS.secondary[900],
+      letterSpacing: -0.5,
+      marginBottom: SPACING.sm,
+    },
+    subtitle: {
+      fontSize: TYPOGRAPHY.fontSize.base,
+      color: COLORS.secondary[500],
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      lineHeight: 24,
+      textAlign: 'center',
+      backgroundColor: 'rgba(255,0,0,0.1)',
+      padding: 8,
+      marginTop: 8,
+      flexWrap: 'wrap',
+      alignSelf: 'center',
+      maxWidth: '90%',
+    },
+    form: {
+      width: '100%',
+      gap: SPACING.lg,
+    },
+    checkboxLabel: {
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      color: COLORS.secondary[700],
+      lineHeight: 20,
+      flexWrap: 'wrap',
+      flex: 1,
+      backgroundColor: 'rgba(0,255,0,0.1)',
+      padding: 4,
+    },
+  });
+
   return (
     <Card
-      style={[
-        {
-          padding: SPACING.lg,
-          margin: SPACING.md,
-          backgroundColor: COLORS.white,
-        },
-        style,
-      ]}
+      style={[styles.card, style]}
       testID={testID}
       accessibilityLabel={accessibilityLabel}
       {...props}
     >
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={{ marginBottom: SPACING.lg, alignItems: 'center' }}>
-          <Text style={{
-            fontSize: TYPOGRAPHY.fontSize['2xl'],
-            fontWeight: TYPOGRAPHY.fontWeight.bold,
-            color: COLORS.secondary[900],
-            marginBottom: SPACING.xs,
-            textAlign: 'center',
-          }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>
             {title}
           </Text>
           {subtitle && (
-            <Text style={{
-              fontSize: TYPOGRAPHY.fontSize.base,
-              color: COLORS.secondary[600],
-              textAlign: 'center',
-              lineHeight: TYPOGRAPHY.lineHeight.relaxed,
-            }}>
+            <Text 
+              style={styles.subtitle}
+              numberOfLines={0}
+              ellipsizeMode="clip"
+            >
               {subtitle}
             </Text>
           )}
@@ -653,16 +694,23 @@ export const SignupForm: React.FC<SignupFormProps> = ({
         )}
 
         {/* Form Fields */}
-        <View style={{ gap: SPACING.md }}>
+        <View style={styles.form}>
           {/* Name Fields */}
           {requireNames && (
             <View style={{ 
               flexDirection: 'row', 
-              gap: SPACING.sm 
+              gap: SPACING.md 
             }}>
               {/* First Name */}
               <View style={{ flex: 1 }}>
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName" style={{
+                  fontSize: TYPOGRAPHY.fontSize.base,
+                  fontWeight: TYPOGRAPHY.fontWeight.semibold,
+                  color: COLORS.secondary[700],
+                  marginBottom: SPACING.sm,
+                }}>
+                  First Name
+                </Label>
                 <Input
                   placeholder="First name"
                   value={formData.firstName}
@@ -675,6 +723,12 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                   accessibilityLabel="First name input"
                   style={{
                     borderColor: errors.firstName ? COLORS.error[500] : COLORS.secondary[300],
+                    borderWidth: 2,
+                    borderRadius: 12,
+                    paddingHorizontal: SPACING.md,
+                    paddingVertical: SPACING.md,
+                    fontSize: TYPOGRAPHY.fontSize.base,
+                    backgroundColor: COLORS.secondary[50],
                   }}
                 />
                 {errors.firstName && (
@@ -682,6 +736,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                     color: COLORS.error[600],
                     fontSize: TYPOGRAPHY.fontSize.sm,
                     marginTop: SPACING.xs,
+                    fontWeight: TYPOGRAPHY.fontWeight.medium,
                   }}>
                     {errors.firstName}
                   </Text>
@@ -690,7 +745,14 @@ export const SignupForm: React.FC<SignupFormProps> = ({
 
               {/* Last Name */}
               <View style={{ flex: 1 }}>
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName" style={{
+                  fontSize: TYPOGRAPHY.fontSize.base,
+                  fontWeight: TYPOGRAPHY.fontWeight.semibold,
+                  color: COLORS.secondary[700],
+                  marginBottom: SPACING.sm,
+                }}>
+                  Last Name
+                </Label>
                 <Input
                   placeholder="Last name"
                   value={formData.lastName}
@@ -703,6 +765,12 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                   accessibilityLabel="Last name input"
                   style={{
                     borderColor: errors.lastName ? COLORS.error[500] : COLORS.secondary[300],
+                    borderWidth: 2,
+                    borderRadius: 12,
+                    paddingHorizontal: SPACING.md,
+                    paddingVertical: SPACING.md,
+                    fontSize: TYPOGRAPHY.fontSize.base,
+                    backgroundColor: COLORS.secondary[50],
                   }}
                 />
                 {errors.lastName && (
@@ -710,6 +778,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                     color: COLORS.error[600],
                     fontSize: TYPOGRAPHY.fontSize.sm,
                     marginTop: SPACING.xs,
+                    fontWeight: TYPOGRAPHY.fontWeight.medium,
                   }}>
                     {errors.lastName}
                   </Text>
@@ -720,7 +789,14 @@ export const SignupForm: React.FC<SignupFormProps> = ({
 
           {/* Email Field */}
           <View>
-            <Label htmlFor="email">Email Address</Label>
+            <Label htmlFor="email" style={{
+              fontSize: TYPOGRAPHY.fontSize.base,
+              fontWeight: TYPOGRAPHY.fontWeight.semibold,
+              color: COLORS.secondary[700],
+              marginBottom: SPACING.sm,
+            }}>
+              Email Address
+            </Label>
             <Input
               placeholder="Enter your email"
               value={formData.email}
@@ -734,6 +810,12 @@ export const SignupForm: React.FC<SignupFormProps> = ({
               accessibilityLabel="Email address input"
               style={{
                 borderColor: errors.email ? COLORS.error[500] : COLORS.secondary[300],
+                borderWidth: 2,
+                borderRadius: 12,
+                paddingHorizontal: SPACING.md,
+                paddingVertical: SPACING.md,
+                fontSize: TYPOGRAPHY.fontSize.base,
+                backgroundColor: COLORS.secondary[50],
               }}
             />
             {errors.email && (
@@ -741,6 +823,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                 color: COLORS.error[600],
                 fontSize: TYPOGRAPHY.fontSize.sm,
                 marginTop: SPACING.xs,
+                fontWeight: TYPOGRAPHY.fontWeight.medium,
               }}>
                 {errors.email}
               </Text>
@@ -870,11 +953,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                     accessibilityLabel="Accept terms and conditions"
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={{
-                      fontSize: TYPOGRAPHY.fontSize.sm,
-                      color: COLORS.secondary[700],
-                      lineHeight: TYPOGRAPHY.lineHeight.relaxed,
-                    }}>
+                    <Text style={styles.checkboxLabel}>
                       I agree to the{' '}
                       <TouchableOpacity
                         onPress={onTermsPress}
@@ -933,12 +1012,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                   testID={`${testID}-marketing-checkbox`}
                   accessibilityLabel="Subscribe to marketing communications"
                 />
-                <Text style={{
-                  flex: 1,
-                  fontSize: TYPOGRAPHY.fontSize.sm,
-                  color: COLORS.secondary[700],
-                  lineHeight: TYPOGRAPHY.lineHeight.relaxed,
-                }}>
+                <Text style={styles.checkboxLabel}>
                   I would like to receive marketing communications and updates
                 </Text>
               </View>
@@ -953,14 +1027,22 @@ export const SignupForm: React.FC<SignupFormProps> = ({
             testID={`${testID}-submit-button`}
             accessibilityLabel={`${buttonText} button`}
             style={{
-              marginTop: SPACING.sm,
-              backgroundColor: COLORS.primary[600],
+              marginTop: SPACING.lg,
+              backgroundColor: isLoading || disabled ? COLORS.secondary[400] : COLORS.primary[600],
+              borderRadius: 12,
+              paddingVertical: SPACING.md,
+              shadowColor: COLORS.primary[600],
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 4,
             }}
           >
             <Text style={{
               color: COLORS.white,
-              fontSize: TYPOGRAPHY.fontSize.base,
-              fontWeight: TYPOGRAPHY.fontWeight.semibold,
+              fontSize: TYPOGRAPHY.fontSize.lg,
+              fontWeight: TYPOGRAPHY.fontWeight.bold,
+              textAlign: 'center',
             }}>
               {isLoading ? 'Creating Account...' : buttonText}
             </Text>

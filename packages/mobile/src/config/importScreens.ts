@@ -8,22 +8,22 @@
 import { registerScreen } from './registry';
 
 // Import existing screens
-import HomeScreen from '../screens/HomeScreen';
+import HomeNavigation from '../screens/HomeScreen/HomeNavigation'; // Use HomeNavigation instead of HomeScreen
 import SettingsScreen from '../screens/SettingsScreen';
-import TemplateIndexScreen from '../screens/TemplateIndexScreen';
+// import TemplateIndexScreen from '../screens/TemplateIndexScreen'; // Removed from navigation
 
 // Import Wix screens
 import CartScreen from '../screens/wix/CartScreen';
 import MemberAuthScreen from '../screens/wix/MemberAuthScreen';
 import ProductDetailScreen from '../screens/wix/ProductDetailScreen';
-import ProductListScreen from '../screens/wix/ProductListScreen';
+import ProductsNavigation from '../screens/wix/navigation/ProductsNavigation'; // Use ProductsNavigation instead of ProductListScreen
 
 // Import demo screens
-import AuthDemoScreen from '../screens/AuthDemoScreen';
+
 import ComponentsShowcaseScreen from '../screens/ComponentsShowcaseScreen';
 
 // Register existing screens
-registerScreen(HomeScreen, {
+registerScreen(HomeNavigation, {
   name: 'Home',
   shortName: 'Home',
   icon: '🏠',
@@ -34,16 +34,17 @@ registerScreen(HomeScreen, {
   tags: ['main', 'dashboard', 'navigation']
 });
 
-registerScreen(TemplateIndexScreen, {
-  name: 'Templates',
-  shortName: 'Templates',
-  icon: '📱',
-  category: 'Core',
-  hasTab: true,
-  tabPosition: 2,
-  description: 'Browse available screen templates',
-  tags: ['templates', 'examples', 'screens']
-});
+// TemplateIndexScreen registration removed - not needed in bottom navigation
+// registerScreen(TemplateIndexScreen, {
+//   name: 'Templates',
+//   shortName: 'Templates',
+//   icon: '📱',
+//   category: 'Core',
+//   hasTab: true,
+//   tabPosition: 2,
+//   description: 'Browse available screen templates',
+//   tags: ['templates', 'examples', 'screens']
+// });
 
 registerScreen(SettingsScreen, {
   name: 'Settings',
@@ -51,21 +52,21 @@ registerScreen(SettingsScreen, {
   icon: '⚙️',
   category: 'Core',
   hasTab: true,
-  tabPosition: 3,
+  tabPosition: 7,
   description: 'App configuration and preferences',
   tags: ['settings', 'config', 'preferences']
 });
 
 // Register Wix screens
-registerScreen(ProductListScreen, {
-  name: 'Wix Products',
-  shortName: 'Products',
+registerScreen(ProductsNavigation, {
+  name: 'Wix Store',
+  shortName: 'Store',
   icon: '🛍️',
   category: 'Wix',
   hasTab: true,
   tabPosition: 4,
-  description: 'Wix e-commerce product listing',
-  tags: ['wix', 'products', 'ecommerce']
+  description: 'Wix e-commerce product listing with navigation',
+  tags: ['wix', 'products', 'ecommerce', 'store', 'navigation']
 });
 
 registerScreen(CartScreen, {
@@ -90,16 +91,7 @@ registerScreen(MemberAuthScreen, {
   tags: ['wix', 'auth', 'members']
 });
 
-registerScreen(AuthDemoScreen, {
-  name: 'Auth Demo',
-  shortName: 'Auth', // Short text
-  icon: '🔐',
-  category: 'Demo',
-  hasTab: true,
-  tabPosition: 7,
-  description: 'Showcase of new authentication block components',
-  tags: ['demo', 'components', 'auth', 'forms', 'blocks']
-});
+
 
 registerScreen(ComponentsShowcaseScreen, {
   name: 'Component Library',
@@ -115,12 +107,10 @@ registerScreen(ComponentsShowcaseScreen, {
 // Log registered screens summary
 console.log('📱 Screen Registration Complete:');
 console.log('   🏠  Home (1): Main dashboard and navigation hub');
-console.log('   📱  Templates (2): Template system browser and examples');
-console.log('   ⚙️  Settings (3): Configuration and preferences');
-console.log('   🛍️  Wix Products (4): E-commerce product listings');
+console.log('   🛍️  Wix Store (4): E-commerce product listings');
 console.log('   🛒  Wix Cart (5): Shopping cart and checkout');
 console.log('   👤  Wix Auth (6): Member authentication and profiles');
-console.log('   🔐  Auth Demo (7): NEW! Authentication block components showcase');
-console.log('   🎨  Component Library (8): NEW! Complete component library showcase');
+console.log('   ⚙️  Settings (7): Configuration and preferences');
+console.log('   🎨  Component Library (8): Complete component library showcase');
 console.log('');
-console.log('🎯 Total: 8 screens registered (2 new component showcases)'); 
+console.log('🎯 Total: 6 screens registered with updated navigation order'); 
