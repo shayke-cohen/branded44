@@ -9,8 +9,23 @@
  * @version 1.0.0
  */
 
+// === AUTHENTICATION TEMPLATES ===
+export * from './auth';
+
+// === PROFILE TEMPLATES ===
+export * from './profile';
+
+// === HOME TEMPLATES ===
+export * from './home';
+
 // === E-COMMERCE TEMPLATES ===
 export * from './ecommerce';
+
+// === COMMUNICATION TEMPLATES ===
+export * from './communication';
+
+// === BUSINESS TEMPLATES ===
+export * from './business';
 
 // === SHARED TYPES AND CONSTANTS ===
 export { COLORS, SPACING, TYPOGRAPHY } from '../../lib/constants';

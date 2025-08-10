@@ -641,22 +641,104 @@ File structure: src/components/templates/communication/[screen-name].tsx
 #### ✅ Task 3.6.1: Business App Templates
 **LLM Prompt**:
 ```
-Create these 12 business template components:
+Create these 3 core business template components:
 
-1. **CalendarScreen** - Calendar view using EventList
-2. **EventDetailsScreen** - Event information
-3. **CreateEventScreen** - Add new event
-4. **BookingScreen** - Appointment booking using BookingForm
-5. **TaskListScreen** - To-do management using TaskCard
-6. **ProjectScreen** - Project overview using ProjectCard
-7. **TimeTrackingScreen** - Work hours using TimeTracker
-8. **ExpenseScreen** - Expense tracking using ExpenseForm
-9. **InvoiceScreen** - Billing using InvoiceTemplate
-10. **ClientScreen** - Customer management using ClientCard
-11. **TeamScreen** - Employee management using TeamMember
-12. **ReportsScreen** - Analytics dashboard using various chart blocks
+1. **CalendarScreen** - Calendar view with month/week/day views and event management
+2. **EventDetailsScreen** - Event information with RSVP and attendee management  
+3. **CreateEventScreen** - Add/edit events with full form functionality
 
 File structure: src/components/templates/business/[screen-name].tsx
+```
+
+### 🏢 3.7 Booking & Service Templates (NEW CATEGORY)
+
+#### 🔄 Task 3.7.1: Service Provider Blocks (PRIORITY: HIGH)
+**LLM Prompt**:
+```
+Create these 8 booking and service-related block components:
+
+1. **ServiceCard** - Service display with pricing, duration, description
+2. **ServiceProviderCard** - Provider profile with ratings, specialties, availability
+3. **BookingCalendar** - Available time slots with provider schedule integration
+4. **TimeSlotGrid** - Visual time slot selection with availability indicators
+5. **BookingForm** - Complete booking form with customer details and preferences
+6. **BookingSummary** - Booking confirmation with service, time, provider, and pricing
+7. **AppointmentCard** - Individual appointment display with status and actions
+8. **ReviewCard** - Customer reviews with ratings and photos
+
+Requirements:
+- Use React Native Reusables: Card, Button, Calendar, etc.
+- Support multiple service types (appointments, classes, consultations, etc.)
+- Include pricing tiers and duration options
+- Provider availability and booking rules
+- Customer review and rating integration
+- Payment method integration readiness
+
+File structure: src/components/blocks/booking/[component-name].tsx
+```
+
+#### 🔄 Task 3.7.2: Additional Service Blocks
+**LLM Prompt**:
+```
+Create these 6 additional service and booking components:
+
+1. **ClassScheduleCard** - Group classes with capacity and enrollment
+2. **RecurringBookingForm** - Recurring appointment setup (weekly, monthly, etc.)
+3. **CancellationPolicy** - Service cancellation terms and fee display
+4. **WaitlistCard** - Join waitlist for fully booked slots
+5. **PackageCard** - Service packages and membership tiers
+6. **ResourceBookingCard** - Equipment/room booking (separate from services)
+
+Focus on advanced booking scenarios and business rules.
+```
+
+#### 🔄 Task 3.7.3: Booking & Service Templates
+**LLM Prompt**:
+```
+Create these 10 booking and service template components:
+
+1. **ServicesScreen** - Browse available services with categories and search
+2. **ServiceDetailsScreen** - Detailed service view with provider info and booking CTA
+3. **ProvidersScreen** - Browse service providers with filters and ratings
+4. **ProviderDetailsScreen** - Provider profile with services, reviews, and availability
+5. **BookingScreen** - Complete booking flow with service, provider, and time selection
+6. **BookingConfirmationScreen** - Booking success with details and next steps
+7. **MyBookingsScreen** - Customer's upcoming and past appointments
+8. **BookingDetailsScreen** - Individual booking details with modify/cancel options
+9. **ClassesScreen** - Group classes and workshops with enrollment
+10. **ReviewsScreen** - Leave and view reviews for services and providers
+
+Requirements:
+- Use booking blocks from src/components/blocks/booking/
+- Full booking flow from discovery to confirmation
+- Customer management and booking history
+- Provider availability and scheduling
+- Review and rating systems
+- Payment integration readiness
+- Cancellation and rescheduling flows
+
+File structure: src/components/templates/booking/[screen-name].tsx
+```
+
+#### 🔄 Task 3.7.4: Service Business Flows
+**LLM Prompt**:
+```
+Create these 5 service business flow components:
+
+1. **ServiceDiscoveryFlow** - Browse → Filter → Service → Provider → Book → Confirm
+2. **BookingManagementFlow** - View bookings → Modify → Reschedule → Cancel → Refund
+3. **ProviderOnboardingFlow** - Register → Profile → Services → Availability → Payment → Live
+4. **ReviewFlow** - Service completion → Rating → Review → Photos → Submit → Thank you
+5. **ClassEnrollmentFlow** - Browse classes → Details → Schedule → Enroll → Payment → Confirmation
+
+Requirements:
+- Multi-step booking processes
+- Provider and customer user journeys
+- Payment processing integration points
+- Notification and reminder systems
+- Cancellation and refund handling
+
+File structure: src/components/flows/booking/[flow-name].tsx
 ```
 
 ---

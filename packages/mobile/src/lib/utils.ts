@@ -281,12 +281,16 @@ export function validateField(value: any, rules: Array<{
  * @returns Formatted date string
  */
 export function formatDate(
-  date: string | Date,
-  format: 'short' | 'long' | 'relative' | 'time' = 'short'
+  date: string | Date | null | undefined,
+  format: 'short' | 'long' | 'relative' | 'time' | string = 'short'
 ): string {
+  if (!date) {
+    return 'No date';
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  if (isNaN(dateObj.getTime())) {
+  if (!dateObj || isNaN(dateObj.getTime())) {
     return 'Invalid Date';
   }
 
@@ -314,9 +318,57 @@ export function formatDate(
       });
     
     case 'short':
+      return dateObj.toLocaleDateString();
+    
+    // Custom format strings
+    case 'YYYY-MM-DD':
+      return dateObj.toISOString().split('T')[0];
+    
+    case 'MMM DD, YYYY':
+      return dateObj.toLocaleDateString([], { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    
+    case 'MMM DD':
+      return dateObj.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    
+    case 'MMM DD, HH:mm':
+      const datePart = dateObj.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      const timePart = dateObj.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false 
+      });
+      return `${datePart}, ${timePart}`;
+    
+    case 'HH:mm':
+      return dateObj.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false 
+      });
+    
     default:
       return dateObj.toLocaleDateString();
   }
+}
+
+/**
+ * Formats time for display (alias for formatDate with time format)
+ * 
+ * @param date - Date object or date string
+ * @returns Formatted time string
+ */
+export function formatTime(date: string | Date): string {
+  return formatDate(date, 'HH:mm');
 }
 
 /**

@@ -32,6 +32,7 @@ module.exports = {
   // Mock specific modules that cause issues
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^~/(.*)$': '<rootDir>/~/$1',
     '^react-native-webview$': '<rootDir>/src/test/__mocks__/react-native-webview.js',
   },
   

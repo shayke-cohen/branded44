@@ -32,6 +32,28 @@ export type { OTPVerificationFormProps } from './OTPVerificationForm';
 export { default as ProfileCard } from './ProfileCard';
 export type { ProfileCardProps } from './ProfileCard';
 
+export { default as ProfileEditForm } from './ProfileEditForm';
+export type { ProfileEditFormProps } from './ProfileEditForm';
+
+// === SETTINGS AND PREFERENCES ===
+
+export { default as SettingsPanel } from './SettingsPanel';
+export type { SettingsPanelProps } from './SettingsPanel';
+
+export { default as SecuritySettings } from './SecuritySettings';
+export type { SecuritySettingsProps } from './SecuritySettings';
+
+export { default as NotificationSettings } from './NotificationSettings';
+export type { NotificationSettingsProps } from './NotificationSettings';
+
+// === SUBSCRIPTION AND ROLES ===
+
+export { default as SubscriptionCard } from './SubscriptionCard';
+export type { SubscriptionCardProps, SubscriptionPlan, SubscriptionData } from './SubscriptionCard';
+
+export { default as UserRoleSelector } from './UserRoleSelector';
+export type { UserRoleSelectorProps, RolePermission, RoleConfig } from './UserRoleSelector';
+
 // === SOCIAL AUTHENTICATION ===
 
 export { default as SocialLoginButtons } from './SocialLoginButtons';

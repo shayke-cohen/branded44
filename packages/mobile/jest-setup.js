@@ -20,6 +20,15 @@ global.Alert = {
 // Mock console to reduce noise
 global.__DEV__ = true;
 
+// Mock performance.now for timing tests with more realistic timing
+let performanceCallCount = 0;
+global.performance = global.performance || {};
+global.performance.now = jest.fn(() => {
+  performanceCallCount++;
+  // Return increasing values to simulate time passing
+  return performanceCallCount * 10; // Each call adds 10ms
+});
+
 // Silence the warning: Animated: `useNativeDriver` is not supported
 jest.mock('react-native/Libraries/Animated/src/NativeAnimatedHelper', () => ({}), {
   virtual: true,
@@ -58,43 +67,83 @@ jest.mock('@react-native-cookies/cookies', () => ({
   },
 }));
 
-// Mock react-native-reanimated
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: {
-    View: require('react-native').View,
-    Text: require('react-native').Text,
-    ScrollView: require('react-native').ScrollView,
-    FlatList: require('react-native').FlatList,
-    Image: require('react-native').Image,
-    createAnimatedComponent: (component) => component,
-    interpolate: jest.fn(),
-    Extrapolation: {
-      EXTEND: 'extend',
-      CLAMP: 'clamp',
-      IDENTITY: 'identity',
+// Mock useColorScheme
+jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
+  useColorScheme: jest.fn(() => 'light'),
+}), {
+  virtual: true,
+});
+
+// Mock our custom useColorScheme hook directly
+jest.mock('./~/lib/useColorScheme', () => ({
+  useColorScheme: jest.fn(() => ({ colorScheme: 'light' })),
+}));
+
+// Mock React Navigation
+jest.mock('@react-navigation/native', () => ({
+  useTheme: jest.fn(() => ({
+    colors: {
+      primary: '#007AFF',
+      background: '#FFFFFF',
+      card: '#F2F2F7',
+      text: '#000000',
+      border: '#C7C7CC',
+      notification: '#FF3B30',
     },
-  },
-  useSharedValue: jest.fn(() => ({ value: 0 })),
-  useAnimatedStyle: jest.fn(() => ({})),
-  useAnimatedScrollHandler: jest.fn(() => jest.fn()),
-  useDerivedValue: jest.fn(),
-  useAnimatedGestureHandler: jest.fn(() => jest.fn()),
-  useAnimatedReaction: jest.fn(),
-  withTiming: jest.fn((value) => value),
-  withSpring: jest.fn((value) => value),
-  withDelay: jest.fn((_, value) => value),
-  withSequence: jest.fn((...values) => values[values.length - 1]),
-  withRepeat: jest.fn((value) => value),
-  cancelAnimation: jest.fn(),
-  measure: jest.fn(),
-  Easing: {
-    linear: jest.fn(),
-    ease: jest.fn(),
-    quad: jest.fn(),
-    cubic: jest.fn(),
-    bezier: jest.fn(),
-  },
-  runOnJS: jest.fn((fn) => fn),
-  runOnUI: jest.fn((fn) => fn),
-})); 
+    dark: false,
+  })),
+  useNavigation: jest.fn(() => ({
+    navigate: jest.fn(),
+    goBack: jest.fn(),
+  })),
+  useFocusEffect: jest.fn(),
+}), {
+  virtual: true,
+});
+
+// Mock Wix API Client
+jest.mock('./src/utils/wixApiClient', () => {
+  const mockWixApiClient = {
+    isMemberLoggedIn: jest.fn().mockResolvedValue(false),
+    getMemberData: jest.fn().mockResolvedValue({
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'user',
+      isVerified: true
+    }),
+    initializeWixClient: jest.fn().mockResolvedValue(undefined),
+    getProducts: jest.fn().mockResolvedValue([]),
+    getCartData: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+  };
+  
+  return {
+    wixApiClient: mockWixApiClient,
+    default: mockWixApiClient,
+    ...mockWixApiClient, // Export all functions directly as well
+  };
+}, { virtual: true });
+
+// Mock react-native-reanimated for testing
+jest.mock('react-native-reanimated', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: {
+      View,
+      Text,
+      createAnimatedComponent: (component) => component,
+    },
+    useAnimatedStyle: () => ({}),
+    useDerivedValue: (fn) => ({ value: fn() }),
+    useSharedValue: (initial) => ({ value: initial }),
+    withSpring: (value) => value,
+    withTiming: (value) => value,
+    interpolate: (value, input, output) => output[0],
+    Extrapolation: { CLAMP: 'clamp' },
+    FadeIn: {},
+    FadeOut: {},
+    runOnJS: (fn) => fn,
+    runOnUI: (fn) => fn,
+  };
+}); 

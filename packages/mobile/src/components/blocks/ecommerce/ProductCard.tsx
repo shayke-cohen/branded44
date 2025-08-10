@@ -1,638 +1,907 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
-import { Button } from '../../../../~/components/ui/button';
-import { Card } from '../../../../~/components/ui/card';
-import { COLORS, SPACING, TYPOGRAPHY } from '../../../lib/constants';
-import { cn } from '../../../lib/utils';
-import type { BaseComponentProps } from '../../../lib/types';
-
 /**
- * Product data interface (detailed version)
- */
-export interface ProductCardData {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  originalPrice?: number;
-  currency?: string;
-  images: string[];
-  category?: string;
-  brand?: string;
-  rating?: number;
-  reviewCount?: number;
-  inStock?: boolean;
-  stockCount?: number;
-  tags?: string[];
-  isWishlisted?: boolean;
-  discount?: number;
-  features?: string[];
-  variants?: {
-    size?: string[];
-    color?: string[];
-  };
-}
-
-/**
- * Properties for the ProductCard component
- */
-export interface ProductCardProps extends BaseComponentProps {
-  /** Product data to display */
-  product: ProductCardData;
-  /** Callback when product is selected */
-  onPress?: () => void;
-  /** Callback when add to cart is pressed */
-  onAddToCart?: (product: ProductCardData) => Promise<void>;
-  /** Callback when wishlist is toggled */
-  onToggleWishlist?: (product: ProductCardData) => Promise<void>;
-  /** Callback when quick view is pressed */
-  onQuickView?: (product: ProductCardData) => void;
-  /** Card layout variant */
-  variant?: 'compact' | 'standard' | 'detailed';
-  /** Show wishlist button */
-  showWishlist?: boolean;
-  /** Show add to cart button */
-  showAddToCart?: boolean;
-  /** Show quick view button */
-  showQuickView?: boolean;
-  /** Show product rating */
-  showRating?: boolean;
-  /** Show product features */
-  showFeatures?: boolean;
-  /** Maximum width of card */
-  maxWidth?: number;
-}
-
-/**
- * ProductCard - AI-optimized individual product card component
+ * ProductCard Block Component - AI-Optimized React Native Component Library
  * 
- * A comprehensive product card with multiple layouts, wishlist functionality,
- * ratings, stock indicators, and add to cart functionality. Perfect for e-commerce.
+ * A comprehensive product card component for e-commerce applications,
+ * displaying product information, pricing, ratings, and purchase actions.
+ * 
+ * Features:
+ * - Product image with multiple image support
+ * - Price display with discounts and sales
+ * - Star ratings and review counts
+ * - Wishlist toggle functionality
+ * - Add to cart with quick actions
+ * - Stock availability indicators
+ * - Product badges (new, sale, bestseller)
+ * - Variant previews (colors, sizes)
+ * - Accessibility support
  * 
  * @example
  * ```tsx
  * <ProductCard
  *   product={productData}
- *   onPress={() => navigateToProduct()}
- *   onAddToCart={(product) => addToCart(product)}
- *   onToggleWishlist={(product) => toggleWishlist(product)}
- *   variant="detailed"
- *   showWishlist={true}
+ *   onPress={() => navigateToProduct(product.id)}
+ *   onAddToCart={() => addToCart(product.id)}
+ *   onToggleWishlist={() => toggleWishlist(product.id)}
  *   showRating={true}
+ *   showWishlist={true}
+ *   layout="grid"
  * />
  * ```
+ * 
+ * @author AI Component System
+ * @version 1.0.0
  */
-const ProductCard: React.FC<ProductCardProps> = ({
+
+import React, { useState, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Image, 
+  Dimensions
+} from 'react-native';
+import { Card } from '../../../../~/components/ui/card';
+import { Button } from '../../../../~/components/ui/button';
+import { Badge } from '../../../../~/components/ui/badge';
+import { COLORS, SPACING, TYPOGRAPHY } from '../../../lib/constants';
+import { formatCurrency, cn } from '../../../lib/utils';
+import type { BaseComponentProps } from '../../../lib/types';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/**
+ * Product variant preview
+ */
+export interface ProductVariantPreview {
+  /** Variant ID */
+  id: string;
+  /** Variant type */
+  type: 'color' | 'size' | 'style';
+  /** Display value */
+  value: string;
+  /** Color hex code (for color variants) */
+  color?: string;
+  /** Available stock for this variant */
+  stock?: number;
+  /** Whether variant is available */
+  available: boolean;
+}
+
+/**
+ * Product rating information
+ */
+export interface ProductRating {
+  /** Average rating (0-5) */
+  average: number;
+  /** Total number of reviews */
+  count: number;
+  /** Rating distribution */
+  distribution?: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+}
+
+/**
+ * Product pricing information
+ */
+export interface ProductPricing {
+  /** Current price */
+  current: number;
+  /** Original price (for discounts) */
+  original?: number;
+  /** Currency code */
+  currency: string;
+  /** Discount percentage */
+  discountPercentage?: number;
+  /** Whether product is on sale */
+  onSale: boolean;
+}
+
+/**
+ * Product badge information
+ */
+export interface ProductBadge {
+  /** Badge type */
+  type: 'new' | 'sale' | 'bestseller' | 'limited' | 'exclusive' | 'custom';
+  /** Badge label */
+  label: string;
+  /** Badge color */
+  color?: string;
+  /** Badge icon */
+  icon?: string;
+}
+
+/**
+ * Product data structure
+ */
+export interface Product {
+  /** Unique product identifier */
+  id: string;
+  /** Product name */
+  name: string;
+  /** Product description */
+  description?: string;
+  /** Product images */
+  images: string[];
+  /** Product pricing */
+  pricing: ProductPricing;
+  /** Product rating */
+  rating?: ProductRating;
+  /** Product variants */
+  variants?: ProductVariantPreview[];
+  /** Product badges */
+  badges?: ProductBadge[];
+  /** Stock availability */
+  inStock: boolean;
+  /** Available stock count */
+  stockCount?: number;
+  /** Product category */
+  category?: string;
+  /** Product brand */
+  brand?: string;
+  /** Product SKU */
+  sku?: string;
+  /** Whether product is in wishlist */
+  inWishlist?: boolean;
+  /** Whether product is new */
+  isNew?: boolean;
+  /** Whether product is featured */
+  isFeatured?: boolean;
+  /** Shipping information */
+  shipping?: {
+    free: boolean;
+    cost?: number;
+    estimatedDays?: number;
+  };
+  /** Custom metadata */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Props for the ProductCard component
+ */
+export interface ProductCardProps extends BaseComponentProps {
+  /** Product data */
+  product: Product;
+  /** Callback when product is pressed */
+  onPress?: () => void;
+  /** Callback when add to cart is pressed */
+  onAddToCart?: () => void;
+  /** Callback when wishlist is toggled */
+  onToggleWishlist?: () => void;
+  /** Callback when quick view is requested */
+  onQuickView?: () => void;
+  /** Callback when variant is selected */
+  onVariantSelect?: (variant: ProductVariantPreview) => void;
+  /** Whether to show rating */
+  showRating?: boolean;
+  /** Whether to show wishlist button */
+  showWishlist?: boolean;
+  /** Whether to show add to cart button */
+  showAddToCart?: boolean;
+  /** Whether to show quick view button */
+  showQuickView?: boolean;
+  /** Whether to show product variants */
+  showVariants?: boolean;
+  /** Whether to show stock information */
+  showStock?: boolean;
+  /** Whether to show product badges */
+  showBadges?: boolean;
+  /** Whether to show shipping info */
+  showShipping?: boolean;
+  /** Layout type */
+  layout?: 'grid' | 'list' | 'compact';
+  /** Card width (for grid layout) */
+  width?: number;
+  /** Image aspect ratio */
+  imageAspectRatio?: number;
+  /** Loading state for actions */
+  loading?: boolean;
+  /** Whether product is selected (for bulk operations) */
+  selected?: boolean;
+  /** Callback when selection changes */
+  onSelectionChange?: (selected: boolean) => void;
+  /** Custom action buttons */
+  actionButtons?: Array<{
+    id: string;
+    label: string;
+    icon?: string;
+    onPress: () => void;
+    variant?: 'default' | 'outline' | 'ghost';
+  }>;
+}
+
+// =============================================================================
+// COMPONENT
+// =============================================================================
+
+/**
+ * ProductCard component for displaying product information
+ */
+export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onPress,
   onAddToCart,
   onToggleWishlist,
   onQuickView,
-  variant = 'standard',
+  onVariantSelect,
+  showRating = true,
   showWishlist = true,
   showAddToCart = true,
   showQuickView = false,
-  showRating = true,
-  showFeatures = false,
-  maxWidth,
+  showVariants = true,
+  showStock = true,
+  showBadges = true,
+  showShipping = true,
+  layout = 'grid',
+  width,
+  imageAspectRatio = 1,
+  loading = false,
+  selected = false,
+  onSelectionChange,
+  actionButtons = [],
   style,
   testID = 'product-card',
   ...props
 }) => {
+  // =============================================================================
+  // STATE
+  // =============================================================================
+
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
 
-  /**
-   * Formats price with currency
-   */
-  const formatPrice = (price: number, currency: string = '$') => {
-    return `${currency}${price.toFixed(2)}`;
-  };
+  // =============================================================================
+  // COMPUTED VALUES
+  // =============================================================================
 
-  /**
-   * Calculates discount percentage
-   */
-  const getDiscountPercentage = () => {
-    if (!product.originalPrice || product.originalPrice <= product.price) return 0;
-    return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-  };
+  const cardWidth = width || (layout === 'grid' ? (SCREEN_WIDTH - SPACING.lg * 3) / 2 : SCREEN_WIDTH - SPACING.lg * 2);
+  const imageHeight = cardWidth * imageAspectRatio;
+  const isListLayout = layout === 'list';
+  const isCompactLayout = layout === 'compact';
 
-  /**
-   * Handles add to cart action
-   */
-  const handleAddToCart = async () => {
-    if (!onAddToCart || !product.inStock) return;
+  const hasDiscount = product.pricing.original && product.pricing.original > product.pricing.current;
+  const savings = hasDiscount ? product.pricing.original! - product.pricing.current : 0;
 
+  // =============================================================================
+  // HANDLERS
+  // =============================================================================
+
+  const handlePress = useCallback(() => {
+    onPress?.();
+  }, [onPress]);
+
+  const handleAddToCart = useCallback(async () => {
+    if (isAddingToCart || loading) return;
+    
     setIsAddingToCart(true);
     try {
-      await onAddToCart(product);
-      Alert.alert('Added to Cart', `${product.name} has been added to your cart.`, [
-        { text: 'OK' }
-      ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add item to cart. Please try again.', [
-        { text: 'OK' }
-      ]);
+      await onAddToCart?.();
     } finally {
       setIsAddingToCart(false);
     }
-  };
+  }, [isAddingToCart, loading, onAddToCart]);
 
-  /**
-   * Handles wishlist toggle
-   */
-  const handleToggleWishlist = async () => {
-    if (!onToggleWishlist) return;
+  const handleToggleWishlist = useCallback(() => {
+    onToggleWishlist?.();
+  }, [onToggleWishlist]);
 
-    setIsTogglingWishlist(true);
-    try {
-      await onToggleWishlist(product);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update wishlist. Please try again.', [
-        { text: 'OK' }
-      ]);
-    } finally {
-      setIsTogglingWishlist(false);
+  const handleQuickView = useCallback(() => {
+    onQuickView?.();
+  }, [onQuickView]);
+
+  const handleVariantSelect = useCallback((variant: ProductVariantPreview) => {
+    onVariantSelect?.(variant);
+  }, [onVariantSelect]);
+
+  const handleSelectionChange = useCallback(() => {
+    onSelectionChange?.(!selected);
+  }, [onSelectionChange, selected]);
+
+  const handleImagePress = useCallback(() => {
+    if (product.images.length > 1) {
+      const nextIndex = (currentImageIndex + 1) % product.images.length;
+      setCurrentImageIndex(nextIndex);
+    } else {
+      handlePress();
     }
-  };
+  }, [currentImageIndex, product.images.length, handlePress]);
 
-  /**
-   * Renders star rating
-   */
-  const renderRating = () => {
-    if (!showRating || !product.rating) return null;
+  // =============================================================================
+  // RENDER FUNCTIONS
+  // =============================================================================
 
-    const stars = [];
-    const fullStars = Math.floor(product.rating);
-    const hasHalfStar = product.rating % 1 !== 0;
-
-    for (let i = 0; i < 5; i++) {
-      if (i < fullStars) {
-        stars.push('★');
-      } else if (i === fullStars && hasHalfStar) {
-        stars.push('☆');
-      } else {
-        stars.push('☆');
-      }
-    }
+  const renderImage = () => {
+    const imageUri = product.images[currentImageIndex] || product.images[0];
 
     return (
-      <View style={styles.ratingContainer}>
-        <Text style={styles.stars}>{stars.join('')}</Text>
-        <Text style={styles.rating}>{product.rating.toFixed(1)}</Text>
-        {product.reviewCount && (
-          <Text style={styles.reviewCount}>({product.reviewCount})</Text>
-        )}
-      </View>
-    );
-  };
-
-  /**
-   * Renders product features
-   */
-  const renderFeatures = () => {
-    if (!showFeatures || !product.features || product.features.length === 0) return null;
-
-    return (
-      <View style={styles.featuresContainer}>
-        {product.features.slice(0, 3).map((feature, index) => (
-          <View key={index} style={styles.featureTag}>
-            <Text style={styles.featureText}>• {feature}</Text>
-          </View>
-        ))}
-        {product.features.length > 3 && (
-          <Text style={styles.moreFeatures}>+{product.features.length - 3} more</Text>
-        )}
-      </View>
-    );
-  };
-
-  /**
-   * Renders quick action buttons
-   */
-  const renderQuickActions = () => {
-    if (variant === 'compact') return null;
-
-    return (
-      <View style={styles.quickActions}>
-        {showQuickView && onQuickView && (
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => onQuickView(product)}
-            testID="quick-view-button"
-          >
-            <Text style={styles.quickActionIcon}>👁</Text>
-          </TouchableOpacity>
-        )}
-        
-        {showWishlist && onToggleWishlist && (
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={handleToggleWishlist}
-            disabled={isTogglingWishlist}
-            testID="wishlist-button"
-          >
-            <Text style={[
-              styles.quickActionIcon,
-              product.isWishlisted && styles.wishlistActive
-            ]}>
-              {product.isWishlisted ? '❤️' : '🤍'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
-
-  const discountPercentage = getDiscountPercentage();
-  const cardWidth = maxWidth ? { maxWidth } : {};
-
-  const styles = StyleSheet.create({
-    container: {
-      width: '100%',
-      ...cardWidth,
-    },
-    card: {
-      overflow: 'hidden',
-      borderRadius: 16,
-      backgroundColor: COLORS.white,
-      shadowColor: COLORS.secondary[900],
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 6,
-      borderWidth: 1,
-      borderColor: COLORS.secondary[100],
-      ...(variant === 'compact' ? { padding: SPACING.sm } : { padding: 0 }),
-    },
-    imageContainer: {
-      position: 'relative',
-      width: '100%',
-      height: variant === 'compact' ? 120 : variant === 'detailed' ? 250 : 200,
-      borderTopLeftRadius: 16,
-      borderTopRightRadius: 16,
-      overflow: 'hidden',
-    },
-    productImage: {
-      width: '100%',
-      height: '100%',
-      resizeMode: 'cover',
-    },
-    badges: {
-      position: 'absolute',
-      top: SPACING.md,
-      left: SPACING.md,
-      flexDirection: 'row',
-      gap: SPACING.sm,
-    },
-    discountBadge: {
-      backgroundColor: COLORS.error[600],
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm,
-      borderRadius: 16,
-      shadowColor: COLORS.error[600],
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    discountText: {
-      color: '#ffffff',
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-    },
-    stockBadge: {
-      backgroundColor: COLORS.warning[600],
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm,
-      borderRadius: 16,
-      shadowColor: COLORS.warning[600],
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    stockText: {
-      color: '#ffffff',
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-    },
-    quickActions: {
-      position: 'absolute',
-      top: SPACING.sm,
-      right: SPACING.sm,
-      flexDirection: 'column',
-      gap: SPACING.xs,
-    },
-    quickActionButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    quickActionIcon: {
-      fontSize: 16,
-    },
-    wishlistActive: {
-      transform: [{ scale: 1.1 }],
-    },
-    outOfStockOverlay: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      paddingVertical: SPACING.sm,
-      alignItems: 'center',
-    },
-    outOfStockText: {
-      color: '#ffffff',
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-    },
-    productInfo: {
-      padding: variant === 'compact' ? SPACING.md : SPACING.lg,
-    },
-    brand: {
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      color: COLORS.secondary[400],
-      fontWeight: TYPOGRAPHY.fontWeight.semibold,
-      textTransform: 'uppercase',
-      marginBottom: SPACING.sm,
-      letterSpacing: 0.5,
-    },
-    productName: {
-      fontSize: variant === 'compact' ? TYPOGRAPHY.fontSize.base : TYPOGRAPHY.fontSize.lg,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      color: COLORS.secondary[900],
-      marginBottom: SPACING.sm,
-      lineHeight: TYPOGRAPHY.lineHeight.tight,
-      letterSpacing: -0.3,
-    },
-    description: {
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      color: COLORS.neutral[600],
-      marginBottom: SPACING.sm,
-      lineHeight: TYPOGRAPHY.lineHeight.relaxed,
-    },
-    ratingContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.xs,
-      marginBottom: SPACING.sm,
-    },
-    stars: {
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      color: COLORS.warning[500],
-    },
-    rating: {
-      fontSize: TYPOGRAPHY.fontSize.xs,
-      color: COLORS.neutral[700],
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-    },
-    reviewCount: {
-      fontSize: TYPOGRAPHY.fontSize.xs,
-      color: COLORS.neutral[500],
-    },
-    featuresContainer: {
-      marginBottom: SPACING.sm,
-    },
-    featureTag: {
-      marginBottom: SPACING.xs,
-    },
-    featureText: {
-      fontSize: TYPOGRAPHY.fontSize.xs,
-      color: COLORS.neutral[600],
-    },
-    moreFeatures: {
-      fontSize: TYPOGRAPHY.fontSize.xs,
-      color: COLORS.primary[600],
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-    },
-    priceContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-      marginBottom: variant === 'compact' ? SPACING.xs : SPACING.md,
-    },
-    price: {
-      fontSize: variant === 'compact' ? TYPOGRAPHY.fontSize.lg : TYPOGRAPHY.fontSize.xl,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      color: COLORS.primary[600],
-    },
-    originalPrice: {
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      color: COLORS.neutral[500],
-      textDecorationLine: 'line-through',
-    },
-    stockInfo: {
-      marginBottom: SPACING.md,
-    },
-    lowStock: {
-      fontSize: TYPOGRAPHY.fontSize.xs,
-      color: COLORS.warning[600],
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-    },
-    inStock: {
-      fontSize: TYPOGRAPHY.fontSize.xs,
-      color: COLORS.success[600],
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-    },
-    actionsContainer: {
-      flexDirection: 'row',
-      gap: SPACING.sm,
-      marginTop: SPACING.sm,
-    },
-    addToCartButton: {
-      flex: 1,
-      backgroundColor: COLORS.primary[600],
-      paddingVertical: variant === 'compact' ? SPACING.md : SPACING.lg,
-      borderRadius: 12,
-      shadowColor: COLORS.primary[600],
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    addToCartButtonDisabled: {
-      backgroundColor: COLORS.secondary[300],
-      shadowOpacity: 0,
-      elevation: 0,
-    },
-    addToCartText: {
-      color: '#ffffff',
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-      textAlign: 'center',
-    },
-    addToCartTextDisabled: {
-      color: COLORS.neutral[600],
-    },
-    wishlistButtonLarge: {
-      paddingHorizontal: SPACING.md,
-      paddingVertical: variant === 'compact' ? SPACING.sm : SPACING.md,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: COLORS.neutral[300],
-      backgroundColor: '#ffffff',
-    },
-    wishlistButtonActive: {
-      borderColor: COLORS.error[600],
-      backgroundColor: COLORS.error[50],
-    },
-    wishlistTextLarge: {
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.medium,
-      color: COLORS.neutral[700],
-    },
-    wishlistTextActivearge: {
-      color: COLORS.error[600],
-    },
-  });
-
-  return (
-    <TouchableOpacity
-      style={[styles.container, style]}
-      onPress={onPress}
-      disabled={!onPress}
-      testID={testID}
-      {...props}
-    >
-      <Card style={styles.card}>
-        {/* Product Image */}
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: product.images[0] }}
-            style={styles.productImage}
-            resizeMode="cover"
-          />
-          
-          {/* Badges */}
-          <View style={styles.badges}>
-            {discountPercentage > 0 && (
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>-{discountPercentage}%</Text>
-              </View>
-            )}
-            
-            {product.inStock && product.stockCount && product.stockCount < 10 && (
-              <View style={styles.stockBadge}>
-                <Text style={styles.stockText}>Low Stock</Text>
-              </View>
-            )}
-          </View>
-          
-          {/* Quick Actions */}
-          {renderQuickActions()}
-          
-          {/* Out of Stock Overlay */}
-          {!product.inStock && (
-            <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>Out of Stock</Text>
+      <View style={styles.imageContainer}>
+        <TouchableOpacity
+          onPress={handleImagePress}
+          style={[styles.imageWrapper, { height: imageHeight }]}
+          activeOpacity={0.8}
+        >
+          {imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.imagePlaceholder, { height: imageHeight }]}>
+              <Text style={styles.imagePlaceholderText}>📦</Text>
             </View>
           )}
-        </View>
-        
-        {/* Product Info */}
-        <View style={styles.productInfo}>
-          {/* Brand */}
-          {product.brand && (
-            <Text style={styles.brand}>{product.brand}</Text>
+
+          {/* Image indicators */}
+          {product.images.length > 1 && (
+            <View style={styles.imageIndicators}>
+              {product.images.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.imageIndicator,
+                    index === currentImageIndex && styles.imageIndicatorActive
+                  ]}
+                />
+              ))}
+            </View>
           )}
-          
-          {/* Product Name */}
-          <Text style={styles.productName} numberOfLines={variant === 'compact' ? 1 : 2}>
+
+          {/* Selection checkbox */}
+          {onSelectionChange && (
+            <TouchableOpacity
+              onPress={handleSelectionChange}
+              style={styles.selectionButton}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected }}
+            >
+              <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                {selected && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Wishlist button */}
+          {showWishlist && (
+            <TouchableOpacity
+              onPress={handleToggleWishlist}
+              style={styles.wishlistButton}
+              accessibilityRole="button"
+              accessibilityLabel={product.inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Text style={[
+                styles.wishlistIcon,
+                product.inWishlist && styles.wishlistIconActive
+              ]}>
+                {product.inWishlist ? '❤️' : '🤍'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Quick view button */}
+          {showQuickView && !isCompactLayout && (
+            <TouchableOpacity
+              onPress={handleQuickView}
+              style={styles.quickViewButton}
+              accessibilityRole="button"
+              accessibilityLabel="Quick view"
+            >
+              <Text style={styles.quickViewIcon}>👁️</Text>
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+
+        {/* Badges */}
+        {showBadges && product.badges && product.badges.length > 0 && (
+          <View style={styles.badgesContainer}>
+            {product.badges.slice(0, 2).map((badge, index) => (
+              <Badge
+                key={index}
+                variant={badge.type === 'sale' ? 'destructive' : 'secondary'}
+                size="sm"
+                style={[
+                  styles.productBadge,
+                  badge.color && { backgroundColor: badge.color }
+                ]}
+              >
+                {badge.icon} {badge.label}
+              </Badge>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderProductInfo = () => {
+    return (
+      <View style={[styles.productInfo, isListLayout && styles.listProductInfo]}>
+        {/* Brand */}
+        {product.brand && !isCompactLayout && (
+          <Text style={styles.brandText}>{product.brand}</Text>
+        )}
+
+        {/* Product name */}
+        <TouchableOpacity onPress={handlePress}>
+          <Text 
+            style={styles.productName} 
+            numberOfLines={isCompactLayout ? 1 : 2}
+          >
             {product.name}
           </Text>
-          
-          {/* Description (detailed view only) */}
-          {variant === 'detailed' && product.description && (
-            <Text style={styles.description} numberOfLines={3}>
-              {product.description}
+        </TouchableOpacity>
+
+        {/* Description */}
+        {product.description && !isCompactLayout && layout !== 'grid' && (
+          <Text style={styles.productDescription} numberOfLines={2}>
+            {product.description}
+          </Text>
+        )}
+
+        {/* Rating */}
+        {showRating && product.rating && (
+          <View style={styles.ratingContainer}>
+            <View style={styles.stars}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Text
+                  key={star}
+                  style={[
+                    styles.star,
+                    star <= Math.round(product.rating!.average) && styles.starFilled
+                  ]}
+                >
+                  ⭐
+                </Text>
+              ))}
+            </View>
+            <Text style={styles.ratingText}>
+              {product.rating.average.toFixed(1)} ({product.rating.count})
+            </Text>
+          </View>
+        )}
+
+        {/* Variants */}
+        {showVariants && product.variants && product.variants.length > 0 && !isCompactLayout && (
+          <View style={styles.variantsContainer}>
+            {product.variants.slice(0, 5).map((variant) => (
+              <TouchableOpacity
+                key={variant.id}
+                onPress={() => handleVariantSelect(variant)}
+                style={[
+                  styles.variantOption,
+                  variant.type === 'color' && styles.colorVariant,
+                  !variant.available && styles.variantDisabled
+                ]}
+                disabled={!variant.available}
+              >
+                {variant.type === 'color' && variant.color ? (
+                  <View
+                    style={[
+                      styles.colorSwatch,
+                      { backgroundColor: variant.color }
+                    ]}
+                  />
+                ) : (
+                  <Text style={styles.variantText}>{variant.value}</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Price */}
+        <View style={styles.priceContainer}>
+          <Text style={styles.currentPrice}>
+            {formatCurrency(product.pricing.current, product.pricing.currency)}
+          </Text>
+          {hasDiscount && (
+            <Text style={styles.originalPrice}>
+              {formatCurrency(product.pricing.original!, product.pricing.currency)}
             </Text>
           )}
-          
-          {/* Rating */}
-          {renderRating()}
-          
-          {/* Features */}
-          {renderFeatures()}
-          
-          {/* Price */}
-          <View style={styles.priceContainer}>
-            <Text style={styles.price}>
-              {formatPrice(product.price, product.currency)}
-            </Text>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <Text style={styles.originalPrice}>
-                {formatPrice(product.originalPrice, product.currency)}
+          {product.pricing.discountPercentage && (
+            <Badge variant="destructive" size="sm" style={styles.discountBadge}>
+              -{product.pricing.discountPercentage}%
+            </Badge>
+          )}
+        </View>
+
+        {/* Savings */}
+        {hasDiscount && savings > 0 && !isCompactLayout && (
+          <Text style={styles.savingsText}>
+            Save {formatCurrency(savings, product.pricing.currency)}
+          </Text>
+        )}
+
+        {/* Stock status */}
+        {showStock && (
+          <View style={styles.stockContainer}>
+            {!product.inStock ? (
+              <Badge variant="destructive" size="sm">
+                Out of Stock
+              </Badge>
+            ) : product.stockCount && product.stockCount <= 5 ? (
+              <Badge variant="secondary" size="sm">
+                Only {product.stockCount} left
+              </Badge>
+            ) : (
+              <Badge variant="secondary" size="sm">
+                In Stock
+              </Badge>
+            )}
+          </View>
+        )}
+
+        {/* Shipping */}
+        {showShipping && product.shipping && !isCompactLayout && (
+          <View style={styles.shippingContainer}>
+            {product.shipping.free ? (
+              <Text style={styles.freeShippingText}>
+                🚚 Free shipping
+                {product.shipping.estimatedDays && ` • ${product.shipping.estimatedDays} days`}
+              </Text>
+            ) : (
+              <Text style={styles.shippingText}>
+                🚚 Shipping: {formatCurrency(product.shipping.cost!, product.pricing.currency)}
               </Text>
             )}
           </View>
-          
-          {/* Stock Info */}
-          {product.inStock && (
-            <View style={styles.stockInfo}>
-              {product.stockCount && product.stockCount < 10 ? (
-                <Text style={styles.lowStock}>
-                  Only {product.stockCount} left in stock
-                </Text>
-              ) : (
-                <Text style={styles.inStock}>✓ In Stock</Text>
-              )}
-            </View>
-          )}
-          
-          {/* Action Buttons */}
-          {(showAddToCart || (showWishlist && variant !== 'compact')) && (
-            <View style={styles.actionsContainer}>
-              {showAddToCart && onAddToCart && (
-                <Button
-                  onPress={handleAddToCart}
-                  disabled={!product.inStock || isAddingToCart}
-                  style={[
-                    styles.addToCartButton,
-                    (!product.inStock || isAddingToCart) && styles.addToCartButtonDisabled
-                  ]}
-                  testID="add-to-cart-button"
-                >
-                  <Text style={[
-                    styles.addToCartText,
-                    (!product.inStock || isAddingToCart) && styles.addToCartTextDisabled
-                  ]}>
-                    {isAddingToCart ? 'Adding...' : 
-                     !product.inStock ? 'Out of Stock' : 
-                     '🛒 Add to Cart'}
-                  </Text>
-                </Button>
-              )}
-              
-              {showWishlist && variant !== 'compact' && onToggleWishlist && (
-                <TouchableOpacity
-                  style={[
-                    styles.wishlistButtonLarge,
-                    product.isWishlisted && styles.wishlistButtonActive
-                  ]}
-                  onPress={handleToggleWishlist}
-                  disabled={isTogglingWishlist}
-                  testID="wishlist-button-large"
-                >
-                  <Text style={[
-                    styles.wishlistTextLarge,
-                    product.isWishlisted && styles.wishlistTextActivearge
-                  ]}>
-                    {product.isWishlisted ? '❤️' : '🤍'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+        )}
+      </View>
+    );
+  };
+
+  const renderActions = () => {
+    if (isCompactLayout) return null;
+
+    return (
+      <View style={styles.actionsContainer}>
+        {/* Add to cart */}
+        {showAddToCart && (
+          <Button
+            variant={product.inStock ? "default" : "outline"}
+            size="sm"
+            onPress={handleAddToCart}
+            disabled={!product.inStock || isAddingToCart}
+            style={[styles.addToCartButton, isListLayout && styles.listActionButton]}
+          >
+            {isAddingToCart ? '⏳' : '🛒'} {product.inStock ? 'Add to Cart' : 'Notify When Available'}
+          </Button>
+        )}
+
+        {/* Custom actions */}
+        {actionButtons.map((button) => (
+          <Button
+            key={button.id}
+            variant={button.variant || 'outline'}
+            size="sm"
+            onPress={button.onPress}
+            style={styles.actionButton}
+          >
+            {button.icon} {button.label}
+          </Button>
+        ))}
+      </View>
+    );
+  };
+
+  // =============================================================================
+  // MAIN RENDER
+  // =============================================================================
+
+  const containerStyle = [
+    styles.container,
+    isListLayout && styles.listContainer,
+    isCompactLayout && styles.compactContainer,
+    { width: cardWidth },
+    selected && styles.selectedContainer,
+    style
+  ];
+
+  const contentStyle = isListLayout ? styles.listContent : styles.gridContent;
+
+  return (
+    <Card style={containerStyle} testID={testID} {...props}>
+      <View style={contentStyle}>
+        {/* Product Image */}
+        {renderImage()}
+
+        {/* Product Info */}
+        {renderProductInfo()}
+      </View>
+
+      {/* Actions */}
+      {renderActions()}
+
+      {/* Loading overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
-      </Card>
-    </TouchableOpacity>
+      )}
+    </Card>
   );
 };
 
-export default ProductCard; 
+// =============================================================================
+// STYLES
+// =============================================================================
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: SPACING.md,
+    overflow: 'hidden',
+  },
+  listContainer: {
+    marginBottom: SPACING.sm,
+  },
+  compactContainer: {
+    marginBottom: SPACING.xs,
+  },
+  selectedContainer: {
+    borderColor: COLORS.info[500],
+    borderWidth: 2,
+  },
+  gridContent: {
+    flexDirection: 'column',
+  },
+  listContent: {
+    flexDirection: 'row',
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  imageWrapper: {
+    width: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    backgroundColor: COLORS.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePlaceholderText: {
+    fontSize: TYPOGRAPHY.fontSize.xl,
+  },
+  imageIndicators: {
+    position: 'absolute',
+    bottom: SPACING.sm,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+  },
+  imageIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  imageIndicatorActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  selectionButton: {
+    position: 'absolute',
+    top: SPACING.sm,
+    left: SPACING.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: COLORS.info[500],
+    borderColor: COLORS.info[500],
+  },
+  checkmark: {
+    color: COLORS.white,
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+  },
+  wishlistButton: {
+    position: 'absolute',
+    top: SPACING.sm,
+    right: SPACING.sm,
+    padding: SPACING.xs,
+  },
+  wishlistIcon: {
+    fontSize: TYPOGRAPHY.fontSize.lg,
+  },
+  wishlistIconActive: {
+    transform: [{ scale: 1.1 }],
+  },
+  quickViewButton: {
+    position: 'absolute',
+    bottom: SPACING.sm,
+    right: SPACING.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 16,
+    padding: SPACING.xs,
+  },
+  quickViewIcon: {
+    fontSize: TYPOGRAPHY.fontSize.sm,
+  },
+  badgesContainer: {
+    position: 'absolute',
+    top: SPACING.sm,
+    left: SPACING.sm,
+    right: SPACING.xl * 2,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+  },
+  productBadge: {
+    color: COLORS.white,
+  },
+  productInfo: {
+    padding: SPACING.md,
+    flex: 1,
+  },
+  listProductInfo: {
+    paddingLeft: SPACING.md,
+    paddingTop: 0,
+    flex: 1,
+  },
+  brandText: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.neutral[500],
+    marginBottom: SPACING.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  productName: {
+    fontSize: TYPOGRAPHY.fontSize.md,
+    fontWeight: TYPOGRAPHY.fontWeight.medium,
+    color: COLORS.neutral[900],
+    marginBottom: SPACING.sm,
+    lineHeight: TYPOGRAPHY.lineHeight.snug,
+  },
+  productDescription: {
+    fontSize: TYPOGRAPHY.fontSize.sm,
+    color: COLORS.neutral[600],
+    lineHeight: TYPOGRAPHY.lineHeight.relaxed,
+    marginBottom: SPACING.sm,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  stars: {
+    flexDirection: 'row',
+    marginRight: SPACING.xs,
+  },
+  star: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.neutral[300],
+  },
+  starFilled: {
+    color: COLORS.warning[500],
+  },
+  ratingText: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.neutral[500],
+  },
+  variantsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginBottom: SPACING.sm,
+  },
+  variantOption: {
+    padding: SPACING.xs,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.neutral[300],
+    backgroundColor: COLORS.white,
+  },
+  colorVariant: {
+    padding: SPACING.xs / 2,
+  },
+  variantDisabled: {
+    opacity: 0.5,
+  },
+  colorSwatch: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral[300],
+  },
+  variantText: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.neutral[700],
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+  },
+  currentPrice: {
+    fontSize: TYPOGRAPHY.fontSize.lg,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
+    color: COLORS.neutral[900],
+  },
+  originalPrice: {
+    fontSize: TYPOGRAPHY.fontSize.md,
+    color: COLORS.neutral[500],
+    textDecorationLine: 'line-through',
+  },
+  discountBadge: {
+    marginLeft: SPACING.xs,
+  },
+  savingsText: {
+    fontSize: TYPOGRAPHY.fontSize.sm,
+    color: COLORS.success[600],
+    marginBottom: SPACING.xs,
+  },
+  stockContainer: {
+    marginBottom: SPACING.sm,
+  },
+  shippingContainer: {
+    marginBottom: SPACING.sm,
+  },
+  freeShippingText: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.success[600],
+  },
+  shippingText: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.neutral[600],
+  },
+  actionsContainer: {
+    padding: SPACING.md,
+    paddingTop: 0,
+    gap: SPACING.sm,
+  },
+  addToCartButton: {
+    width: '100%',
+  },
+  listActionButton: {
+    flex: 1,
+  },
+  actionButton: {
+    width: '100%',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  loadingText: {
+    fontSize: TYPOGRAPHY.fontSize.sm,
+    color: COLORS.neutral[600],
+  },
+});
+
+export default ProductCard;

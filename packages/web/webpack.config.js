@@ -7,6 +7,7 @@ const mobileDirectory = path.resolve(appDirectory, '../mobile');
 
 module.exports = {
   entry: path.resolve(appDirectory, 'src/index.tsx'),
+  mode: 'development',
   output: {
     path: path.resolve(appDirectory, 'dist'),
     filename: 'bundle.js',
@@ -30,22 +31,38 @@ module.exports = {
         appDirectory,
         'src/polyfills/ReactNativeCookies.js',
       ),
-      // RN Primitives polyfills
-      '@rn-primitives/checkbox': path.resolve(
+      // RN Primitives polyfills - exact matches to override node_modules
+      '@rn-primitives/avatar$': path.resolve(
+        appDirectory,
+        'src/polyfills/avatar.js',
+      ),
+      '@rn-primitives/checkbox$': path.resolve(
         appDirectory,
         'src/polyfills/checkbox.js',
       ),
-      '@rn-primitives/label': path.resolve(
+      '@rn-primitives/label$': path.resolve(
         appDirectory,
         'src/polyfills/label.js',
       ),
-      '@rn-primitives/progress': path.resolve(
+      '@rn-primitives/progress$': path.resolve(
         appDirectory,
         'src/polyfills/progress.js',
       ),
-      '@rn-primitives/slot': path.resolve(
+      '@rn-primitives/select$': path.resolve(
+        appDirectory,
+        'src/polyfills/select.js',
+      ),
+      '@rn-primitives/separator$': path.resolve(
+        appDirectory,
+        'src/polyfills/separator.js',
+      ),
+      '@rn-primitives/slot$': path.resolve(
         appDirectory,
         'src/polyfills/slot.js',
+      ),
+      '@rn-primitives/switch$': path.resolve(
+        appDirectory,
+        'src/polyfills/switch.js',
       ),
       '../../context/ProductCacheContext': path.resolve(
         __dirname,
@@ -94,10 +111,12 @@ module.exports = {
       '.js',
     ],
     modules: [
-      path.resolve(__dirname, '../../node_modules'), // Root node_modules first
-      path.resolve(appDirectory, 'node_modules'),     // Web package node_modules
+      path.resolve(appDirectory, 'node_modules'),     // Web package node_modules first
+      path.resolve(__dirname, '../../node_modules'), // Root node_modules second
       'node_modules'
     ],
+    // Ensure aliases take precedence over node_modules
+    preferRelative: false,
     fallback: {
       "crypto": false,
       "stream": false,

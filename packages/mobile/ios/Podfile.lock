@@ -2184,7 +2184,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNReanimated (4.0.2):
+  - RNReanimated (3.15.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2211,11 +2211,11 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated (= 4.0.2)
-    - RNWorklets
+    - RNReanimated/reanimated (= 3.15.1)
+    - RNReanimated/worklets (= 3.15.1)
     - SocketRocket
     - Yoga
-  - RNReanimated/reanimated (4.0.2):
+  - RNReanimated/reanimated (3.15.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2242,11 +2242,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated/apple (= 4.0.2)
-    - RNWorklets
     - SocketRocket
     - Yoga
-  - RNReanimated/reanimated/apple (4.0.2):
+  - RNReanimated/worklets (3.15.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2273,7 +2271,6 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNWorklets
     - SocketRocket
     - Yoga
   - RNSVG (15.12.1):
@@ -2504,7 +2501,7 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../../../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../../../node_modules/@react-native-async-storage/async-storage`)"
-  - RNReanimated (from `../../../node_modules/react-native-reanimated`)
+  - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNSVG (from `../../../node_modules/react-native-svg`)
   - RNWorklets (from `../../../node_modules/react-native-worklets`)
   - SocketRocket (~> 0.7.1)
@@ -2667,7 +2664,7 @@ EXTERNAL SOURCES:
   RNCAsyncStorage:
     :path: "../../../node_modules/@react-native-async-storage/async-storage"
   RNReanimated:
-    :path: "../../../node_modules/react-native-reanimated"
+    :path: "../node_modules/react-native-reanimated"
   RNSVG:
     :path: "../../../node_modules/react-native-svg"
   RNWorklets:
@@ -2751,7 +2748,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 06bf9ae2e01a2416250cf5e44e4a06b1c9ea201b
   ReactCommon: 17fd88849a174bf9ce45461912291aca711410fc
   RNCAsyncStorage: 1f04c8d56558e533277beda29187f571cf7eecb2
-  RNReanimated: dd0c5fda8c69b5e789b426ad7be4a4e8de4e0dae
+  RNReanimated: 6b42e1a9334f2a608618939c8fb0422e969a26b9
   RNSVG: d407e5f2ede12bbcd92e4d23a405ad5a5f7294a3
   RNWorklets: d0190babf5cd796067490759551b6640c143ebd8
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
