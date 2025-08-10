@@ -745,6 +745,12 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     padding: 20,
+    // Center content on web with max width for better UX
+    ...(Platform.OS === 'web' && {
+      maxWidth: 600,
+      alignSelf: 'center',
+      width: '100%',
+    }),
   },
   productName: {
     fontSize: 24,
@@ -813,6 +819,12 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+    // Center content on web with max width for better UX
+    ...(Platform.OS === 'web' && {
+      maxWidth: 600,
+      alignSelf: 'center',
+      width: '100%',
+    }),
   },
   addToCartButton: {
     height: 48,

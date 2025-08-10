@@ -7,7 +7,7 @@ module.exports = {
     '<rootDir>/ios/',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|react-native-vector-icons|@react-native-community|@react-navigation|react-native-webview|@react-native-cookies)/)',
+    'node_modules/(?!(react-native|@react-native|react-native-vector-icons|@react-native-community|@react-navigation|react-native-webview|@react-native-cookies|@rn-primitives|react-native-reanimated|react-native-worklets)/)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [

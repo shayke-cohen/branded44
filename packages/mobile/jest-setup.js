@@ -56,4 +56,45 @@ jest.mock('@react-native-cookies/cookies', () => ({
     set: jest.fn(() => Promise.resolve()),
     getAll: jest.fn(() => Promise.resolve({})),
   },
+}));
+
+// Mock react-native-reanimated
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: {
+    View: require('react-native').View,
+    Text: require('react-native').Text,
+    ScrollView: require('react-native').ScrollView,
+    FlatList: require('react-native').FlatList,
+    Image: require('react-native').Image,
+    createAnimatedComponent: (component) => component,
+    interpolate: jest.fn(),
+    Extrapolation: {
+      EXTEND: 'extend',
+      CLAMP: 'clamp',
+      IDENTITY: 'identity',
+    },
+  },
+  useSharedValue: jest.fn(() => ({ value: 0 })),
+  useAnimatedStyle: jest.fn(() => ({})),
+  useAnimatedScrollHandler: jest.fn(() => jest.fn()),
+  useDerivedValue: jest.fn(),
+  useAnimatedGestureHandler: jest.fn(() => jest.fn()),
+  useAnimatedReaction: jest.fn(),
+  withTiming: jest.fn((value) => value),
+  withSpring: jest.fn((value) => value),
+  withDelay: jest.fn((_, value) => value),
+  withSequence: jest.fn((...values) => values[values.length - 1]),
+  withRepeat: jest.fn((value) => value),
+  cancelAnimation: jest.fn(),
+  measure: jest.fn(),
+  Easing: {
+    linear: jest.fn(),
+    ease: jest.fn(),
+    quad: jest.fn(),
+    cubic: jest.fn(),
+    bezier: jest.fn(),
+  },
+  runOnJS: jest.fn((fn) => fn),
+  runOnUI: jest.fn((fn) => fn),
 })); 
