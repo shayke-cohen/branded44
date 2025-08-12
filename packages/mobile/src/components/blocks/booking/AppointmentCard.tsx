@@ -16,7 +16,7 @@ import { Button } from '../../../../~/components/ui/button';
 import { Badge } from '../../../../~/components/ui/badge';
 import { Avatar } from '../../../../~/components/ui/avatar';
 import { COLORS, SPACING, TYPOGRAPHY } from '../../../lib/constants';
-import { cn } from '../../../lib/utils';
+import { cn, formatDate, formatTime } from '../../../lib/utils';
 
 // === TYPES ===
 
@@ -116,9 +116,9 @@ export interface Appointment {
   /** Appointment title */
   title: string;
   /** Start date and time */
-  startTime: Date;
+  startTime: Date | undefined | null;
   /** End date and time */
-  endTime: Date;
+  endTime: Date | undefined | null;
   /** Appointment status */
   status: AppointmentStatus;
   /** Appointment priority */
@@ -230,19 +230,12 @@ const formatCurrency = (amount: number, currency: string = 'USD'): string => {
 };
 
 /**
- * Format date and time
+ * Format date and time using the safer utility functions
  */
-const formatDateTime = (date: Date): { date: string; time: string } => {
+const formatDateTime = (date: Date | undefined | null): { date: string; time: string } => {
   return {
-    date: date.toLocaleDateString([], {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    }),
-    time: date.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
+    date: formatDate(date, 'MMM DD'),
+    time: formatTime(date || new Date()),
   };
 };
 
@@ -304,7 +297,11 @@ const getPaymentStatusColor = (status: PaymentStatus): string => {
 /**
  * Get time until appointment
  */
-const getTimeUntilAppointment = (appointmentTime: Date): string => {
+const getTimeUntilAppointment = (appointmentTime: Date | undefined | null): string => {
+  if (!appointmentTime || !(appointmentTime instanceof Date) || isNaN(appointmentTime.getTime())) {
+    return 'Unknown';
+  }
+  
   const now = new Date();
   const diffMs = appointmentTime.getTime() - now.getTime();
   
@@ -328,7 +325,11 @@ const getTimeUntilAppointment = (appointmentTime: Date): string => {
 /**
  * Check if appointment is soon (within 1 hour)
  */
-const isAppointmentSoon = (appointmentTime: Date): boolean => {
+const isAppointmentSoon = (appointmentTime: Date | undefined | null): boolean => {
+  if (!appointmentTime || !(appointmentTime instanceof Date) || isNaN(appointmentTime.getTime())) {
+    return false;
+  }
+  
   const now = new Date();
   const diffMs = appointmentTime.getTime() - now.getTime();
   return diffMs > 0 && diffMs <= 60 * 60 * 1000; // 1 hour
@@ -419,6 +420,17 @@ export default function AppointmentCard({
             </View>
           </View>
         </View>
+      </Card>
+    );
+  }
+
+  // Early safety check for appointment data
+  if (!appointment || !appointment.id || !appointment.title) {
+    return (
+      <Card style={{ width, padding: 16, marginBottom: 12 }}>
+        <Text style={{ color: '#EF4444', fontSize: 14, textAlign: 'center' }}>
+          Invalid appointment data
+        </Text>
       </Card>
     );
   }

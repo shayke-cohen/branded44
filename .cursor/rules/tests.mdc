@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+run relevant tests after every code change (yarn test and yarn tsc)

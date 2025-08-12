@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import HomeScreen from './HomeScreen';
-import MemberAuthScreen from '../wix/MemberAuthScreen';
+import MemberAuthScreen from '../wix/auth/MemberAuthScreen/MemberAuthScreen';
 import SettingsScreen from '../SettingsScreen';
-import CartScreen from '../wix/CartScreen';
+import CartScreen from '../wix/ecommerce/CartScreen/CartScreen';
 import ProductsNavigation from '../wix/navigation/ProductsNavigation';
-import CMSScreen from '../wix/CMSScreen';
+import CMSScreen from '../wix/content/CMSScreen/CMSScreen';
 
 export type HomeScreenType = 
   | 'home' 

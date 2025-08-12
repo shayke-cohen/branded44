@@ -9,7 +9,7 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Card } from '../../../../~/components/ui/card';
 import { Button } from '../../../../~/components/ui/button';
@@ -364,16 +364,9 @@ export default function BookingCalendar({
   currency = 'USD',
   view = 'week',
   initialDate = new Date(),
-  availabilityRules = [],
-  constraints = {
-    minAdvanceHours: 2,
-    maxAdvanceDays: 30,
-    minDuration: 30,
-    maxDuration: 180,
-    slotInterval: 30,
-    bufferTime: 15,
-  },
-  existingBookings = [],
+  availabilityRules,
+  constraints,
+  existingBookings,
   onSlotSelect,
   onDateChange,
   onViewChange,
@@ -381,7 +374,7 @@ export default function BookingCalendar({
   showPricing = true,
   showProvider = true,
   allowMultiSelect = false,
-  slotColors = {},
+  slotColors,
   loading = false,
   error,
   testID = 'booking-calendar',
@@ -393,12 +386,19 @@ export default function BookingCalendar({
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
-  // Generate calendar days
-  useEffect(() => {
-    generateCalendarDays();
-  }, [selectedDate, currentView, availabilityRules, constraints, existingBookings]);
+  // Memoize default values to prevent infinite re-renders
+  const memoizedAvailabilityRules = useMemo(() => availabilityRules || [], [availabilityRules]);
+  const memoizedConstraints = useMemo(() => constraints || {
+    minAdvanceHours: 2,
+    maxAdvanceDays: 30,
+    minDuration: 30,
+    maxDuration: 180,
+    slotInterval: 30,
+    bufferTime: 15,
+  }, [constraints]);
+  const memoizedExistingBookings = useMemo(() => existingBookings || [], [existingBookings]);
 
-  const generateCalendarDays = async () => {
+  const generateCalendarDays = useCallback(async () => {
     setIsLoadingSlots(true);
     
     try {
@@ -423,18 +423,19 @@ export default function BookingCalendar({
       // Load additional slots if handler provided
       let additionalSlots: TimeSlot[] = [];
       if (onLoadSlots) {
-        additionalSlots = await onLoadSlots(startDate, endDate);
+        const loadedSlots = await onLoadSlots(startDate, endDate);
+        additionalSlots = loadedSlots || [];
       }
       
-      const allExistingSlots = [...existingBookings, ...additionalSlots];
+      const allExistingSlots = [...(existingBookings || []), ...additionalSlots];
       
       for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-        const daySlots = generateDaySlots(new Date(date), availabilityRules, constraints, allExistingSlots);
+        const daySlots = generateDaySlots(new Date(date), memoizedAvailabilityRules, memoizedConstraints, allExistingSlots);
         
         const calendarDay: CalendarDay = {
           date: new Date(date),
           slots: daySlots,
-          selectable: isDateSelectable(new Date(date), constraints),
+          selectable: isDateSelectable(new Date(date), memoizedConstraints),
           isToday: date.toDateString() === new Date().toDateString(),
           inCurrentMonth: date.getMonth() === selectedDate.getMonth(),
           type: date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : 'working',
@@ -449,7 +450,12 @@ export default function BookingCalendar({
     } finally {
       setIsLoadingSlots(false);
     }
-  };
+  }, [selectedDate, currentView, memoizedAvailabilityRules, memoizedConstraints, memoizedExistingBookings, onLoadSlots]);
+
+  // Generate calendar days when dependencies change
+  useEffect(() => {
+    generateCalendarDays();
+  }, [generateCalendarDays]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);

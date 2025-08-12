@@ -6,6 +6,13 @@ import { items } from '@wix/data';
 import { currentCart } from '@wix/ecom';
 import { redirects } from '@wix/redirects';
 
+// Global token generation lock to prevent multiple simultaneous requests
+let tokenGenerationPromise: Promise<void> | null = null;
+
+// Member state change listeners
+type MemberStateChangeListener = () => void;
+const memberStateChangeListeners: MemberStateChangeListener[] = [];
+
 // Cache configuration
 const CACHE_KEYS = {
   PRODUCTS: 'wix_products_cache',
@@ -919,8 +926,43 @@ class WixApiClient {
     return tokens.expiresAt > currentTime + 300; // 5 minute buffer
   }
 
+  // Load stored visitor tokens from AsyncStorage
+  private async loadStoredVisitorTokens(): Promise<void> {
+    try {
+      const storedTokens = await AsyncStorage.getItem('wix_visitor_tokens');
+      if (storedTokens) {
+        this.visitorTokens = JSON.parse(storedTokens);
+        console.log('🔗 [DEBUG] Loaded stored visitor tokens');
+      }
+    } catch (error) {
+      console.error('❌ [AUTH ERROR] Failed to load stored tokens:', error);
+    }
+  }
+
   // Generate new visitor tokens
   private async generateVisitorTokens(): Promise<void> {
+    // Check if token generation is already in progress
+    if (tokenGenerationPromise) {
+      console.log('🔄 [AUTH] Token generation already in progress, waiting...');
+      await tokenGenerationPromise;
+      // After waiting, load the tokens that were generated
+      await this.loadStoredVisitorTokens();
+      return;
+    }
+
+    // Start token generation and store the promise
+    tokenGenerationPromise = this.doGenerateVisitorTokens();
+    
+    try {
+      await tokenGenerationPromise;
+    } finally {
+      // Clear the promise when done
+      tokenGenerationPromise = null;
+    }
+  }
+
+  // Actual token generation implementation
+  private async doGenerateVisitorTokens(): Promise<void> {
     try {
       console.log('🌐 [API] POST /oauth2/token (anonymous visitor tokens)');
       console.log('🔧 [DEBUG] Generating tokens with site ID:', this.siteId);
@@ -1058,6 +1100,9 @@ class WixApiClient {
       this.currentMember = null;
       this.sessionToken = null;
       console.log('🗑️ [MEMBER AUTH] Member logged out successfully');
+      
+      // Notify listeners of member state change
+      this.notifyMemberStateChange();
     } catch (error) {
       console.error('❌ [MEMBER AUTH] Failed to logout member:', error);
     }
@@ -1072,6 +1117,9 @@ class WixApiClient {
       if (storedMember) {
         this.currentMember = JSON.parse(storedMember);
         console.log('👤 [MEMBER AUTH] Loaded stored member profile');
+        
+        // Notify listeners of member state change
+        this.notifyMemberStateChange();
       }
       
       const storedSessionToken = await AsyncStorage.getItem('wix_session_token');
@@ -1297,6 +1345,40 @@ class WixApiClient {
 
   // Check if member is logged in
   isMemberLoggedIn(): boolean {
+    return this.currentMember !== null && this.sessionToken !== null;
+  }
+
+  // Check if we have valid member tokens
+  hasMemberTokens(): boolean {
+    return this.memberTokens !== null && this.isMemberTokenValid(this.memberTokens);
+  }
+
+  // Add member state change listener
+  addMemberStateChangeListener(listener: MemberStateChangeListener): void {
+    memberStateChangeListeners.push(listener);
+  }
+
+  // Remove member state change listener
+  removeMemberStateChangeListener(listener: MemberStateChangeListener): void {
+    const index = memberStateChangeListeners.indexOf(listener);
+    if (index > -1) {
+      memberStateChangeListeners.splice(index, 1);
+    }
+  }
+
+  // Notify member state change listeners
+  private notifyMemberStateChange(): void {
+    memberStateChangeListeners.forEach(listener => {
+      try {
+        listener();
+      } catch (error) {
+        console.error('❌ [MEMBER STATE] Error in state change listener:', error);
+      }
+    });
+  }
+
+  // Check if member is logged in
+  isMemberLoggedIn(): boolean {
     // For React Native, we consider a member logged in if we have their identity
     // even if token conversion failed. This is practical for mobile apps where
     // session tokens work but full OAuth flow might be complex.
@@ -1431,7 +1513,25 @@ class WixApiClient {
           console.error('🔍 [DEBUG] - URL:', url);
           console.error('🔍 [DEBUG] - Method:', options.method);
           console.error('🔍 [DEBUG] - Body:', options.body);
-          console.error('🔍 [DEBUG] - Headers:', JSON.stringify(options.headers || {}, null, 2));
+          console.error('🔍 [DEBUG] - Headers:', JSON.stringify(headers, null, 2));
+          
+          // Provide specific guidance for common errors
+          if (response.status === 403) {
+            if (endpoint.includes('/bookings/')) {
+              console.error('💡 [BOOKING] 403 Forbidden: This could mean:');
+              console.error('   - Wix Bookings app is not installed on the site');
+              console.error('   - Visitor tokens do not have permission to access booking services');
+              console.error('   - The site owner needs to enable public access to booking services');
+            } else if (endpoint.includes('/stores/')) {
+              console.error('💡 [STORES] 403 Forbidden: This could mean:');
+              console.error('   - Wix Stores app is not installed on the site');
+              console.error('   - Store is not published or publicly accessible');
+            } else {
+              console.error('💡 [AUTH] 403 Forbidden: Check if the required Wix app is installed and configured');
+            }
+          } else if (response.status === 401) {
+            console.error('💡 [AUTH] 401 Unauthorized: Authentication token may be invalid or expired');
+          }
         }
         
         throw new Error(`HTTP ${response.status}: ${errorText}`);

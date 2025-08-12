@@ -1,17 +1,46 @@
-// Wix Store Screens Index
-// This file exports all Wix-related screens for easy importing
+/**
+ * Wix Screens Main Index
+ * 
+ * Centralized exports for all Wix-related screens, utilities, types, and constants.
+ * Organized by business domain for better developer experience.
+ * 
+ * Usage Examples:
+ * import { CartScreen, ProductListScreen } from '@/screens/wix';
+ * import { WixApiResponse, BaseWixScreenProps } from '@/screens/wix';
+ * import { WIX_SCREEN_IDS, PAGINATION } from '@/screens/wix';
+ */
 
-// Import screens to trigger their registration
-import ProductListScreen from './ProductListScreen';
-import ProductDetailScreen from './ProductDetailScreen';
-import CartScreen from './CartScreen';
-import ProductsNavigation from './navigation/ProductsNavigation';
-import CMSScreen from './CMSScreen';
+// === DOMAIN MODULES ===
 
-// Export screens for external use
-export { default as CartScreen } from './CartScreen';
-export { default as ProductDetailScreen } from './ProductDetailScreen';
-export { default as ProductListScreen } from './ProductListScreen';
-export { default as CMSScreen } from './CMSScreen';
+// Auth module
+export * from './auth';
 
-console.log('🛍️ [DEBUG] Wix screens index loaded'); 
+// E-commerce module  
+export * from './ecommerce';
+
+// Services & Booking module
+export * from './services';
+
+// Restaurant & Food module
+export * from './restaurant';
+
+// Content Management module
+export * from './content';
+
+// Navigation components
+export * from './navigation';
+
+// Shared utilities, types, and constants
+export * from './shared';
+
+// === DIRECT EXPORTS (Backwards Compatibility) ===
+
+// Screens
+export { MemberAuthScreen } from './auth';
+export { ProductListScreen, ProductDetailScreen, CartScreen } from './ecommerce';
+export { ServicesListScreen, ServiceDetailScreen, BookingScreen, MyBookingsScreen } from './services';
+export { FoodScreen } from './restaurant';
+export { CMSScreen } from './content';
+
+// Navigation
+export { ProductsNavigation, ServicesNavigation } from './navigation';

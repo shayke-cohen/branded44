@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 console.log('📱 [DEBUG] React imported successfully');
 
 import {StyleSheet, View} from 'react-native';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 console.log('📱 [DEBUG] React Native components imported successfully');
 
 import {ThemeProvider, CartProvider, MemberProvider, AlertProvider, ProductCacheProvider} from './context';
@@ -65,19 +66,21 @@ const AppContent = () => {
 const App = () => {
   console.log('📱 [DEBUG] App component rendering...');
   return (
-    <ThemeProvider>
-      <AlertProvider>
-        <CartProvider>
-          <ProductCacheProvider maxCacheSize={50} maxCacheAge={20 * 60 * 1000}>
-            <MemberProvider>
-              <WixCartProvider>
-                <AppContent />
-              </WixCartProvider>
-            </MemberProvider>
-          </ProductCacheProvider>
-        </CartProvider>
-      </AlertProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AlertProvider>
+          <CartProvider>
+            <ProductCacheProvider maxCacheSize={50} maxCacheAge={20 * 60 * 1000}>
+              <MemberProvider>
+                <WixCartProvider>
+                  <AppContent />
+                </WixCartProvider>
+              </MemberProvider>
+            </ProductCacheProvider>
+          </CartProvider>
+        </AlertProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 };
 

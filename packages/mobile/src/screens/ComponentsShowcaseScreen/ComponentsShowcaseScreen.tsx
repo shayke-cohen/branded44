@@ -26,6 +26,10 @@ import {
   AppointmentCard, ReviewCard, ClassScheduleCard, RecurringBookingForm, CancellationPolicy,
   WaitlistCard, PackageCard, ResourceBookingCard
 } from '../../components/blocks/booking';
+import {
+  MenuCard, RestaurantCard, OrderItemCard, OrderSummary, RestaurantHeader, MenuCategoryHeader,
+  type CuisineType, type DietaryTag
+} from '../../components/blocks/restaurant';
 import { type User } from '../../lib/types';
 import { ShopScreen, CartScreen } from '../../components/templates/ecommerce';
 import { 
@@ -55,12 +59,27 @@ import {
   ChatScreen,
   ContactsScreen
 } from '../../components/templates/communication';
+import {
+  ServicesScreen,
+  ServiceDetailsScreen,
+  BookingScreen,
+  MyBookingsScreen
+} from '../../components/templates/booking';
+import {
+  MenuScreen,
+  RestaurantDetailScreen,
+  OrderScreen,
+  CheckoutScreen
+} from '../../components/templates/restaurant';
+import {
+  ServiceDiscoveryFlow
+} from '../../components/flows/booking';
 
 export interface ComponentsShowcaseScreenProps {
   onBack?: () => void;
 }
 
-type ShowcaseMode = 'blocks' | 'templates' | 'flows' | 'auth' | 'auth-advanced' | 'forms' | 'forms-advanced' | 'lists' | 'lists-advanced' | 'ecommerce' | 'ecommerce-advanced' | 'social' | 'media' | 'business' | 'utility' | 'health' | 'booking' | 'booking-advanced' | 'auth-templates' | 'home-templates' | 'profile-templates' | 'ecommerce-templates' | 'business-templates' | 'communication-templates' | 'booking-templates' | 'booking-flows' | 'shop' | 'cart';
+type ShowcaseMode = 'blocks' | 'templates' | 'flows' | 'auth' | 'auth-advanced' | 'forms' | 'forms-advanced' | 'lists' | 'lists-advanced' | 'ecommerce' | 'ecommerce-advanced' | 'social' | 'media' | 'business' | 'utility' | 'health' | 'restaurant' | 'booking' | 'booking-advanced' | 'auth-templates' | 'home-templates' | 'profile-templates' | 'ecommerce-templates' | 'business-templates' | 'communication-templates' | 'booking-templates' | 'restaurant-templates' | 'booking-flows' | 'shop' | 'cart';
 
 /**
  * ComponentsShowcaseScreen - Comprehensive component library showcase
@@ -760,6 +779,7 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
     { id: 'booking-advanced', label: 'Booking Advanced', icon: '🎯', description: 'Classes, packages, waitlists' },
     { id: 'utility', label: 'Utility', icon: '⚙️', description: 'Loading states and utility components' },
     { id: 'health', label: 'Health & Fitness', icon: '💪', description: 'Workout and nutrition tracking' },
+    { id: 'restaurant', label: 'Restaurant & Food', icon: '🍽️', description: 'Menu items, orders, and restaurant discovery' },
     
     // Template Categories (shown when templates tab is active)
     { id: 'auth-templates', label: 'Authentication', icon: '🔐', description: 'Login, signup, and onboarding screens' },
@@ -769,6 +789,7 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
     { id: 'business-templates', label: 'Business', icon: '💼', description: 'Calendar, events, and business screens' },
     { id: 'communication-templates', label: 'Communication', icon: '💬', description: 'Chat, messaging, and contact screens' },
     { id: 'booking-templates', label: 'Booking & Services', icon: '📅', description: 'Service booking and appointment screens' },
+    { id: 'restaurant-templates', label: 'Restaurant & Food', icon: '🍽️', description: 'Food ordering and restaurant screens' },
     { id: 'booking-flows', label: 'Booking Flows', icon: '🔄', description: 'End-to-end booking workflows' },
     
     // Flow/Demo Categories (shown when flows tab is active)
@@ -783,11 +804,11 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
           <View style={styles.blocksGrid}>
             <Text style={styles.sectionTitle}>🚀 Our Component Library</Text>
             <Text style={styles.sectionDescription}>
-              71+ production-ready components across 13 major categories
+              77+ production-ready components across 14 major categories
             </Text>
             
             <View style={styles.categoryGrid}>
-              {demoModes.slice(3, 18).map((mode) => (
+              {demoModes.slice(3, 19).map((mode) => (
                 <TouchableOpacity
                   key={mode.id}
                   style={styles.categoryCard}
@@ -1423,52 +1444,333 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
           </ScrollView>
         );
 
+      case 'restaurant':
+        // Create mock data for restaurant components
+        const mockRestaurant = {
+          id: 'rest_123',
+          name: 'Bella Vista Italian',
+          description: 'Authentic Italian cuisine in the heart of downtown',
+          images: ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'],
+          logo: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100',
+          cuisines: ['italian', 'pizza'] as CuisineType[],
+          priceRange: '$$' as const,
+          rating: 4.7,
+          reviewCount: 345,
+          location: {
+            address: '123 Main Street, Downtown',
+            city: 'New York',
+            state: 'NY',
+            postalCode: '10001',
+            country: 'USA',
+            distance: 0.8
+          },
+          hours: [],
+          serviceTypes: ['delivery', 'pickup'] as const,
+          delivery: {
+            available: true,
+            estimatedTime: 30,
+            fee: 2.99,
+            minimumOrder: 15.00
+          },
+          isOpen: true,
+          featured: true,
+          promotions: [{
+            id: 'promo1',
+            title: '20% off first order',
+            description: 'Use code WELCOME20',
+            discountPercentage: 20
+          }]
+        };
+
+        const mockMenuItem = {
+          id: 'item_123',
+          name: 'Margherita Pizza',
+          description: 'Fresh mozzarella, tomato sauce, basil, and olive oil on crispy thin crust',
+          category: 'mains' as const,
+          pricing: {
+            basePrice: 16.99,
+            currency: 'USD',
+            sizeVariants: [
+              { size: 'Small', price: 14.99 },
+              { size: 'Medium', price: 16.99 },
+              { size: 'Large', price: 19.99 }
+            ]
+          },
+          images: ['https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400'],
+          dietaryTags: ['vegetarian'] as DietaryTag[],
+          available: true,
+          prepTime: 15,
+          rating: 4.8,
+          reviewCount: 156,
+          spiceLevel: 'none' as const,
+          customizations: [{
+            id: 'crust',
+            name: 'Crust Type',
+            type: 'single' as const,
+            required: true,
+            choices: [
+              { id: 'thin', name: 'Thin Crust', available: true },
+              { id: 'thick', name: 'Thick Crust', price: 2.00, available: true }
+            ]
+          }]
+        };
+
+        const mockOrderItem = {
+          id: 'order_item_123',
+          menuItemId: 'menu_123',
+          name: 'Margherita Pizza (Large)',
+          description: 'Fresh mozzarella, tomato sauce, basil',
+          image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400',
+          quantity: 2,
+          customizations: [
+            {
+              optionId: 'crust',
+              optionName: 'Crust Type',
+              choiceId: 'thick',
+              choiceName: 'Thick Crust',
+              additionalPrice: 2.00
+            }
+          ],
+          pricing: {
+            basePrice: 19.99,
+            customizationTotal: 2.00,
+            itemSubtotal: 21.99,
+            lineTotal: 43.98,
+            currency: 'USD'
+          },
+          available: true,
+          prepTime: 15
+        };
+
+        const mockOrderSummary = {
+          itemsSubtotal: 43.98,
+          discounts: [{
+            type: 'promo-code' as const,
+            name: 'WELCOME20',
+            amount: -8.80,
+            code: 'WELCOME20',
+            description: '20% off first order'
+          }],
+          fees: [
+            {
+              type: 'delivery' as const,
+              name: 'Delivery Fee',
+              amount: 2.99
+            },
+            {
+              type: 'service' as const,
+              name: 'Service Fee',
+              amount: 1.50
+            }
+          ],
+          taxes: [{
+            name: 'Sales Tax',
+            rate: 8.5,
+            amount: 3.32,
+            included: false
+          }],
+          tip: {
+            amount: 8.00,
+            percentage: 20
+          },
+          total: 50.99,
+          currency: 'USD',
+          orderType: 'delivery' as const,
+          estimatedTime: { min: 25, max: 35, unit: 'minutes' as const }
+        };
+
+        const mockCategory = {
+          id: 'cat_mains',
+          name: 'Main Courses',
+          description: 'Hearty and satisfying dishes for your main meal',
+          type: 'mains' as const,
+          icon: '🍽️',
+          itemCount: 12,
+          availableItemCount: 10,
+          availability: {
+            available: true
+          },
+          popular: true,
+          priceRange: {
+            min: 14.99,
+            max: 28.99,
+            currency: 'USD'
+          }
+        };
+
+        return (
+          <ScrollView style={styles.componentContainer}>
+            <Text style={styles.sectionTitle}>🍽️ Restaurant & Food Delivery</Text>
+            
+            {/* Restaurant Discovery Section */}
+            <View style={styles.showcaseSection}>
+              <Text style={styles.subsectionTitle}>🏪 Restaurant Discovery</Text>
+              <Text style={styles.subsectionDescription}>
+                Browse and discover restaurants with ratings, delivery info, and cuisines
+              </Text>
+              
+              <RestaurantCard
+                restaurant={mockRestaurant}
+                onPress={() => Alert.alert('Restaurant Selected', `Selected: ${mockRestaurant.name}`)}
+                onOrder={() => Alert.alert('Start Order', `Starting order from ${mockRestaurant.name}`)}
+                onFavorite={() => Alert.alert('Favorite', 'Added to favorites!')}
+                onDirections={() => Alert.alert('Directions', 'Opening directions to restaurant')}
+                onViewMenu={() => Alert.alert('Menu', 'Viewing restaurant menu')}
+                isFavorite={false}
+                showDeliveryInfo={true}
+                showCuisines={true}
+                showPromotions={true}
+                layout="card"
+              />
+            </View>
+
+            {/* Menu Items Section */}
+            <View style={styles.showcaseSection}>
+              <Text style={styles.subsectionTitle}>🍕 Menu Items</Text>
+              <Text style={styles.subsectionDescription}>
+                Display food items with photos, pricing, and dietary information
+              </Text>
+
+              <MenuCategoryHeader
+                category={mockCategory}
+                onPress={() => Alert.alert('Category', `Selected category: ${mockCategory.name}`)}
+                onViewAll={() => Alert.alert('View All', 'Showing all items in category')}
+                showItemCount={true}
+                showPriceRange={true}
+                layout="standard"
+              />
+
+              <MenuCard
+                item={mockMenuItem}
+                onPress={() => Alert.alert('Menu Item', `Selected: ${mockMenuItem.name}`)}
+                onAddToCart={(qty) => Alert.alert('Add to Cart', `Added ${qty} ${mockMenuItem.name} to cart`)}
+                onFavorite={() => Alert.alert('Favorite', 'Added to favorites!')}
+                onCustomize={() => Alert.alert('Customize', 'Opening customization options')}
+                isFavorite={false}
+                showDietaryTags={true}
+                showAddToCart={true}
+                showRating={true}
+                layout="card"
+              />
+            </View>
+
+            {/* Order Management Section */}
+            <View style={styles.showcaseSection}>
+              <Text style={styles.subsectionTitle}>🛒 Order Management</Text>
+              <Text style={styles.subsectionDescription}>
+                Manage cart items and view order summaries with pricing breakdowns
+              </Text>
+
+              <OrderItemCard
+                item={mockOrderItem}
+                onQuantityChange={(qty) => Alert.alert('Quantity Updated', `New quantity: ${qty}`)}
+                onRemove={() => Alert.alert('Remove Item', 'Item removed from cart')}
+                onEditCustomizations={() => Alert.alert('Edit', 'Opening customization editor')}
+                showQuantityControls={true}
+                showCustomizations={true}
+                editable={true}
+                layout="list"
+              />
+
+              <OrderSummary
+                orderData={mockOrderSummary}
+                onApplyPromoCode={() => Alert.alert('Promo Code', 'Enter promo code')}
+                onEditTip={() => Alert.alert('Edit Tip', 'Adjust tip amount')}
+                showDetailedBreakdown={true}
+                showDeliveryInfo={true}
+                actions={[
+                  {
+                    id: 'checkout',
+                    label: 'Place Order',
+                    onPress: () => Alert.alert('Checkout', 'Proceeding to checkout'),
+                    variant: 'default'
+                  }
+                ]}
+              />
+            </View>
+          </ScrollView>
+        );
+
       case 'booking':
         return (
           <ScrollView style={styles.componentContainer}>
-            <Text style={styles.sectionTitle}>📅 Basic Booking Components</Text>
+            <Text style={styles.sectionTitle}>📅 Booking Components</Text>
             
-            <ServiceCard
-              service={mockService}
-              onPress={() => Alert.alert('Service', `Selected: ${mockService.name}`)}
-              onBook={() => Alert.alert('Book', `Booking ${mockService.name}`)}
-              onFavorite={() => Alert.alert('Favorite', 'Added to favorites')}
-              showPricing={true}
-              showAvailability={true}
-            />
+            {/* Service Discovery Section */}
+            <View style={styles.showcaseSection}>
+              <Text style={styles.subsectionTitle}>🔍 Service Discovery</Text>
+              <Text style={styles.subsectionDescription}>
+                Browse and discover available services with detailed information
+              </Text>
+              
+              <ServiceCard
+                service={mockService}
+                onPress={() => Alert.alert('Service Selected', `Selected: ${mockService.name}`)}
+                onBook={() => Alert.alert('Book Now', `Booking ${mockService.name}`)}
+                onFavorite={() => Alert.alert('Favorite', 'Added to favorites!')}
+                onShare={() => Alert.alert('Share', 'Service shared!')}
+                onViewProvider={() => Alert.alert('Provider', `View ${mockService.provider.name}'s profile`)}
+                isFavorite={false}
+                showProvider={true}
+                showPricing={true}
+                showAvailability={true}
+                showRating={true}
+                layout="card"
+              />
+            </View>
 
-            <ServiceProviderCard
-              provider={mockProvider}
-              onPress={() => Alert.alert('Provider', `Selected: ${mockProvider.name}`)}
-              onContact={() => Alert.alert('Message', `Send message to ${mockProvider.name}`)}
-              onViewDetails={() => Alert.alert('Profile', `View ${mockProvider.name}'s profile`)}
-              showRating={true}
-              showSpecialties={true}
-              showPricing={true}
-            />
+            {/* Service Provider Section */}
+            <View style={styles.showcaseSection}>
+              <Text style={styles.subsectionTitle}>👩‍⚕️ Service Providers</Text>
+              <Text style={styles.subsectionDescription}>
+                View detailed provider profiles with ratings and specialties
+              </Text>
 
-            <BookingCalendar
-              selectedDate={new Date()}
-              onDateSelect={(date) => Alert.alert('Date Selected', date.toDateString())}
-              availableDates={[
-                new Date(),
-                new Date(Date.now() + 24 * 60 * 60 * 1000),
-                new Date(Date.now() + 48 * 60 * 60 * 1000)
-              ]}
-              bookedDates={[new Date(Date.now() + 72 * 60 * 60 * 1000)]}
-              minDate={new Date()}
-              maxDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
-              style={{ marginBottom: 20 }}
-            />
+              <ServiceProviderCard
+                provider={mockProvider}
+                onPress={() => Alert.alert('Provider', `Selected: ${mockProvider.name}`)}
+                onContact={() => Alert.alert('Message', `Send message to ${mockProvider.name}`)}
+                onViewDetails={() => Alert.alert('Profile', `View ${mockProvider.name}'s profile`)}
+                showRating={true}
+                showSpecialties={true}
+                showPricing={true}
+              />
+            </View>
 
-            <TimeSlotGrid
-              timeSlots={mockTimeSlots}
-              selectedSlot="3"
-              onSlotSelect={(slot) => Alert.alert('Time Selected', `Selected ${slot.time}`)}
-              layout="grid"
-              showPricing={true}
-              style={{ marginBottom: 20 }}
-            />
+            {/* Scheduling Section */}
+            <View style={styles.showcaseSection}>
+              <Text style={styles.subsectionTitle}>📅 Scheduling & Availability</Text>
+              <Text style={styles.subsectionDescription}>
+                Interactive calendar and time slot selection for appointments
+              </Text>
+              
+              <BookingCalendar
+                providerId="provider_1"
+                serviceId="service_1"
+                serviceDuration={60}
+                servicePrice={85}
+                currency="USD"
+                initialDate={new Date()}
+                onSlotSelect={(slot) => Alert.alert('Slot Selected', `${slot.startTime} - ${slot.endTime}`)}
+              />
+
+              <View style={{ marginTop: 16 }}>
+                <TimeSlotGrid
+                  timeSlots={mockTimeSlots}
+                  selectedSlot="3"
+                  onSlotSelect={(slot) => Alert.alert('Time Selected', `Selected ${slot.time}`)}
+                  layout="grid"
+                  showPricing={true}
+                />
+              </View>
+            </View>
+
+            {/* Booking Process Section */}
+            <View style={styles.showcaseSection}>
+              <Text style={styles.subsectionTitle}>📝 Booking Process</Text>
+              <Text style={styles.subsectionDescription}>
+                Complete booking forms and confirmation summaries
+              </Text>
 
             <BookingForm
               service={mockService}
@@ -1525,6 +1827,7 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
               onReport={() => Alert.alert('Report', 'Review reported')}
               style={{ marginBottom: 20 }}
             />
+            </View>
           </ScrollView>
         );
 
@@ -1976,71 +2279,374 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
               Complete screens for service booking and appointment management
             </Text>
             
-            <View style={styles.templateGrid}>
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>🔍</Text>
-                <Text style={styles.templateTitle}>Services Discovery</Text>
-                <Text style={styles.templateDescription}>Browse and search available services</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>📋</Text>
-                <Text style={styles.templateTitle}>Service Details</Text>
-                <Text style={styles.templateDescription}>Detailed service information and booking</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>👩‍⚕️</Text>
-                <Text style={styles.templateTitle}>Provider Profiles</Text>
-                <Text style={styles.templateDescription}>Service provider information and reviews</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>📅</Text>
-                <Text style={styles.templateTitle}>Booking Calendar</Text>
-                <Text style={styles.templateDescription}>Date and time selection interface</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>📝</Text>
-                <Text style={styles.templateTitle}>Booking Form</Text>
-                <Text style={styles.templateDescription}>Customer information and preferences</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>✅</Text>
-                <Text style={styles.templateTitle}>Booking Confirmation</Text>
-                <Text style={styles.templateDescription}>Appointment summary and confirmation</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>📋</Text>
-                <Text style={styles.templateTitle}>My Bookings</Text>
-                <Text style={styles.templateDescription}>User's appointment history and management</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>🎯</Text>
-                <Text style={styles.templateTitle}>Class Schedules</Text>
-                <Text style={styles.templateDescription}>Group classes and workshop scheduling</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>📦</Text>
-                <Text style={styles.templateTitle}>Packages & Memberships</Text>
-                <Text style={styles.templateDescription}>Service bundles and subscription management</Text>
-              </View>
-              
-              <View style={styles.templateCard}>
-                <Text style={styles.templateIcon}>⏰</Text>
-                <Text style={styles.templateTitle}>Waitlist Management</Text>
-                <Text style={styles.templateDescription}>Join waitlists and get notifications</Text>
-              </View>
-            </View>
+            <ServicesScreen
+              services={[mockService]}
+              categories={[
+                { id: 'fitness', name: 'Fitness', icon: '💪', count: 12 },
+                { id: 'beauty', name: 'Beauty', icon: '💄', count: 8 },
+                { id: 'health', name: 'Health', icon: '🏥', count: 15 }
+              ]}
+              onServicePress={(service) => Alert.alert('Service Selected', service.name)}
+              onCategorySelect={(category) => Alert.alert('Category', category.name)}
+              onSearch={(query) => Alert.alert('Search', query)}
+
+            />
+            
+            <ServiceDetailsScreen
+              service={mockService}
+              provider={mockProvider}
+              reviews={[{
+                id: 'review_1',
+                rating: 5,
+                title: 'Excellent Service!',
+                content: 'Sarah was amazing! Really helped me achieve my fitness goals.',
+                author: {
+                  id: 'user_1',
+                  name: 'Mike Johnson',
+                  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+                  verified: true
+                },
+                date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                serviceInfo: {
+                  serviceName: 'Personal Training',
+                  providerName: 'Sarah Johnson',
+                  sessionDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+                },
+                helpful: { yes: 12, no: 1 },
+                verified: true
+              }]}
+              onBookNow={(service) => Alert.alert('Book Now', `Booking ${service.name}`)}
+              onProviderPress={(provider) => Alert.alert('Provider', provider.name)}
+
+            />
+            
+            <BookingScreen
+              service={mockService}
+              provider={mockProvider}
+              providers={[mockProvider]}
+              onBookingComplete={(booking) => Alert.alert('Booking Complete', 'Your appointment has been confirmed!')}
+              onStepChange={(step) => console.log('Booking step:', step)}
+
+            />
+            
+            <MyBookingsScreen
+              bookings={[mockAppointment]}
+              onBookingPress={(booking) => Alert.alert('Booking Details', `View details for ${booking.service.name}`)}
+              onReschedule={(booking) => Alert.alert('Reschedule', `Reschedule ${booking.service.name}`)}
+              onCancel={(booking) => Alert.alert('Cancel', `Cancel ${booking.service.name}`)}
+              onRefresh={() => Alert.alert('Refresh', 'Refreshing bookings...')}
+
+            />
             
             <Text style={styles.templateNote}>
               💡 These templates provide complete booking workflows from discovery to confirmation, 
               perfect for service-based businesses like spas, gyms, healthcare, and professional services.
+            </Text>
+          </ScrollView>
+        );
+
+      case 'restaurant-templates':
+        // Create mock data for restaurant templates
+        const mockRestaurantTemplate = {
+          id: 'rest_1',
+          name: 'Bella Vista Italian',
+          description: 'Authentic Italian cuisine with a modern twist. Fresh pasta made daily, wood-fired pizzas, and locally sourced ingredients.',
+          images: ['https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop'],
+          logo: 'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=100&h=100&fit=crop',
+          cuisines: ['italian', 'pizza'] as CuisineType[],
+          priceRange: '$$' as const,
+          rating: 4.7,
+          reviewCount: 345,
+          location: {
+            address: '123 Main Street',
+            city: 'New York',
+            state: 'NY',
+            zipCode: '10001',
+            coordinates: { latitude: 40.7128, longitude: -74.0060 },
+            distance: 0.8
+          },
+          delivery: {
+            available: true,
+            estimatedTime: 30,
+            fee: 2.99,
+            minimumOrder: 15.00,
+            radius: 5.0
+          },
+          pickup: {
+            available: true,
+            estimatedTime: 20
+          },
+          isOpen: true,
+          serviceTypes: ['delivery', 'pickup', 'dine-in'] as const
+        };
+
+        const mockMenuCategoriesTemplate = [
+          {
+            id: 'appetizers',
+            name: 'Appetizers',
+            type: 'appetizers' as const,
+            itemCount: 8,
+            availability: { available: true, dailySpecial: false },
+            items: [
+              {
+                id: 'item_1',
+                name: 'Bruschetta al Pomodoro',
+                description: 'Toasted artisan bread topped with fresh diced tomatoes, basil, garlic, and extra virgin olive oil',
+                category: 'appetizers' as const,
+                pricing: { basePrice: 8.99, currency: 'USD' },
+                images: ['https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=300&h=200&fit=crop'],
+                dietaryTags: ['vegetarian'] as DietaryTag[],
+                available: true,
+                prepTime: 10,
+                rating: 4.6,
+                reviewCount: 89,
+                customizations: [
+                  {
+                    id: 'bread_type',
+                    name: 'Bread Type',
+                    required: false,
+                    maxChoices: 1,
+                    choices: [
+                      { id: 'regular', name: 'Regular Bread', additionalPrice: 0 },
+                      { id: 'gluten_free', name: 'Gluten-Free Bread', additionalPrice: 2.00 }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ];
+
+        const mockOrderItemsTemplate = [
+          {
+            id: 'order_item_1',
+            menuItemId: 'item_1',
+            name: 'Margherita Pizza (Large)',
+            description: 'Fresh mozzarella, tomato sauce, and basil',
+            quantity: 2,
+            customizations: [
+              {
+                optionId: 'size',
+                optionName: 'Size',
+                choiceId: 'large',
+                choiceName: 'Large',
+                additionalPrice: 3.00
+              }
+            ],
+            pricing: {
+              basePrice: 16.99,
+              customizationTotal: 3.00,
+              itemSubtotal: 19.99,
+              lineTotal: 39.98,
+              currency: 'USD'
+            },
+            available: true
+          }
+        ];
+
+        const mockOrderSummaryTemplate = {
+          itemsSubtotal: 39.98,
+          discounts: [
+            {
+              type: 'promo-code' as const,
+              name: 'WELCOME20',
+              amount: -8.00,
+              code: 'WELCOME20'
+            }
+          ],
+          fees: [
+            { type: 'delivery' as const, name: 'Delivery Fee', amount: 2.99 },
+            { type: 'service' as const, name: 'Service Fee', amount: 1.50 }
+          ],
+          taxes: [
+            { name: 'Sales Tax', rate: 8.5, amount: 2.89, included: false }
+          ],
+          tip: { amount: 7.00, percentage: 20 },
+          total: 46.36,
+          currency: 'USD',
+          orderType: 'delivery' as const,
+          estimatedDeliveryTime: new Date(Date.now() + 30 * 60 * 1000),
+          paymentMethods: [
+            {
+              id: 'card_1',
+              type: 'credit-card' as const,
+              last4: '4242',
+              brand: 'visa',
+              isDefault: true
+            }
+          ]
+        };
+
+        return (
+          <ScrollView style={styles.componentContainer}>
+            <Text style={styles.sectionTitle}>🍽️ Restaurant & Food Delivery Templates</Text>
+            <Text style={styles.sectionDescription}>
+              Complete screens for food ordering, restaurant discovery, and delivery management
+            </Text>
+            
+            <RestaurantDetailScreen
+              restaurant={mockRestaurantTemplate}
+              photos={[
+                {
+                  id: 'photo_1',
+                  url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop',
+                  caption: 'Interior dining room'
+                },
+                {
+                  id: 'photo_2',
+                  url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=600&h=400&fit=crop',
+                  caption: 'Signature pizza'
+                }
+              ]}
+              menuHighlights={mockMenuCategoriesTemplate[0].items}
+              reviews={[
+                {
+                  id: 'review_1',
+                  author: { name: 'Sarah Johnson', verified: true },
+                  rating: 5,
+                  content: 'Amazing authentic Italian food! The pasta is made fresh daily and you can taste the difference.',
+                  date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                }
+              ]}
+              contactInfo={{
+                phone: '+1 (555) 123-4567',
+                website: 'bellavista.com',
+                email: 'info@bellavista.com'
+              }}
+              onViewMenu={() => Alert.alert('View Menu', 'Opening full menu...')}
+              onStartOrder={() => Alert.alert('Start Order', 'Starting new order...')}
+              onToggleFavorite={() => Alert.alert('Favorite', 'Added to favorites!')}
+              onGetDirections={() => Alert.alert('Directions', 'Opening directions...')}
+              onCallRestaurant={() => Alert.alert('Call', 'Calling restaurant...')}
+              style={{ marginBottom: 20 }}
+            />
+            
+            <MenuScreen
+              restaurant={{
+                id: mockRestaurantTemplate.id,
+                name: mockRestaurantTemplate.name,
+                description: mockRestaurantTemplate.description,
+                bannerImage: mockRestaurantTemplate.images[0],
+                logo: mockRestaurantTemplate.logo,
+                cuisines: mockRestaurantTemplate.cuisines,
+                priceRange: mockRestaurantTemplate.priceRange,
+                rating: mockRestaurantTemplate.rating,
+                reviewCount: mockRestaurantTemplate.reviewCount,
+                address: `${mockRestaurantTemplate.location.address}, ${mockRestaurantTemplate.location.city}`,
+                distance: mockRestaurantTemplate.location.distance,
+                isOpen: mockRestaurantTemplate.isOpen,
+                deliveryTime: mockRestaurantTemplate.delivery.estimatedTime,
+                deliveryFee: mockRestaurantTemplate.delivery.fee,
+                minimumOrder: mockRestaurantTemplate.delivery.minimumOrder
+              }}
+              menuCategories={mockMenuCategoriesTemplate}
+              cartItems={mockOrderItemsTemplate}
+              onMenuItemSelect={(item) => Alert.alert('Menu Item', `Selected: ${item.name}`)}
+              onAddToCart={(item, quantity) => Alert.alert('Add to Cart', `Added ${quantity} ${item.name} to cart`)}
+              onToggleItemFavorite={(item) => Alert.alert('Favorite', `Toggled favorite for ${item.name}`)}
+              onSearch={(query) => Alert.alert('Search', `Searching for: ${query}`)}
+              onViewCart={() => Alert.alert('View Cart', 'Opening cart...')}
+              style={{ marginBottom: 20 }}
+            />
+            
+            <OrderScreen
+              orderItems={mockOrderItemsTemplate}
+              orderSummary={mockOrderSummaryTemplate}
+              deliveryOptions={[
+                {
+                  id: 'delivery',
+                  type: 'delivery',
+                  name: 'Delivery',
+                  description: 'Delivered to your door',
+                  estimatedTime: 30,
+                  fee: 2.99,
+                  available: true
+                },
+                {
+                  id: 'pickup',
+                  type: 'pickup',
+                  name: 'Pickup',
+                  description: 'Pick up from restaurant',
+                  estimatedTime: 20,
+                  fee: 0,
+                  available: true
+                }
+              ]}
+              recommendations={[
+                {
+                  id: 'rec_1',
+                  name: 'Tiramisu',
+                  description: 'Classic Italian dessert',
+                  image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=200&h=150&fit=crop',
+                  price: 6.99,
+                  currency: 'USD',
+                  popular: true
+                }
+              ]}
+              restaurantName={mockRestaurantTemplate.name}
+              onItemQuantityChange={(itemId, quantity) => Alert.alert('Quantity Updated', `Item ${itemId} quantity: ${quantity}`)}
+              onRemoveItem={(itemId) => Alert.alert('Remove Item', `Removed item ${itemId}`)}
+              onProceedToCheckout={() => Alert.alert('Checkout', 'Proceeding to checkout...')}
+              onContinueShopping={() => Alert.alert('Continue Shopping', 'Going back to menu...')}
+              style={{ marginBottom: 20 }}
+            />
+            
+            <CheckoutScreen
+              orderSummary={mockOrderSummaryTemplate}
+              deliveryTimeSlots={[
+                {
+                  id: 'asap',
+                  label: 'ASAP (30-40 min)',
+                  startTime: new Date(Date.now() + 30 * 60 * 1000),
+                  endTime: new Date(Date.now() + 40 * 60 * 1000),
+                  available: true
+                },
+                {
+                  id: 'later',
+                  label: 'Schedule for later',
+                  startTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
+                  endTime: new Date(Date.now() + 3 * 60 * 60 * 1000),
+                  available: true,
+                  fee: 1.00
+                }
+              ]}
+              paymentMethods={[
+                {
+                  id: 'credit-card',
+                  type: 'credit-card',
+                  name: 'Credit Card',
+                  description: 'Visa, Mastercard, Amex',
+                  available: true
+                },
+                {
+                  id: 'digital-wallet',
+                  type: 'digital-wallet',
+                  name: 'Digital Wallet',
+                  description: 'Apple Pay, Google Pay',
+                  available: true
+                }
+              ]}
+              restaurantInfo={{
+                name: mockRestaurantTemplate.name,
+                phone: '+1 (555) 123-4567',
+                estimatedTime: 30
+              }}
+              onPlaceOrder={async (orderData) => {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                return {
+                  orderId: 'ORD_123456',
+                  estimatedTime: 30,
+                  trackingUrl: 'https://track.restaurant.com/ORD_123456'
+                };
+              }}
+              onBackToCart={() => Alert.alert('Back to Cart', 'Returning to cart...')}
+              onOrderConfirmed={(orderId) => Alert.alert('Order Confirmed', `Order ${orderId} confirmed!`)}
+              style={{ marginBottom: 20 }}
+            />
+            
+            <Text style={styles.templateNote}>
+              💡 These templates provide complete food ordering workflows from restaurant discovery to order confirmation, 
+              perfect for food delivery apps, restaurant platforms, and dining experiences.
             </Text>
           </ScrollView>
         );
@@ -2052,6 +2658,21 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
             <Text style={styles.sectionDescription}>
               End-to-end user journeys for booking services
             </Text>
+            
+            <ServiceDiscoveryFlow
+              initialServices={[mockService]}
+              initialCategories={[
+                { id: 'fitness', name: 'Fitness', icon: '💪', count: 12 },
+                { id: 'beauty', name: 'Beauty', icon: '💄', count: 8 },
+                { id: 'health', name: 'Health', icon: '🏥', count: 15 }
+              ]}
+              initialProviders={[mockProvider]}
+              onFlowComplete={(booking) => Alert.alert('Flow Complete', 'Booking flow completed successfully!')}
+              onFlowCancel={(step) => Alert.alert('Flow Cancelled', `Cancelled at step: ${step}`)}
+              onStepChange={(step, state) => console.log('Flow step:', step, 'Progress:', state.progress)}
+              enableAnalytics={false}
+
+            />
             
             <View style={styles.flowGrid}>
               <View style={styles.flowCard}>
@@ -2391,6 +3012,26 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
       marginBottom: 4,
       paddingLeft: 8,
     },
+    showcaseSection: {
+      marginBottom: 24,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    subsectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.text,
+      marginBottom: 8,
+    },
+    subsectionDescription: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      marginBottom: 16,
+      lineHeight: 20,
+    },
   });
 
   return (
@@ -2416,7 +3057,7 @@ const ComponentsShowcaseScreen: React.FC<ComponentsShowcaseScreenProps> = ({ onB
                 if (tabId === 'blocks') {
                   return ['blocks', 'auth', 'auth-advanced', 'forms', 'forms-advanced', 'lists', 'lists-advanced', 'ecommerce', 'ecommerce-advanced', 'social', 'media', 'business', 'booking', 'booking-advanced', 'utility', 'health'].includes(activeMode);
                 } else if (tabId === 'templates') {
-                  return ['templates', 'auth-templates', 'home-templates', 'profile-templates', 'ecommerce-templates', 'business-templates', 'communication-templates', 'booking-templates'].includes(activeMode);
+                  return ['templates', 'auth-templates', 'home-templates', 'profile-templates', 'ecommerce-templates', 'business-templates', 'communication-templates', 'booking-templates', 'restaurant-templates'].includes(activeMode);
                 } else if (tabId === 'flows') {
                   return ['flows', 'shop', 'cart', 'booking-flows'].includes(activeMode);
                 }

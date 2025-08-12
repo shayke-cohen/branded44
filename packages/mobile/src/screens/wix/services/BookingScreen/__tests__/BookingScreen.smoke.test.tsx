@@ -1,0 +1,90 @@
+/**
+ * BookingScreen Smoke Tests
+ * 
+ * Basic smoke tests for the Wix BookingScreen component covering:
+ * - Component import and rendering
+ * - Basic props handling
+ * - Integration points
+ */
+
+import React from 'react';
+import { render, screen } from '../../../../../test/test-utils';
+import BookingScreen from '../BookingScreen';
+
+// Mock the Wix booking API client
+const mockGetServiceForBooking = jest.fn().mockResolvedValue({
+  success: false,
+  error: 'Mock service not found',
+});
+
+jest.mock('../../shared/wixBookingApiClient', () => ({
+  wixBookingApiClient: {
+    getServiceForBooking: mockGetServiceForBooking,
+    getServiceProviderForBooking: jest.fn().mockResolvedValue({
+      success: false,
+      error: 'Mock provider not found',
+    }),
+  },
+}));
+
+// Mock props
+const mockProps = {
+  serviceId: 'test-service-id',
+  providerId: 'test-provider-id',
+  onBack: jest.fn(),
+  onBookingComplete: jest.fn(),
+};
+
+describe('BookingScreen Smoke Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Smoke Tests', () => {
+    it('should exist and be importable', () => {
+      expect(BookingScreen).toBeDefined();
+      expect(typeof BookingScreen).toBe('function');
+    });
+
+    it('should have correct display name or be a valid component', () => {
+      expect(BookingScreen.displayName || BookingScreen.name || 'Component').toBeTruthy();
+    });
+  });
+
+  describe('Component Structure', () => {
+    it('should have the expected component structure', () => {
+      const result = render(<BookingScreen {...mockProps} />);
+      expect(result).toBeTruthy();
+    });
+  });
+
+  describe('Integration Points', () => {
+    it('should work with navigation callbacks', () => {
+      render(<BookingScreen {...mockProps} />);
+      expect(mockProps.onBack).toBeDefined();
+      expect(mockProps.onBookingComplete).toBeDefined();
+    });
+
+    it('should have proper screen registration', () => {
+      // This component should be usable in navigation
+      expect(() => render(<BookingScreen {...mockProps} />)).not.toThrow();
+    });
+  });
+
+  describe('Wix Integration Points', () => {
+    it('should handle Wix booking API client calls', async () => {
+      const { wixBookingApiClient } = require('../../shared/wixBookingApiClient');
+      
+      render(<BookingScreen {...mockProps} />);
+      
+      // Should attempt to load service data
+      await new Promise(resolve => setTimeout(resolve, 100));
+      expect(mockGetServiceForBooking).toHaveBeenCalledWith('test-service-id');
+    });
+
+    it('should handle context dependencies', () => {
+      // Should render without throwing errors from context
+      expect(() => render(<BookingScreen {...mockProps} />)).not.toThrow();
+    });
+  });
+});

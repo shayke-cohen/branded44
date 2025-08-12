@@ -390,7 +390,7 @@ const getResourceTypeColor = (type: ResourceType): string => {
     facility: COLORS.purple[500],
     vehicle: COLORS.orange[500],
     tool: COLORS.gray[600],
-    space: COLORS.cyan[500],
+    space: COLORS.indigo[500],
     court: COLORS.yellow[500],
     studio: COLORS.pink[500],
   };
@@ -893,7 +893,7 @@ export default function ResourceBookingCard({
                 📊 {resource.popularity.utilizationRate}% utilized
               </Text>
               <Text className="text-xs text-gray-500">
-                ⭐ {resource.popularity.averageRating.toFixed(1)} ({resource.popularity.reviewCount})
+                ⭐ {(resource.popularity?.averageRating ?? 0).toFixed(1)} ({resource.popularity?.reviewCount ?? 0})
               </Text>
             </View>
             <Text className="text-xs text-gray-500">

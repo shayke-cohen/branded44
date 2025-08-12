@@ -23,6 +23,16 @@ global.fetch = jest.fn(() =>
   })
 ) as jest.Mock;
 
+// Mock the wix config
+jest.mock('../config/wixConfig', () => ({
+  getClientId: jest.fn(() => 'mock-client-id'),
+  getSiteId: jest.fn(() => 'mock-site-id'),
+  getApiBaseUrl: jest.fn(() => 'https://mock-api.wix.com'),
+  getStoresAppId: jest.fn(() => 'mock-stores-app-id'),
+}));
+
+
+
 // Mock the WixApiClient to prevent async operations
 jest.mock('../utils/wixApiClient', () => {
   const mockWixApiClient = {
@@ -44,6 +54,15 @@ jest.mock('../utils/wixApiClient', () => {
     // Mock authentication properties
     isAuthenticated: false,
     visitorTokens: null,
+    
+    // Mock member authentication methods
+    isMemberLoggedIn: jest.fn(() => false),
+    getCurrentMember: jest.fn(() => null),
+    hasMemberTokens: jest.fn(() => false),
+    
+    // Mock API request methods
+    makeRequest: jest.fn(() => Promise.resolve({ success: true, data: {} })),
+    queryDataCollection: jest.fn(() => Promise.resolve({ success: true, data: [] })),
     
     // Mock initialization
     initialize: jest.fn(() => Promise.resolve()),

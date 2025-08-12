@@ -30,7 +30,7 @@ describe('ComponentsShowcaseScreen Navigation', () => {
       
       // Should start with blocks tab active by default
       expect(screen.getByText('🚀 Our Component Library')).toBeTruthy();
-      expect(screen.getByText('71+ production-ready components across 13 major categories')).toBeTruthy();
+      expect(screen.getByText('77+ production-ready components across 14 major categories')).toBeTruthy();
       
       // Check some block categories are visible
       expect(screen.getByText('Auth Basic')).toBeTruthy();

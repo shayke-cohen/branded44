@@ -16,7 +16,7 @@ import { useTheme } from '../../context';
 import { WebView } from 'react-native-webview';
 import CookieManager from '@react-native-cookies/cookies';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useMember } from '../../context/MemberContext';
+import { useMember } from '../../context';
 import { wixApiClient } from '../../utils/wixApiClient';
 
 interface CheckoutWebViewProps {

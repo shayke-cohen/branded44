@@ -36,8 +36,8 @@ __metadata:
   linkType: hard
 
 "@anthropic-ai/claude-code@npm:^1.0.56":
-  version: 1.0.72
-  resolution: "@anthropic-ai/claude-code@npm:1.0.72"
+  version: 1.0.74
+  resolution: "@anthropic-ai/claude-code@npm:1.0.74"
   dependencies:
     "@img/sharp-darwin-arm64": ^0.33.5
     "@img/sharp-darwin-x64": ^0.33.5
@@ -60,7 +60,7 @@ __metadata:
       optional: true
   bin:
     claude: cli.js
-  checksum: 399bddf078aa34d033b6f9efacd771feb6473126ed455b0133455391ebe60b0c4ef103e3218c19d34085784639a870b4d13a2b257d952c6137765de34cac0ec5
+  checksum: 149a9140fed2cdfac741977744a5f6e134d26f34bfe75405e7c6538600cb8cb8991fccd6fb73f1b6a8b8c84de950d45c2aacc9f7e2689804350191bb222a219f
   languageName: node
   linkType: hard
 
@@ -1517,7 +1517,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.18.6, @babel/runtime@npm:^7.21.0, @babel/runtime@npm:^7.25.0, @babel/runtime@npm:^7.26.0, @babel/runtime@npm:^7.27.6":
+"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.18.6, @babel/runtime@npm:^7.21.0, @babel/runtime@npm:^7.25.0, @babel/runtime@npm:^7.26.0, @babel/runtime@npm:^7.27.6, @babel/runtime@npm:^7.28.2":
   version: 7.28.2
   resolution: "@babel/runtime@npm:7.28.2"
   checksum: 8673eb2311752929f5b0167f42cff4cc1d5fadddd0394baca27d06c1618680ffcf95e9f01061f5c4dc3f6a32b6bbf500e7762c02dc22bcd273c2947b9774ddad
@@ -1621,7 +1621,8 @@ __metadata:
     "@wix/data-collections": ^1.0.5
     "@wix/ecom": ^1.0.1267
     "@wix/redirects": ^1.0.93
-    "@wix/sdk": ^1.15.24
+    "@wix/restaurants": ^1.0.386
+    "@wix/sdk": ^1.15.26
     class-variance-authority: ^0.7.1
     clsx: ^2.1.1
     eslint: ^8.19.0
@@ -1632,6 +1633,7 @@ __metadata:
     react-native: 0.80.1
     react-native-get-random-values: ^1.11.0
     react-native-polyfill-globals: ^3.1.0
+    react-native-safe-area-context: ^5.6.0
     react-native-svg: ^15.12.0
     react-native-webview: ^13.15.0
     react-native-worklets: ^0.4.0
@@ -2336,12 +2338,12 @@ __metadata:
   linkType: hard
 
 "@jridgewell/gen-mapping@npm:^0.3.12, @jridgewell/gen-mapping@npm:^0.3.5":
-  version: 0.3.12
-  resolution: "@jridgewell/gen-mapping@npm:0.3.12"
+  version: 0.3.13
+  resolution: "@jridgewell/gen-mapping@npm:0.3.13"
   dependencies:
     "@jridgewell/sourcemap-codec": ^1.5.0
     "@jridgewell/trace-mapping": ^0.3.24
-  checksum: 56ee1631945084897f274e65348afbaca7970ce92e3c23b3a23b2fe5d0d2f0c67614f0df0f2bb070e585e944bbaaf0c11cee3a36318ab8a36af46f2fd566bc40
+  checksum: f2105acefc433337145caa3c84bba286de954f61c0bc46279bbd85a9e6a02871089717fa060413cfb6a9d44189fe8313b2d1cabf3a2eb3284d208fd5f75c54ff
   languageName: node
   linkType: hard
 
@@ -2353,19 +2355,19 @@ __metadata:
   linkType: hard
 
 "@jridgewell/source-map@npm:^0.3.3":
-  version: 0.3.10
-  resolution: "@jridgewell/source-map@npm:0.3.10"
+  version: 0.3.11
+  resolution: "@jridgewell/source-map@npm:0.3.11"
   dependencies:
     "@jridgewell/gen-mapping": ^0.3.5
     "@jridgewell/trace-mapping": ^0.3.25
-  checksum: 035d6e6df0e60744506b14033f1569fd5ddc269abeb68bf50c2911118e2a4fa50dab474d49a59a993e4ee6795c4ae5940381e0d09fc204972c5387788d22d010
+  checksum: c8a0011cc67e701f270fa042e32b312f382c413bcc70ca9c03684687cbf5b64d5eed87d4afa36dddaabe60ab3da6db4935f878febd9cfc7f82724ea1a114d344
   languageName: node
   linkType: hard
 
 "@jridgewell/sourcemap-codec@npm:^1.4.10, @jridgewell/sourcemap-codec@npm:^1.4.14, @jridgewell/sourcemap-codec@npm:^1.5.0":
-  version: 1.5.4
-  resolution: "@jridgewell/sourcemap-codec@npm:1.5.4"
-  checksum: 959093724bfbc7c1c9aadc08066154f5c1f2acc647b45bd59beec46922cbfc6a9eda4a2114656de5bc00bb3600e420ea9a4cb05e68dcf388619f573b77bd9f0c
+  version: 1.5.5
+  resolution: "@jridgewell/sourcemap-codec@npm:1.5.5"
+  checksum: c2e36e67971f719a8a3a85ef5a5f580622437cc723c35d03ebd0c9c0b06418700ef006f58af742791f71f6a4fc68fcfaf1f6a74ec2f9a3332860e9373459dae7
   languageName: node
   linkType: hard
 
@@ -2380,12 +2382,12 @@ __metadata:
   linkType: hard
 
 "@jridgewell/trace-mapping@npm:^0.3.12, @jridgewell/trace-mapping@npm:^0.3.18, @jridgewell/trace-mapping@npm:^0.3.24, @jridgewell/trace-mapping@npm:^0.3.25, @jridgewell/trace-mapping@npm:^0.3.28":
-  version: 0.3.29
-  resolution: "@jridgewell/trace-mapping@npm:0.3.29"
+  version: 0.3.30
+  resolution: "@jridgewell/trace-mapping@npm:0.3.30"
   dependencies:
     "@jridgewell/resolve-uri": ^3.1.0
     "@jridgewell/sourcemap-codec": ^1.4.14
-  checksum: 5e92eeafa5131a4f6b7122063833d657f885cb581c812da54f705d7a599ff36a75a4a093a83b0f6c7e95642f5772dd94753f696915e8afea082237abf7423ca3
+  checksum: 26edb94faf6f02df346e3657deff9df3f2f083195cbda62a6cf60204d548a0a6134454cbc3af8437392206a89dfb3e72782eaf78f49cbd8924400e55a6575e72
   languageName: node
   linkType: hard
 
@@ -5044,11 +5046,11 @@ __metadata:
   linkType: hard
 
 "@types/react@npm:*, @types/react@npm:^19.0.0":
-  version: 19.1.9
-  resolution: "@types/react@npm:19.1.9"
+  version: 19.1.10
+  resolution: "@types/react@npm:19.1.10"
   dependencies:
     csstype: ^3.0.2
-  checksum: 531b1f40e7f93aade4385a56b73e98846ec482ac695ccb0d4da1fc53fa398564f71383cd120cf8b8a9a1ea95f207c3e042d145fa8bc26e4fa57d863459e53b29
+  checksum: 1d9c5edb5957e797ad59dc71f92f6faa1f8033007c037f9aeb01161366c92fa257a6ddb267ff33f7787c072c5d568b5f8593868d58f2858f7face6978cd18e00
   languageName: node
   linkType: hard
 
@@ -5187,23 +5189,23 @@ __metadata:
   linkType: hard
 
 "@typescript-eslint/eslint-plugin@npm:^8.15.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/eslint-plugin@npm:8.39.0"
+  version: 8.39.1
+  resolution: "@typescript-eslint/eslint-plugin@npm:8.39.1"
   dependencies:
     "@eslint-community/regexpp": ^4.10.0
-    "@typescript-eslint/scope-manager": 8.39.0
-    "@typescript-eslint/type-utils": 8.39.0
-    "@typescript-eslint/utils": 8.39.0
-    "@typescript-eslint/visitor-keys": 8.39.0
+    "@typescript-eslint/scope-manager": 8.39.1
+    "@typescript-eslint/type-utils": 8.39.1
+    "@typescript-eslint/utils": 8.39.1
+    "@typescript-eslint/visitor-keys": 8.39.1
     graphemer: ^1.4.0
     ignore: ^7.0.0
     natural-compare: ^1.4.0
     ts-api-utils: ^2.1.0
   peerDependencies:
-    "@typescript-eslint/parser": ^8.39.0
+    "@typescript-eslint/parser": ^8.39.1
     eslint: ^8.57.0 || ^9.0.0
     typescript: ">=4.8.4 <6.0.0"
-  checksum: daf8e4089a9b203b101645dcf55e7df1359f0cf0a0b6f1a336a64fa25dd54ff5188c9aa3f3e4899d5d60bceb8ed059f4771fdf314e8c162e0c2c5194aade641e
+  checksum: 38df64dd936535c1ccb9b1181d8d8f662e2a736a4a3fd529434f1624e75acd44f8811f2e372d7e2269451558a5bac0aa5058f4fa5329d6a1396a385f9eba5c1f
   languageName: node
   linkType: hard
 
@@ -5226,31 +5228,31 @@ __metadata:
   linkType: hard
 
 "@typescript-eslint/parser@npm:^8.15.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/parser@npm:8.39.0"
+  version: 8.39.1
+  resolution: "@typescript-eslint/parser@npm:8.39.1"
   dependencies:
-    "@typescript-eslint/scope-manager": 8.39.0
-    "@typescript-eslint/types": 8.39.0
-    "@typescript-eslint/typescript-estree": 8.39.0
-    "@typescript-eslint/visitor-keys": 8.39.0
+    "@typescript-eslint/scope-manager": 8.39.1
+    "@typescript-eslint/types": 8.39.1
+    "@typescript-eslint/typescript-estree": 8.39.1
+    "@typescript-eslint/visitor-keys": 8.39.1
     debug: ^4.3.4
   peerDependencies:
     eslint: ^8.57.0 || ^9.0.0
     typescript: ">=4.8.4 <6.0.0"
-  checksum: 280a2953c4b186f5ce6f3081fc43a4d780d80622b20c23fd5544239df45debfc6ca78fbe4c7b649265f0645f8fa4c17337d2c9ac57e54ae2ff4682ced1f83e9e
+  checksum: aac7ec168baf077df811aa05e47b7bc947a22f8b041ca79bacfcdcf9574e25c42e11af2ce54d5268e9f10268f8175b73394e83c9bd34a46b8d31bbd5823dee97
   languageName: node
   linkType: hard
 
-"@typescript-eslint/project-service@npm:8.39.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/project-service@npm:8.39.0"
+"@typescript-eslint/project-service@npm:8.39.1":
+  version: 8.39.1
+  resolution: "@typescript-eslint/project-service@npm:8.39.1"
   dependencies:
-    "@typescript-eslint/tsconfig-utils": ^8.39.0
-    "@typescript-eslint/types": ^8.39.0
+    "@typescript-eslint/tsconfig-utils": ^8.39.1
+    "@typescript-eslint/types": ^8.39.1
     debug: ^4.3.4
   peerDependencies:
     typescript: ">=4.8.4 <6.0.0"
-  checksum: 561c16769a1d51e13fe334b153ca6a1591848319410b808ce500132e9036a8bf9df0e37943e9a270643aa7384137605e475408ff75fec5604f6f23505888e498
+  checksum: 33b82ebdbc2ebef86f06fe8c6c50d51a83cafcaffd67bf39a7b240d11f7220ba2ebd7af3a306947c1afe1831f1b7831c0e6073561d1113c7e561bd3174a1289e
   languageName: node
   linkType: hard
 
@@ -5274,22 +5276,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/scope-manager@npm:8.39.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/scope-manager@npm:8.39.0"
+"@typescript-eslint/scope-manager@npm:8.39.1":
+  version: 8.39.1
+  resolution: "@typescript-eslint/scope-manager@npm:8.39.1"
   dependencies:
-    "@typescript-eslint/types": 8.39.0
-    "@typescript-eslint/visitor-keys": 8.39.0
-  checksum: d3bdfa19f4a1defe73d351482831bd50b282d07a33e9743908239a9a5e1fb0982014e8be08c197d86684854c995ef942e8f8315699e2218796cb8656bf76b9e2
+    "@typescript-eslint/types": 8.39.1
+    "@typescript-eslint/visitor-keys": 8.39.1
+  checksum: e58970a6b097fc57f18de32202931b3ad3a6fb3e5b29a7b13b1d0fde3b18a00ebb95d8495cac32fb7e3cf9e455b5d5fb82056255d2c7ad6046d28901500211d6
   languageName: node
   linkType: hard
 
-"@typescript-eslint/tsconfig-utils@npm:8.39.0, @typescript-eslint/tsconfig-utils@npm:^8.39.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/tsconfig-utils@npm:8.39.0"
+"@typescript-eslint/tsconfig-utils@npm:8.39.1, @typescript-eslint/tsconfig-utils@npm:^8.39.1":
+  version: 8.39.1
+  resolution: "@typescript-eslint/tsconfig-utils@npm:8.39.1"
   peerDependencies:
     typescript: ">=4.8.4 <6.0.0"
-  checksum: 3457da49e7292bd07b1bd41f19661ea79481f3b6f6593fb1ecf6557c38c0f5fd77df397bc096d0bad400c4142d939d5fbaf060a524f9272c749cc02c53a65852
+  checksum: 38c1e1982504e606e525ad0ce47fdb4c7acc686a28a94c2b30fe988c439977e991ce69cb88a1724a41a8096fc2d18d7ced7fe8725e42879d841515ff36a37ecf
   languageName: node
   linkType: hard
 
@@ -5310,19 +5312,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/type-utils@npm:8.39.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/type-utils@npm:8.39.0"
+"@typescript-eslint/type-utils@npm:8.39.1":
+  version: 8.39.1
+  resolution: "@typescript-eslint/type-utils@npm:8.39.1"
   dependencies:
-    "@typescript-eslint/types": 8.39.0
-    "@typescript-eslint/typescript-estree": 8.39.0
-    "@typescript-eslint/utils": 8.39.0
+    "@typescript-eslint/types": 8.39.1
+    "@typescript-eslint/typescript-estree": 8.39.1
+    "@typescript-eslint/utils": 8.39.1
     debug: ^4.3.4
     ts-api-utils: ^2.1.0
   peerDependencies:
     eslint: ^8.57.0 || ^9.0.0
     typescript: ">=4.8.4 <6.0.0"
-  checksum: b587f9e8f01487d5b63b6c538a96478140eddd7689cefc3ed9b047d78f6cdeae5018138b5322c9bece8aad9ef6028fa8a47739eee4dd31ceb05e21be8667e92e
+  checksum: 4246cbaa69a3ec50e46dc62d3fb9358bac27b792d4e2552277064ca4d24c1be5606f0ae1854c8430b748f09b0086e418aa57320f8a88aa5a474779b88ed1784f
   languageName: node
   linkType: hard
 
@@ -5340,10 +5342,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/types@npm:8.39.0, @typescript-eslint/types@npm:^8.39.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/types@npm:8.39.0"
-  checksum: 283b674defc2ee7b88db7e6b7eb32c8da8cb96e14e39c155c6968043b27d2dbcbfaf5044cebe1d11baff66d92da8dac337cc0553ef9385a5030ad35e1fb7f41e
+"@typescript-eslint/types@npm:8.39.1, @typescript-eslint/types@npm:^8.39.1":
+  version: 8.39.1
+  resolution: "@typescript-eslint/types@npm:8.39.1"
+  checksum: f9b73f88eeb94ed4c2541dbdeb7059eeec08fd4d3a8ee291d4f92c42abd1892ab98018a53a21ee5a8f5df01aa1d9d082c7bf63065a44a52befc1709ecf0e07de
   languageName: node
   linkType: hard
 
@@ -5384,14 +5386,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/typescript-estree@npm:8.39.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/typescript-estree@npm:8.39.0"
+"@typescript-eslint/typescript-estree@npm:8.39.1":
+  version: 8.39.1
+  resolution: "@typescript-eslint/typescript-estree@npm:8.39.1"
   dependencies:
-    "@typescript-eslint/project-service": 8.39.0
-    "@typescript-eslint/tsconfig-utils": 8.39.0
-    "@typescript-eslint/types": 8.39.0
-    "@typescript-eslint/visitor-keys": 8.39.0
+    "@typescript-eslint/project-service": 8.39.1
+    "@typescript-eslint/tsconfig-utils": 8.39.1
+    "@typescript-eslint/types": 8.39.1
+    "@typescript-eslint/visitor-keys": 8.39.1
     debug: ^4.3.4
     fast-glob: ^3.3.2
     is-glob: ^4.0.3
@@ -5400,7 +5402,7 @@ __metadata:
     ts-api-utils: ^2.1.0
   peerDependencies:
     typescript: ">=4.8.4 <6.0.0"
-  checksum: 2978d3a2d9067a927e4866aad2cc940ce5a974a92a5313905369d00b1e2121aeaf3bb0ebd1917be8c6b590c7f30f796e2f57780f82189087974cf40d197b34e9
+  checksum: 9d8900c2625db0cf1628569fde3d8ff8c2e921279f8407b02b9af4b7a499ecad0a9a6bea934c6552354cbd7fcd87debc7587aa3fe259f6347210d34a6ee680d7
   languageName: node
   linkType: hard
 
@@ -5418,18 +5420,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/utils@npm:8.39.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/utils@npm:8.39.0"
+"@typescript-eslint/utils@npm:8.39.1":
+  version: 8.39.1
+  resolution: "@typescript-eslint/utils@npm:8.39.1"
   dependencies:
     "@eslint-community/eslint-utils": ^4.7.0
-    "@typescript-eslint/scope-manager": 8.39.0
-    "@typescript-eslint/types": 8.39.0
-    "@typescript-eslint/typescript-estree": 8.39.0
+    "@typescript-eslint/scope-manager": 8.39.1
+    "@typescript-eslint/types": 8.39.1
+    "@typescript-eslint/typescript-estree": 8.39.1
   peerDependencies:
     eslint: ^8.57.0 || ^9.0.0
     typescript: ">=4.8.4 <6.0.0"
-  checksum: 70e071517c6d515cdd05c130a4793685644ec7f9f1e5972988722de6c906fb1867058c32eeac58fb9b3c0553b6af0bd8dd33b40abc2ccac0573be11741664d21
+  checksum: cedf87c8893928057c087b4b63c5d753c0a75261906dd04a78c6e32c7f71c188b3654672297b0ef0ab65cdda47f1b19ee3ebe7b48cec678c671ff543c00860c4
   languageName: node
   linkType: hard
 
@@ -5471,13 +5473,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/visitor-keys@npm:8.39.0":
-  version: 8.39.0
-  resolution: "@typescript-eslint/visitor-keys@npm:8.39.0"
+"@typescript-eslint/visitor-keys@npm:8.39.1":
+  version: 8.39.1
+  resolution: "@typescript-eslint/visitor-keys@npm:8.39.1"
   dependencies:
-    "@typescript-eslint/types": 8.39.0
+    "@typescript-eslint/types": 8.39.1
     eslint-visitor-keys: ^4.2.1
-  checksum: dc9380867c2903114cfbef9cb9ce14eb07742301fbd5b1bc32d0593ab2cc66b2790c52a7e1156abf61f48cad734972d2d13eb35430dbd5c058fc877d7372ae02
+  checksum: 35ff5a8701a6853488d7d2094ffbb8b99f4632c89a5e371022fe7221d9b6f7588dee8205b9900b406d1d9539188b523695a05c7c4a5168e1d64a8a38a0def049
   languageName: node
   linkType: hard
 
@@ -6289,6 +6291,236 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@wix/auto_sdk_restaurants_availability-exceptions@npm:1.0.29":
+  version: 1.0.29
+  resolution: "@wix/auto_sdk_restaurants_availability-exceptions@npm:1.0.29"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 8720b26e5fc4697f805d3eee41d603ea97ca13bdc6de22bf93e2659b619efe36dd431a81acae22d1682f9ddd4c3ad5e44aabe4e68e59bf439bc46c37171e867a
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_catalogs@npm:1.0.34":
+  version: 1.0.34
+  resolution: "@wix/auto_sdk_restaurants_catalogs@npm:1.0.34"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 8f924973be56e3eb76f4cc438105a0474a7cee5a4bcbcd0dea1691e90edd5c9e2fac5a2d7694b97e81584e57fda42608de51103eefd0707155a7ee6e988668b1
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_discount@npm:1.0.29":
+  version: 1.0.29
+  resolution: "@wix/auto_sdk_restaurants_discount@npm:1.0.29"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 4980316526a20769745854008db8ee9a538487b6113baf8eca836fe392edca8a9e8d605bb2d6dabfdbc8765c102ae85975b196bc7c585c1f44ee113bdb09df7b
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_fulfillemt-methods@npm:1.0.21":
+  version: 1.0.21
+  resolution: "@wix/auto_sdk_restaurants_fulfillemt-methods@npm:1.0.21"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 35a36da22729af767e6f82b7351a4a36a606fefc0a0349ca32fac98890f20fd3f9b03bf3f48261f5ad287392b5bbbd3155a520446e9ad0245848114607069396
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_fulfillment-methods@npm:1.0.37":
+  version: 1.0.37
+  resolution: "@wix/auto_sdk_restaurants_fulfillment-methods@npm:1.0.37"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: fae957a90a3d894eac13217e16c9a908abaa62d38a875591bc6911bb2c68a464390408c357c3481dfe04c70c708e038aff8b43125beac80c4e60c20cb8cb7b30
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_item-labels@npm:1.0.36":
+  version: 1.0.36
+  resolution: "@wix/auto_sdk_restaurants_item-labels@npm:1.0.36"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 3d9d25d023109afb4f12c066c21ede5a9321898d2459a3cfa4a45f1959d2eac56becdfce4fbf1d74dcb471bc0cd327ec268ef479d0fb405bf8c04d7eb4b8ac38
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_item-modifier-groups@npm:1.0.38":
+  version: 1.0.38
+  resolution: "@wix/auto_sdk_restaurants_item-modifier-groups@npm:1.0.38"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 84e8c535954c93c9c4347be92cfff309a409aeefefb772636eb2896e7eca260351ee670406405e385e8b5a75fcf82915ca0da3ed9cee73e26dffc2e36da2b81b
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_item-modifiers@npm:1.0.35":
+  version: 1.0.35
+  resolution: "@wix/auto_sdk_restaurants_item-modifiers@npm:1.0.35"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: fba62225a6a8f8a4c0c71b6da75841d68bb88d8443025acd99a223293ea0cfe8b80d85821dbbe41d40d0284a90cb1bc4c58b657411fa51eb0d3e94f35427983f
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_item-variants@npm:1.0.31":
+  version: 1.0.31
+  resolution: "@wix/auto_sdk_restaurants_item-variants@npm:1.0.31"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: ec8a1770f92fbe4267e4aea3e38224fc8a865cd66b959c4a628e7e3a7530bbaa36334728066cf5cbffd710ce0fdc53386c128e3fa32deb85cd945e1d357098a0
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_items@npm:1.0.43":
+  version: 1.0.43
+  resolution: "@wix/auto_sdk_restaurants_items@npm:1.0.43"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 1c41daa6bbf84895b7464a8a06dd7b2e529f869f7ab465d73d1ddd8d984d283b0e7e4e12d798a86fa397843307e1c49708cad97086a372e8ac23f17337ee3374
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_local-delivery-spi@npm:1.0.26":
+  version: 1.0.26
+  resolution: "@wix/auto_sdk_restaurants_local-delivery-spi@npm:1.0.26"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 9e228a1edb61012dc08edc0f47b74a9d8c14b77d5592978e66f95c89cf3d18b56ae90f5c93a575f89e090ce4750e4c9af44fe0c4106feb8c13a77764e52cb2f0
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_menu-ordering-settings@npm:1.0.29":
+  version: 1.0.29
+  resolution: "@wix/auto_sdk_restaurants_menu-ordering-settings@npm:1.0.29"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 1eca133772c03672b73775b9130e874f54858fcd8baf8b1c219891f39129b45eabaecff92a60a828a00d506d29dbf09f0e7296a5f41708263c17815f8b12c4c8
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_menus@npm:1.0.37":
+  version: 1.0.37
+  resolution: "@wix/auto_sdk_restaurants_menus@npm:1.0.37"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: dcb5367bfda57b20099fe9bf209b4724d62b152da24ac11e35fd117a5a9b1012c6c9bc2b17c1cd279d9a2b92039e482f12c4b3995bf288c9e661ee17a59f8742
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_operation-groups@npm:1.0.32":
+  version: 1.0.32
+  resolution: "@wix/auto_sdk_restaurants_operation-groups@npm:1.0.32"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: bb9f788339da7110d6887d5c0a851180733c8b9efdfa1daa9912b390fe264cf4f48d79cd98f3b906d6291c730f42a618298e9ba0981e00f5227837543ded7ab9
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_operations@npm:1.0.50":
+  version: 1.0.50
+  resolution: "@wix/auto_sdk_restaurants_operations@npm:1.0.50"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 9f35233306f74389d76281af61dce794de490fc5769cb5fa91c88c4f6fe386524d298916e5df664a6413dfcdc3371b45ff7d66020fac77a2a915ad2f1dc4516a
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_order-pacing-order@npm:1.0.19":
+  version: 1.0.19
+  resolution: "@wix/auto_sdk_restaurants_order-pacing-order@npm:1.0.19"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: e19f8213fe7121bf5ce2f7dd8b2d8645926a45b239978890fb6197848530a249775c14bd04fb91a9facb8b1b5758774d3d83b682c8fd1bf18ccd45a66121c1bc
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_order-pacing-policy@npm:1.0.23":
+  version: 1.0.23
+  resolution: "@wix/auto_sdk_restaurants_order-pacing-policy@npm:1.0.23"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 6657cdbfdb3d1ddf98f3e802d125558866a66a03848de66a05b5aac223801fa6042a039ea0412a1a2d7da7b232b8c78f8ff480a354311a69af884dd154d4f3bf
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_order-settings@npm:1.0.19":
+  version: 1.0.19
+  resolution: "@wix/auto_sdk_restaurants_order-settings@npm:1.0.19"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: a21d797b9aa2e26f4d0ba8d44ec3ca412bb104cace1847ee4dd68d3aeae28f38af37aeab02652b8648535b9bdf62807b167a163e96852f5efec3b0a85d40d989
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_orders@npm:1.0.26":
+  version: 1.0.26
+  resolution: "@wix/auto_sdk_restaurants_orders@npm:1.0.26"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 4cf8d362442449165d39b6ae3ce45aee20d7617da54f113bcdc583b67b5966c277924e334d7a9e35d8506ed27d301219154e0a13d6482baf282ba29d5ae5dde6
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_pos-tpa@npm:1.0.22":
+  version: 1.0.22
+  resolution: "@wix/auto_sdk_restaurants_pos-tpa@npm:1.0.22"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: d9b9e7d601c657ed06fd04984b802c58370a855a69b98b4a472f39db0f602d5f258290bc8c81f8a7207a1f93eed8869398c6f3e1ddd8d7cbb044bce874a0d9a9
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_restaurant-locations@npm:1.0.19":
+  version: 1.0.19
+  resolution: "@wix/auto_sdk_restaurants_restaurant-locations@npm:1.0.19"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 9a7b35e354b23a9c0303250e3d0025657eead1083fbb945b3efab3ec80c12b09d27efa7d53663e5f304e1879e27ae762876bd20321caffe06d0573d58735953f
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_sections@npm:1.0.38":
+  version: 1.0.38
+  resolution: "@wix/auto_sdk_restaurants_sections@npm:1.0.38"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: f6d6606a7047e04170fa710ef58dc843a88c698d66cd48f2f6e7a17ed95ddc1119e28d4c049bcf2cc2cbf0a3d00369d2264430ac91fb78b0c2f30630751dd88c
+  languageName: node
+  linkType: hard
+
+"@wix/auto_sdk_restaurants_service-fees@npm:1.0.26":
+  version: 1.0.26
+  resolution: "@wix/auto_sdk_restaurants_service-fees@npm:1.0.26"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 047184c799abba8a33fcd49b25cc8159e7b8f66412849339a38b2d2a9d3b3305736a10d0d33d3ad506866d49a874c4ea80d49ef2ec06c6ece8b8c60f47cf487d
+  languageName: node
+  linkType: hard
+
 "@wix/data-collections@npm:^1.0.5":
   version: 1.0.5
   resolution: "@wix/data-collections@npm:1.0.5"
@@ -6390,12 +6622,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wix/error-handler-types@npm:^1.12.0":
-  version: 1.13.0
-  resolution: "@wix/error-handler-types@npm:1.13.0"
+"@wix/error-handler-types@npm:^1.19.0":
+  version: 1.19.0
+  resolution: "@wix/error-handler-types@npm:1.19.0"
   dependencies:
-    "@babel/runtime": ^7.27.6
-  checksum: efcfdae6dd9868fc870459349ccfcd2ca06eb74941e2f2b98b1f24b9f510acf59d43514ad37a964879868624d2382fd1c9982d1cebdec1ec3a054fd4f24a491f
+    "@babel/runtime": ^7.28.2
+  checksum: d753e7713a86d978d21ac93978e9f62b05ba88c197f9b41ade704c2939f8fbe6dbcc2f476cec66d09145dec3e5e225fb8233ca2b051268e8d0117874f1a2158d
   languageName: node
   linkType: hard
 
@@ -6446,13 +6678,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wix/image-kit@npm:^1.109.0":
-  version: 1.110.0
-  resolution: "@wix/image-kit@npm:1.110.0"
+"@wix/image-kit@npm:^1.111.0":
+  version: 1.112.0
+  resolution: "@wix/image-kit@npm:1.112.0"
   dependencies:
     "@babel/runtime": ^7.26.0
     tslib: ^2.8.1
-  checksum: 5915f2011943b15bfa3aeea6e3e3cb32105583860857fce031df1aed042f6c7312ab5d68c511ea94c64d1eeaadafec6a4c436de5437563a32150a65997f0e218
+  checksum: 004b796cafea9ce3d86294b23cae93a6bbd9cf6bfd3006e1c6c9c7d265669df3cdd0077d6df5ca762db9e4391bab4a55070719901e1db35fbd6a1960681a43ae
   languageName: node
   linkType: hard
 
@@ -6577,6 +6809,48 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@wix/restaurants@npm:^1.0.386":
+  version: 1.0.386
+  resolution: "@wix/restaurants@npm:1.0.386"
+  dependencies:
+    "@wix/auto_sdk_restaurants_availability-exceptions": 1.0.29
+    "@wix/auto_sdk_restaurants_catalogs": 1.0.34
+    "@wix/auto_sdk_restaurants_discount": 1.0.29
+    "@wix/auto_sdk_restaurants_fulfillemt-methods": 1.0.21
+    "@wix/auto_sdk_restaurants_fulfillment-methods": 1.0.37
+    "@wix/auto_sdk_restaurants_item-labels": 1.0.36
+    "@wix/auto_sdk_restaurants_item-modifier-groups": 1.0.38
+    "@wix/auto_sdk_restaurants_item-modifiers": 1.0.35
+    "@wix/auto_sdk_restaurants_item-variants": 1.0.31
+    "@wix/auto_sdk_restaurants_items": 1.0.43
+    "@wix/auto_sdk_restaurants_local-delivery-spi": 1.0.26
+    "@wix/auto_sdk_restaurants_menu-ordering-settings": 1.0.29
+    "@wix/auto_sdk_restaurants_menus": 1.0.37
+    "@wix/auto_sdk_restaurants_operation-groups": 1.0.32
+    "@wix/auto_sdk_restaurants_operations": 1.0.50
+    "@wix/auto_sdk_restaurants_order-pacing-order": 1.0.19
+    "@wix/auto_sdk_restaurants_order-pacing-policy": 1.0.23
+    "@wix/auto_sdk_restaurants_order-settings": 1.0.19
+    "@wix/auto_sdk_restaurants_orders": 1.0.26
+    "@wix/auto_sdk_restaurants_pos-tpa": 1.0.22
+    "@wix/auto_sdk_restaurants_restaurant-locations": 1.0.19
+    "@wix/auto_sdk_restaurants_sections": 1.0.38
+    "@wix/auto_sdk_restaurants_service-fees": 1.0.26
+    "@wix/restaurants_app-extensions": 1.0.30
+  checksum: 4b808646abe66bf469940ad9ebc5047f360b1fcdf552e4b1d8456c9bae101b238752c6560e138ee0661db1594e0559ac5e725c72e1dfd12b1d24cb7de6a8886e
+  languageName: node
+  linkType: hard
+
+"@wix/restaurants_app-extensions@npm:1.0.30":
+  version: 1.0.30
+  resolution: "@wix/restaurants_app-extensions@npm:1.0.30"
+  dependencies:
+    "@wix/sdk-runtime": ^0.3.55
+    "@wix/sdk-types": ^1.13.35
+  checksum: 5bf5774cd355150e4becb16c14dc66f1e7adf12595e2717a104b73f42e2cb1adbfe73a00f7e148765f0531e84e86e83726151a3cc66af7859a4db2f21540cc2a
+  languageName: node
+  linkType: hard
+
 "@wix/sdk-context@npm:0.0.1":
   version: 0.0.1
   resolution: "@wix/sdk-context@npm:0.0.1"
@@ -6593,44 +6867,44 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wix/sdk-runtime@npm:0.3.57, @wix/sdk-runtime@npm:^0.3.55, @wix/sdk-runtime@npm:^0.3.57":
-  version: 0.3.57
-  resolution: "@wix/sdk-runtime@npm:0.3.57"
+"@wix/sdk-runtime@npm:0.3.59, @wix/sdk-runtime@npm:^0.3.55, @wix/sdk-runtime@npm:^0.3.57":
+  version: 0.3.59
+  resolution: "@wix/sdk-runtime@npm:0.3.59"
   dependencies:
     "@wix/sdk-context": 0.0.1
-    "@wix/sdk-types": ^1.13.32
-  checksum: bbf209d80017e21702f6bb7c6d8e8ad2f4c7e5a64d695840d7aed521e814e6d54af6170c7dc7b003a1c286d75e25991e38abeda9f6868cc683e06f41a9f22ce8
+    "@wix/sdk-types": ^1.13.38
+  checksum: a66d3ec2139cbe351a5d8d495cf2bb73929ca938d97dca36b9381d5a1ff4d489078395e9e46259776956e1caae16bf1696e96707bfcf6821d6787d96a76ac3fc
   languageName: node
   linkType: hard
 
-"@wix/sdk-types@npm:^1.0.0, @wix/sdk-types@npm:^1.13.28, @wix/sdk-types@npm:^1.13.32, @wix/sdk-types@npm:^1.13.35":
-  version: 1.13.35
-  resolution: "@wix/sdk-types@npm:1.13.35"
+"@wix/sdk-types@npm:^1.0.0, @wix/sdk-types@npm:^1.13.28, @wix/sdk-types@npm:^1.13.32, @wix/sdk-types@npm:^1.13.35, @wix/sdk-types@npm:^1.13.38":
+  version: 1.13.40
+  resolution: "@wix/sdk-types@npm:1.13.40"
   dependencies:
-    "@wix/error-handler-types": ^1.12.0
+    "@wix/error-handler-types": ^1.19.0
     "@wix/monitoring-types": ^0.12.0
     type-fest: ^4.41.0
-  checksum: 001b9563b330faa85a40e96913333936022e67d5305411730c9073879f3bfed317cd8b03149f6cf38010ff35cfea54b6dcc901d232d2b06d6cd4744a448fb2b5
+  checksum: ded1fb0d91006faea45d2d6ed313c9765573af8186ee350bee00daedfe757a86ed5396a9d14a299a041f45c833f4b2a4bc8b2af8018c0977037fa9b968630e98
   languageName: node
   linkType: hard
 
-"@wix/sdk@npm:^1.15.24":
-  version: 1.15.24
-  resolution: "@wix/sdk@npm:1.15.24"
+"@wix/sdk@npm:^1.15.24, @wix/sdk@npm:^1.15.26":
+  version: 1.15.26
+  resolution: "@wix/sdk@npm:1.15.26"
   dependencies:
     "@wix/identity": ^1.0.104
-    "@wix/image-kit": ^1.109.0
+    "@wix/image-kit": ^1.111.0
     "@wix/redirects": ^1.0.70
     "@wix/sdk-context": 0.0.1
-    "@wix/sdk-runtime": 0.3.57
-    "@wix/sdk-types": ^1.13.32
+    "@wix/sdk-runtime": 0.3.59
+    "@wix/sdk-types": ^1.13.38
     graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
     jose: ^5.10.0
     type-fest: ^4.41.0
   dependenciesMeta:
     graphql:
       optional: true
-  checksum: 46645c44af046e4b922f5d12c28abd9980b026fdc65aa5c206e7c1ac393db50c8be257a295b01d1419ef48034c3b23706e4679191272b1088b755fdc93a10669
+  checksum: 5f59fa4afb3f6bbf6772dec998b525ded8ea2d57059350f46d75e573db3ec6559dce85c30b926b07e29abde10220db2e279632381fa89c57b1526520fc06177e
   languageName: node
   linkType: hard
 
@@ -7574,9 +7848,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001733":
-  version: 1.0.30001733
-  resolution: "caniuse-lite@npm:1.0.30001733"
-  checksum: cf9d0701ef5617231072be7db74a077ac7a453c8672fe0f17df14aee73f8f253b42cd0d95e1f150ff73453edb115b7131e98b416070b798c8f41b25606f15292
+  version: 1.0.30001734
+  resolution: "caniuse-lite@npm:1.0.30001734"
+  checksum: 2ebb37ff671e005fd945a963ccc496cc5cafeb39c02d883903909b43f8849e544f4b1cb80cc76cb31171b23d50716634b7d08b3d5bfe6c14e66c43b82572bd9a
   languageName: node
   linkType: hard
 
@@ -8597,9 +8871,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.199":
-  version: 1.5.199
-  resolution: "electron-to-chromium@npm:1.5.199"
-  checksum: e34ec35366a083b54dd489a23d2e7d7bf21f2971cf52a9f47bc63a64fdbc53adda1c4e15bd7bb33648f045e9f251fc9585e47651f760fdc11b4e9fb793b419ce
+  version: 1.5.200
+  resolution: "electron-to-chromium@npm:1.5.200"
+  checksum: 2784fb7d40ab80d3dee900a8c9f4307d5d2fe16dcace62ba16b0e64ee72fe3c664c080241fa1142e295c496bdd9eeb82affccfd085c64ad93c3037d3c785d748
   languageName: node
   linkType: hard
 
@@ -8654,7 +8928,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"enhanced-resolve@npm:^5.17.2":
+"enhanced-resolve@npm:^5.17.3":
   version: 5.18.3
   resolution: "enhanced-resolve@npm:5.18.3"
   dependencies:
@@ -10508,13 +10782,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ip-address@npm:^9.0.5":
-  version: 9.0.5
-  resolution: "ip-address@npm:9.0.5"
-  dependencies:
-    jsbn: 1.1.0
-    sprintf-js: ^1.1.3
-  checksum: aa15f12cfd0ef5e38349744e3654bae649a34c3b10c77a674a167e99925d1549486c5b14730eebce9fea26f6db9d5e42097b00aa4f9f612e68c79121c71652dc
+"ip-address@npm:^10.0.1":
+  version: 10.0.1
+  resolution: "ip-address@npm:10.0.1"
+  checksum: 525d5391cfd31a91f80f5857e98487aeaa8474e860a6725a0b6461ac8e436c7f8c869774dece391c8f8e7486306a34a4d1c094778c4c583a3f1f2cd905e5ed50
   languageName: node
   linkType: hard
 
@@ -11536,13 +11807,6 @@ __metadata:
   bin:
     js-yaml: bin/js-yaml.js
   checksum: c7830dfd456c3ef2c6e355cc5a92e6700ceafa1d14bba54497b34a99f0376cecbb3e9ac14d3e5849b426d5a5140709a66237a8c991c675431271c4ce5504151a
-  languageName: node
-  linkType: hard
-
-"jsbn@npm:1.1.0":
-  version: 1.1.0
-  resolution: "jsbn@npm:1.1.0"
-  checksum: 944f924f2bd67ad533b3850eee47603eed0f6ae425fd1ee8c760f477e8c34a05f144c1bd4f5a5dd1963141dc79a2c55f89ccc5ab77d039e7077f3ad196b64965
   languageName: node
   linkType: hard
 
@@ -13612,6 +13876,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-native-safe-area-context@npm:^5.6.0":
+  version: 5.6.0
+  resolution: "react-native-safe-area-context@npm:5.6.0"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 23f382a6504dc6ff1064fe45af53207014a27d3312eeaa5e0fd92281c425cb518d7e5e7bc79cf29b0f8e685a30931df93800dfe98e5d81bd768499aa5e737ab0
+  languageName: node
+  linkType: hard
+
 "react-native-svg@npm:^15.12.0":
   version: 15.12.1
   resolution: "react-native-svg@npm:15.12.1"
@@ -14581,12 +14855,12 @@ __metadata:
   linkType: hard
 
 "socks@npm:^2.8.3":
-  version: 2.8.6
-  resolution: "socks@npm:2.8.6"
+  version: 2.8.7
+  resolution: "socks@npm:2.8.7"
   dependencies:
-    ip-address: ^9.0.5
+    ip-address: ^10.0.1
     smart-buffer: ^4.2.0
-  checksum: 3d2a696d42d94b05b2a7e797b9291483d6768b23300b015353f34f8046cce35f23fe59300a38a77a9f0dee4274dd6c333afbdef628cf48f3df171bfb86c2d21c
+  checksum: 4bbe2c88cf0eeaf49f94b7f11564a99b2571bde6fd1e714ff95b38f89e1f97858c19e0ab0e6d39eb7f6a984fa67366825895383ed563fe59962a1d57a1d55318
   languageName: node
   linkType: hard
 
@@ -14662,13 +14936,6 @@ __metadata:
     select-hose: ^2.0.0
     spdy-transport: ^3.0.0
   checksum: 2c739d0ff6f56ad36d2d754d0261d5ec358457bea7cbf77b1b05b0c6464f2ce65b85f196305f50b7bd9120723eb94bae9933466f28e67e5cd8cde4e27f1d75f8
-  languageName: node
-  linkType: hard
-
-"sprintf-js@npm:^1.1.3":
-  version: 1.1.3
-  resolution: "sprintf-js@npm:1.1.3"
-  checksum: a3fdac7b49643875b70864a9d9b469d87a40dfeaf5d34d9d0c5b1cda5fd7d065531fcb43c76357d62254c57184a7b151954156563a4d6a747015cfb41021cad0
   languageName: node
   linkType: hard
 
@@ -15844,8 +16111,8 @@ __metadata:
   linkType: hard
 
 "webpack@npm:^5.95.0":
-  version: 5.101.0
-  resolution: "webpack@npm:5.101.0"
+  version: 5.101.1
+  resolution: "webpack@npm:5.101.1"
   dependencies:
     "@types/eslint-scope": ^3.7.7
     "@types/estree": ^1.0.8
@@ -15857,7 +16124,7 @@ __metadata:
     acorn-import-phases: ^1.0.3
     browserslist: ^4.24.0
     chrome-trace-event: ^1.0.2
-    enhanced-resolve: ^5.17.2
+    enhanced-resolve: ^5.17.3
     es-module-lexer: ^1.2.1
     eslint-scope: 5.1.1
     events: ^3.2.0
@@ -15877,7 +16144,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: fba0a5146e94bcd3634d3f791637382dc57e746fe8010ad54636bf3e8d7d10c3027e78a85eee74702d9c146f9b858f2e3052d64bfffc4a8a0f2c778d63d0f3d6
+  checksum: 15edd8f2294af6716bbb8e7cf5fd6b8829af4d979f5a8a4b57ca16629e5de4a9ee64e6bdbd2281177fd3cf0da5c64b2a28c659fa61bd57b6b87f67cb98600c36
   languageName: node
   linkType: hard
 

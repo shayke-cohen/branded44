@@ -20,6 +20,8 @@ interface WixCartProviderProps {
   children: ReactNode;
 }
 
+const WixCartContext = createContext<WixCartContextType | undefined>(undefined);
+
 export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) => {
   const [cart, setCart] = useState<WixCart | null>(null);
   const [loading, setLoading] = useState(false);
@@ -132,8 +134,6 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
     </WixCartContext.Provider>
   );
 };
-
-const WixCartContext = createContext<WixCartContextType | undefined>(undefined);
 
 export const useWixCart = () => {
   const context = useContext(WixCartContext);

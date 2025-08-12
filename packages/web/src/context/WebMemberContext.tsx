@@ -21,7 +21,7 @@ interface MemberData {
   };
 }
 
-// Member context interface - same as mobile
+// Member context interface - extended for web
 interface MemberContextType {
   // State
   isLoggedIn: boolean;
@@ -36,6 +36,10 @@ interface MemberContextType {
   getMemberDisplayName: () => string;
   getMemberInitials: () => string;
   isMemberVerified: () => boolean;
+  
+  // Web-specific properties
+  visitorMode?: boolean;
+  toggleVisitorMode?: () => void;
 }
 
 // Create the context
@@ -51,9 +55,25 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [member, setMember] = useState<MemberData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [visitorMode, setVisitorMode] = useState(false);
 
-  // Initialize member status on mount
+  // Check if visitor mode is enabled via URL parameter or localStorage
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const visitorModeParam = urlParams.get('visitor');
+    const storedVisitorMode = localStorage.getItem('web_visitor_mode');
+    
+    if (visitorModeParam === 'true' || storedVisitorMode === 'true') {
+      console.log('🌐 [WEB MEMBER CONTEXT] Visitor mode enabled');
+      setVisitorMode(true);
+      setIsLoggedIn(false);
+      setMember(null);
+      setLoading(false);
+      localStorage.setItem('web_visitor_mode', 'true');
+      return;
+    }
+    
+    // Normal member initialization
     initializeMemberStatus();
   }, []);
 
@@ -183,11 +203,28 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
     return member?.email?.isVerified || false;
   };
 
+  // Toggle visitor mode
+  const toggleVisitorMode = () => {
+    const newVisitorMode = !visitorMode;
+    setVisitorMode(newVisitorMode);
+    
+    if (newVisitorMode) {
+      console.log('🌐 [WEB MEMBER CONTEXT] Switching to visitor mode');
+      setIsLoggedIn(false);
+      setMember(null);
+      localStorage.setItem('web_visitor_mode', 'true');
+    } else {
+      console.log('🌐 [WEB MEMBER CONTEXT] Switching to member mode');
+      localStorage.removeItem('web_visitor_mode');
+      initializeMemberStatus();
+    }
+  };
+
   // Context value
   const value: MemberContextType = {
     // State
-    isLoggedIn,
-    member,
+    isLoggedIn: visitorMode ? false : isLoggedIn,
+    member: visitorMode ? null : member,
     loading,
     
     // Actions
@@ -198,6 +235,10 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
     getMemberDisplayName,
     getMemberInitials,
     isMemberVerified,
+    
+    // Web-specific
+    visitorMode,
+    toggleVisitorMode,
   };
 
   return (

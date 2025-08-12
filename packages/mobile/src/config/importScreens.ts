@@ -12,11 +12,13 @@ import HomeNavigation from '../screens/HomeScreen/HomeNavigation'; // Use HomeNa
 import SettingsScreen from '../screens/SettingsScreen';
 // import TemplateIndexScreen from '../screens/TemplateIndexScreen'; // Removed from navigation
 
-// Import Wix screens
-import CartScreen from '../screens/wix/CartScreen';
-import MemberAuthScreen from '../screens/wix/MemberAuthScreen';
-import ProductDetailScreen from '../screens/wix/ProductDetailScreen';
+// Import Wix screens (Now using organized folder structure!)
+import CartScreen from '../screens/wix/ecommerce/CartScreen/CartScreen';
+import MemberAuthScreen from '../screens/wix/auth/MemberAuthScreen/MemberAuthScreen';
+import ProductDetailScreen from '../screens/wix/ecommerce/ProductDetailScreen/ProductDetailScreen';
 import ProductsNavigation from '../screens/wix/navigation/ProductsNavigation'; // Use ProductsNavigation instead of ProductListScreen
+import ServicesNavigation from '../screens/wix/navigation/ServicesNavigation';
+import FoodScreen from '../screens/wix/restaurant/FoodScreen/FoodScreen';
 
 // Import demo screens
 
@@ -69,6 +71,28 @@ registerScreen(ProductsNavigation, {
   tags: ['wix', 'products', 'ecommerce', 'store', 'navigation']
 });
 
+registerScreen(ServicesNavigation, {
+  name: 'Wix Services',
+  shortName: 'Services',
+  icon: '📅',
+  category: 'Wix',
+  hasTab: true,
+  tabPosition: 5,
+  description: 'Wix booking services with full appointment management',
+  tags: ['wix', 'bookings', 'services', 'appointments', 'navigation']
+});
+
+registerScreen(FoodScreen, {
+  name: 'Wix Food',
+  shortName: 'Food',
+  icon: '🍽️',
+  category: 'Wix',
+  hasTab: true,
+  tabPosition: 4.5,
+  description: 'Wix restaurant services with menu browsing and food ordering',
+  tags: ['wix', 'restaurant', 'food', 'menu', 'orders', 'delivery']
+});
+
 registerScreen(CartScreen, {
   name: 'Wix Cart',
   shortName: 'Cart',
@@ -108,9 +132,11 @@ registerScreen(ComponentsShowcaseScreen, {
 console.log('📱 Screen Registration Complete:');
 console.log('   🏠  Home (1): Main dashboard and navigation hub');
 console.log('   🛍️  Wix Store (4): E-commerce product listings');
+console.log('   🍽️  Wix Food (4.5): Restaurant services and food ordering');
+console.log('   📅  Wix Services (5): Booking services and appointments');
 console.log('   🛒  Wix Cart (5): Shopping cart and checkout');
 console.log('   👤  Wix Auth (6): Member authentication and profiles');
 console.log('   ⚙️  Settings (7): Configuration and preferences');
 console.log('   🎨  Component Library (8): Complete component library showcase');
 console.log('');
-console.log('🎯 Total: 6 screens registered with updated navigation order'); 
+console.log('🎯 Total: 7 screens registered with updated navigation order'); 

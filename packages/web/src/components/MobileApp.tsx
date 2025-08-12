@@ -1,5 +1,6 @@
 import React, {useState, Suspense, useCallback} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator} from 'react-native';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {ThemeProvider, CartProvider, AlertProvider, ProductCacheProvider} from '@mobile/context';
 import {WixCartProvider, MemberProvider} from '../context';
 import {usePreview} from '../context/PreviewContext';
@@ -252,33 +253,35 @@ const MobileApp: React.FC<MobileAppProps> = ({
 
 
   return (
-    <ThemeProvider>
-      <AlertProvider>
-        <CartProvider>
-          <ProductCacheProvider maxCacheSize={30} maxCacheAge={15 * 60 * 1000}>
-            <MemberProvider>
-              <WixCartProvider>
-                <View style={styles.container}>
-              <Suspense fallback={<LoadingSpinner />}>
-                <View style={styles.content}>
-                  {renderMainContent()}
-                </View>
-                
-                {/* Show bottom navigation for screens mode, but hide when app is active */}
-                {!activeApp && (
-                  <BottomNavigation 
-                    activeTab={activeTab} 
-                    onTabPress={handleTabPress}
-                  />
-                )}
-              </Suspense>
-            </View>
-              </WixCartProvider>
-            </MemberProvider>
-          </ProductCacheProvider>
-        </CartProvider>
-      </AlertProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AlertProvider>
+          <CartProvider>
+            <ProductCacheProvider maxCacheSize={30} maxCacheAge={15 * 60 * 1000}>
+              <MemberProvider>
+                <WixCartProvider>
+                  <View style={styles.container}>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <View style={styles.content}>
+                    {renderMainContent()}
+                  </View>
+                  
+                  {/* Show bottom navigation for screens mode, but hide when app is active */}
+                  {!activeApp && (
+                    <BottomNavigation 
+                      activeTab={activeTab} 
+                      onTabPress={handleTabPress}
+                    />
+                  )}
+                </Suspense>
+              </View>
+                </WixCartProvider>
+              </MemberProvider>
+            </ProductCacheProvider>
+          </CartProvider>
+        </AlertProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 };
 

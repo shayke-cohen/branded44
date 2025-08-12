@@ -291,8 +291,12 @@ const formatDateTime = (date: Date): string => {
 /**
  * Format date only
  */
-const formatDate = (date: Date): string => {
-  return date.toLocaleDateString([], {
+const formatDate = (date: Date | undefined | null): string => {
+  if (!date) return 'Date TBD';
+  const dateObj = date instanceof Date ? date : new Date(date);
+  if (isNaN(dateObj.getTime())) return 'Invalid Date';
+  
+  return dateObj.toLocaleDateString([], {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -303,8 +307,12 @@ const formatDate = (date: Date): string => {
 /**
  * Format time only
  */
-const formatTime = (date: Date): string => {
-  return date.toLocaleTimeString([], {
+const formatTime = (date: Date | undefined | null): string => {
+  if (!date) return 'Time TBD';
+  const dateObj = date instanceof Date ? date : new Date(date);
+  if (isNaN(dateObj.getTime())) return 'Invalid Time';
+  
+  return dateObj.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -353,9 +361,13 @@ const getPaymentStatusColor = (status: PaymentStatus): string => {
 /**
  * Calculate time until booking
  */
-const getTimeUntilBooking = (bookingTime: Date): string => {
+const getTimeUntilBooking = (bookingTime: Date | undefined | null): string => {
+  if (!bookingTime) return 'Date TBD';
+  const dateObj = bookingTime instanceof Date ? bookingTime : new Date(bookingTime);
+  if (isNaN(dateObj.getTime())) return 'Invalid Date';
+  
   const now = new Date();
-  const diffMs = bookingTime.getTime() - now.getTime();
+  const diffMs = dateObj.getTime() - now.getTime();
   
   if (diffMs < 0) {
     return 'Booking has passed';
@@ -456,9 +468,9 @@ export default function BookingSummary({
     );
   }
 
-  const timeUntil = getTimeUntilBooking(booking.dateTime);
-  const canModify = booking.status === 'confirmed' || booking.status === 'pending';
-  const canCancel = booking.status === 'confirmed' || booking.status === 'pending';
+  const timeUntil = booking?.dateTime ? getTimeUntilBooking(booking.dateTime) : null;
+  const canModify = booking?.status === 'confirmed' || booking?.status === 'pending';
+  const canCancel = booking?.status === 'confirmed' || booking?.status === 'pending';
 
   return (
     <ScrollView className="flex-1" testID={testID}>
@@ -472,16 +484,16 @@ export default function BookingSummary({
             </Text>
             <Badge 
               variant="secondary"
-              style={{ backgroundColor: getStatusColor(booking.status) }}
+              style={{ backgroundColor: getStatusColor(booking?.status || 'pending') }}
             >
               <Text className="text-white text-sm font-medium capitalize">
-                {booking.status.replace('_', ' ')}
+                {(booking?.status || 'pending').replace('_', ' ')}
               </Text>
             </Badge>
           </View>
           
           <Text className="text-lg text-gray-600 mb-1">
-            Confirmation: {booking.confirmationNumber}
+            Confirmation: {booking?.confirmationNumber || 'N/A'}
           </Text>
           
           {timeUntil !== 'Booking has passed' && (
@@ -498,9 +510,9 @@ export default function BookingSummary({
           </Text>
           
           <View className="flex-row space-x-3">
-            {booking.service.image && (
+            {booking?.service?.image && (
               <Image
-                source={{ uri: booking.service.image }}
+                source={{ uri: booking?.service?.image }}
                 className="w-16 h-16 rounded-lg"
                 resizeMode="cover"
               />
@@ -508,13 +520,13 @@ export default function BookingSummary({
             
             <View className="flex-1">
               <Text className="text-base font-semibold text-gray-900">
-                {booking.service.name}
+                {booking?.service?.name || 'Service Name N/A'}
               </Text>
               <Text className="text-sm text-gray-600 mb-1">
-                {booking.service.description}
+                {booking?.service?.description || 'No description available'}
               </Text>
               <Text className="text-sm text-gray-500">
-                Duration: {formatDuration(booking.service.duration)}
+                Duration: {formatDuration(booking?.service?.duration || 0)}
               </Text>
             </View>
           </View>
@@ -528,27 +540,27 @@ export default function BookingSummary({
           
           <View className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <Text className="text-lg font-semibold text-blue-900 mb-1">
-              {formatDate(booking.dateTime)}
+              {booking?.dateTime ? formatDate(booking.dateTime) : 'Date TBD'}
             </Text>
             <Text className="text-base text-blue-700 mb-2">
-              {formatTime(booking.dateTime)} - {formatTime(booking.endTime)}
+              {booking?.dateTime ? formatTime(booking.dateTime) : 'Time TBD'} - {booking?.endTime ? formatTime(booking.endTime) : 'End Time TBD'}
             </Text>
             
             {/* Location Info */}
             <View className="flex-row items-center">
               <Text className="text-sm text-blue-600 mr-1">
-                {booking.service.locationType === 'remote' ? '🌐' : 
-                 booking.service.locationType === 'hybrid' ? '🔄' : '📍'}
+                {booking?.service?.locationType === 'remote' ? '🌐' : 
+                 booking?.service?.locationType === 'hybrid' ? '🔄' : '📍'}
               </Text>
               <Text className="text-sm text-blue-600">
-                {booking.service.locationType === 'remote' ? 'Online/Remote' :
-                 booking.service.locationType === 'hybrid' ? 'Hybrid' :
-                 booking.service.location || 'In-person'}
+                {booking?.service?.locationType === 'remote' ? 'Online/Remote' :
+                 booking?.service?.locationType === 'hybrid' ? 'Hybrid' :
+                 booking?.service?.location || 'In-person'}
               </Text>
             </View>
             
             {/* Meeting Link for Remote */}
-            {booking.service.locationType === 'remote' && booking.meetingLink && (
+            {booking?.service?.locationType === 'remote' && booking?.meetingLink && (
               <TouchableOpacity
                 className="mt-2 p-2 bg-blue-100 rounded border border-blue-300"
                 onPress={onJoinMeeting}
@@ -560,7 +572,7 @@ export default function BookingSummary({
             )}
             
             {/* Location Details for Onsite */}
-            {booking.service.locationType === 'onsite' && booking.locationDetails && (
+            {booking?.service?.locationType === 'onsite' && booking?.locationDetails && (
               <Text className="text-sm text-blue-600 mt-1">
                 {booking.locationDetails}
               </Text>
@@ -577,35 +589,35 @@ export default function BookingSummary({
           <View className="flex-row items-center space-x-3">
             <Avatar className="w-16 h-16">
               <Image
-                source={{ uri: booking.provider.image || 'https://via.placeholder.com/64x64' }}
+                source={{ uri: booking?.provider?.image || 'https://via.placeholder.com/64x64' }}
                 className="w-full h-full rounded-full"
-                alt={booking.provider.name}
+                alt={booking?.provider?.name || 'Provider'}
               />
             </Avatar>
             
             <View className="flex-1">
               <View className="flex-row items-center">
                 <Text className="text-base font-semibold text-gray-900 mr-2">
-                  {booking.provider.name}
+                  {booking?.provider?.name || 'Provider Name N/A'}
                 </Text>
-                {booking.provider.verified && (
+                {booking?.provider?.verified && (
                   <Text className="text-sm">✅</Text>
                 )}
               </View>
               
               <Text className="text-sm text-gray-600 mb-1">
-                {booking.provider.title}
+                {booking?.provider?.title || 'No title available'}
               </Text>
               
               <View className="flex-row items-center">
                 <Text className="text-yellow-500 mr-1">⭐</Text>
                 <Text className="text-sm text-gray-700 mr-3">
-                  {booking.provider.rating.toFixed(1)}
+                  {(booking?.provider?.rating ?? 0).toFixed(1)}
                 </Text>
                 
-                {booking.provider.experience && (
+                {booking?.provider?.experience && (
                   <Text className="text-sm text-gray-500">
-                    {booking.provider.experience} years exp.
+                    {booking?.provider?.experience} years exp.
                   </Text>
                 )}
               </View>
@@ -613,9 +625,9 @@ export default function BookingSummary({
           </View>
           
           {/* Contact Provider */}
-          {showProviderContact && (booking.provider.phone || booking.provider.email) && (
+          {showProviderContact && (booking?.provider?.phone || booking?.provider?.email) && (
             <View className="flex-row space-x-2 mt-3">
-              {booking.provider.phone && (
+              {booking?.provider?.phone && (
                 <Button
                   onPress={onContactProvider}
                   variant="outline"
@@ -625,7 +637,7 @@ export default function BookingSummary({
                   <Text className="text-gray-700 font-medium">📞 Call</Text>
                 </Button>
               )}
-              {booking.provider.email && (
+              {booking?.provider?.email && (
                 <Button
                   onPress={onContactProvider}
                   variant="outline"
@@ -650,38 +662,38 @@ export default function BookingSummary({
               <View className="flex-row justify-between">
                 <Text className="text-sm text-gray-600">Service Fee</Text>
                 <Text className="text-sm font-medium text-gray-900">
-                  {formatCurrency(booking.pricing.basePrice, booking.pricing.currency)}
+                  {formatCurrency(booking?.pricing?.basePrice ?? 0, booking?.pricing?.currency ?? 'USD')}
                 </Text>
               </View>
               
               {/* Additional Fees */}
-              {booking.pricing.fees.map((fee, index) => (
+              {(booking?.pricing?.fees ?? []).map((fee, index) => (
                 <View key={index} className="flex-row justify-between">
                   <Text className="text-sm text-gray-600">{fee.name}</Text>
                   <Text className="text-sm font-medium text-gray-900">
-                    {formatCurrency(fee.amount, booking.pricing.currency)}
+                    {formatCurrency(fee.amount, booking?.pricing?.currency ?? 'USD')}
                   </Text>
                 </View>
               ))}
               
               {/* Discounts */}
-              {booking.pricing.discounts.map((discount, index) => (
+              {(booking?.pricing?.discounts ?? []).map((discount, index) => (
                 <View key={index} className="flex-row justify-between">
                   <Text className="text-sm text-green-600">{discount.name}</Text>
                   <Text className="text-sm font-medium text-green-600">
-                    -{formatCurrency(discount.amount, booking.pricing.currency)}
+                    -{formatCurrency(discount.amount, booking?.pricing?.currency ?? 'USD')}
                   </Text>
                 </View>
               ))}
               
               {/* Tax */}
-              {booking.pricing.tax > 0 && (
+              {(booking?.pricing?.tax ?? 0) > 0 && (
                 <View className="flex-row justify-between">
                   <Text className="text-sm text-gray-600">
-                    Tax ({(booking.pricing.taxRate * 100).toFixed(1)}%)
+                    Tax ({((booking?.pricing?.taxRate ?? 0) * 100).toFixed(1)}%)
                   </Text>
                   <Text className="text-sm font-medium text-gray-900">
-                    {formatCurrency(booking.pricing.tax, booking.pricing.currency)}
+                    {formatCurrency(booking?.pricing?.tax ?? 0, booking?.pricing?.currency ?? 'USD')}
                   </Text>
                 </View>
               )}
@@ -691,7 +703,7 @@ export default function BookingSummary({
               <View className="flex-row justify-between">
                 <Text className="text-base font-semibold text-gray-900">Total</Text>
                 <Text className="text-base font-bold text-gray-900">
-                  {formatCurrency(booking.pricing.total, booking.pricing.currency)}
+                  {formatCurrency(booking?.pricing?.total ?? 0, booking?.pricing?.currency ?? 'USD')}
                 </Text>
               </View>
             </View>
@@ -701,10 +713,10 @@ export default function BookingSummary({
               <Text className="text-sm font-medium text-gray-700">Payment Status</Text>
               <Badge 
                 variant="secondary"
-                style={{ backgroundColor: getPaymentStatusColor(booking.pricing.paymentStatus) }}
+                style={{ backgroundColor: getPaymentStatusColor(booking?.pricing?.paymentStatus ?? 'pending') }}
               >
                 <Text className="text-white text-xs font-medium capitalize">
-                  {booking.pricing.paymentStatus}
+                  {booking?.pricing?.paymentStatus ?? 'pending'}
                 </Text>
               </Badge>
             </View>
@@ -721,27 +733,27 @@ export default function BookingSummary({
             <View className="flex-row justify-between">
               <Text className="text-sm text-gray-600">Name</Text>
               <Text className="text-sm font-medium text-gray-900">
-                {booking.customer.name}
+                {booking?.customer?.name || 'Customer Name N/A'}
               </Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-sm text-gray-600">Email</Text>
               <Text className="text-sm font-medium text-gray-900">
-                {booking.customer.email}
+                {booking?.customer?.email || 'Email N/A'}
               </Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-sm text-gray-600">Phone</Text>
               <Text className="text-sm font-medium text-gray-900">
-                {booking.customer.phone}
+                {booking?.customer?.phone || 'Phone N/A'}
               </Text>
             </View>
             
-            {booking.customer.notes && (
+            {booking?.customer?.notes && (
               <View>
                 <Text className="text-sm text-gray-600 mb-1">Notes</Text>
                 <Text className="text-sm text-gray-900">
-                  {booking.customer.notes}
+                  {booking?.customer?.notes}
                 </Text>
               </View>
             )}
@@ -749,14 +761,14 @@ export default function BookingSummary({
         </View>
 
         {/* Special Instructions */}
-        {booking.instructions && (
+        {booking?.instructions && (
           <View className="mb-6">
             <Text className="text-lg font-semibold text-gray-900 mb-3">
               Special Instructions
             </Text>
             <View className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <Text className="text-sm text-yellow-800">
-                {booking.instructions}
+                                  {booking?.instructions}
               </Text>
             </View>
           </View>
@@ -770,16 +782,16 @@ export default function BookingSummary({
           
           <View className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <Text className="text-sm text-blue-900 mb-2">
-              You will receive reminders {booking.reminders.timeBefore} minutes before your appointment via:
+              You will receive reminders {booking?.reminders?.timeBefore ?? 30} minutes before your appointment via:
             </Text>
             <View className="space-y-1">
-              {booking.reminders.email && (
+              {booking?.reminders?.email && (
                 <Text className="text-sm text-blue-700">• Email notification</Text>
               )}
-              {booking.reminders.sms && (
+              {booking?.reminders?.sms && (
                 <Text className="text-sm text-blue-700">• SMS text message</Text>
               )}
-              {booking.reminders.push && (
+              {booking?.reminders?.push && (
                 <Text className="text-sm text-blue-700">• Push notification</Text>
               )}
             </View>
@@ -799,7 +811,7 @@ export default function BookingSummary({
                   Cancellation Policy
                 </Text>
                 <Text className="text-sm text-gray-600">
-                  {booking.policies.cancellation.description}
+                  {booking?.policies?.cancellation?.description || 'Standard cancellation policy'}
                 </Text>
               </View>
               
@@ -808,7 +820,7 @@ export default function BookingSummary({
                   Rescheduling Policy
                 </Text>
                 <Text className="text-sm text-gray-600">
-                  {booking.policies.rescheduling.description}
+                  {booking?.policies?.rescheduling?.description || 'Standard rescheduling policy'}
                 </Text>
               </View>
               
@@ -817,7 +829,7 @@ export default function BookingSummary({
                   No-Show Policy
                 </Text>
                 <Text className="text-sm text-gray-600">
-                  {booking.policies.noShow.description}
+                  {booking?.policies?.noShow?.description || 'Standard no-show policy'}
                 </Text>
               </View>
             </View>
@@ -911,7 +923,7 @@ export default function BookingSummary({
         {/* Booking Details Footer */}
         <View className="mt-6 pt-4 border-t border-gray-200">
           <Text className="text-xs text-gray-500 text-center">
-            Booking created on {formatDate(booking.createdAt)}
+            Booking created on {formatDate(booking?.createdAt)}
           </Text>
           <Text className="text-xs text-gray-500 text-center mt-1">
             Need help? Contact support or your service provider

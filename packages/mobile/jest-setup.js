@@ -126,24 +126,28 @@ jest.mock('./src/utils/wixApiClient', () => {
 
 // Mock react-native-reanimated for testing
 jest.mock('react-native-reanimated', () => {
-  const { View, Text } = require('react-native');
-  return {
-    __esModule: true,
-    default: {
-      View,
-      Text,
-      createAnimatedComponent: (component) => component,
-    },
-    useAnimatedStyle: () => ({}),
-    useDerivedValue: (fn) => ({ value: fn() }),
-    useSharedValue: (initial) => ({ value: initial }),
-    withSpring: (value) => value,
-    withTiming: (value) => value,
-    interpolate: (value, input, output) => output[0],
-    Extrapolation: { CLAMP: 'clamp' },
-    FadeIn: {},
-    FadeOut: {},
-    runOnJS: (fn) => fn,
-    runOnUI: (fn) => fn,
-  };
-}); 
+  try {
+    const { View, Text } = require('react-native');
+    return {
+      __esModule: true,
+      default: {
+        View,
+        Text,
+        createAnimatedComponent: (component) => component,
+      },
+      useAnimatedStyle: () => ({}),
+      useDerivedValue: (fn) => ({ value: fn() }),
+      useSharedValue: (initial) => ({ value: initial }),
+      withSpring: (value) => value,
+      withTiming: (value) => value,
+      interpolate: (value, input, output) => output[0],
+      Extrapolation: { CLAMP: 'clamp' },
+      FadeIn: {},
+      FadeOut: {},
+      runOnJS: (fn) => fn,
+      runOnUI: (fn) => fn,
+    };
+  } catch (e) {
+    return {};
+  }
+}, { virtual: true }); 

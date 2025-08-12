@@ -148,17 +148,29 @@ export const MemberProvider: React.FC<MemberProviderProps> = ({ children }) => {
     return member?.email?.isVerified || false;
   };
 
-  // Initialize member status on mount with delay to allow wixApiClient to load stored data
+  // Initialize member status on mount and listen for changes
   useEffect(() => {
     console.log('👤 [MEMBER CONTEXT] Initializing member context...');
     
-    // Add small delay to ensure wixApiClient has loaded stored member data
-    const initTimer = setTimeout(() => {
-      console.log('👤 [MEMBER CONTEXT] Checking member status after initialization delay...');
-      checkMemberStatus();
-    }, 100);
+    // Check initial status
+    checkMemberStatus();
     
-    return () => clearTimeout(initTimer);
+    // Add listener for member state changes (if available)
+    const handleMemberStateChange = () => {
+      console.log('👤 [MEMBER CONTEXT] Member state changed, refreshing...');
+      checkMemberStatus();
+    };
+    
+    // Check if the listener methods exist (for backward compatibility and testing)
+    if (typeof wixApiClient.addMemberStateChangeListener === 'function') {
+      wixApiClient.addMemberStateChangeListener(handleMemberStateChange);
+      
+      return () => {
+        if (typeof wixApiClient.removeMemberStateChangeListener === 'function') {
+          wixApiClient.removeMemberStateChangeListener(handleMemberStateChange);
+        }
+      };
+    }
   }, []);
 
   // Context value

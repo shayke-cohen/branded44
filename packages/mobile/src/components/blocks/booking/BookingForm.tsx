@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { View, Text, ScrollView, Alert, TextInput as RNTextInput } from 'react-native';
+import { View, Text, ScrollView, Alert, TextInput as RNTextInput, TouchableOpacity } from 'react-native';
 import { Card } from '../../../../~/components/ui/card';
 import { Button } from '../../../../~/components/ui/button';
 import { Input } from '../../../../~/components/ui/input';

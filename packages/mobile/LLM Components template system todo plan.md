@@ -41,8 +41,9 @@ npx @react-native-reusables/cli
 #### ✅ Task 1.1.4: Create Folder Structure
 ```bash
 mkdir -p src/components/{blocks,templates,layout}
-mkdir -p src/components/blocks/{auth,forms,lists,social,ecommerce,finance,health,media,location}
-mkdir -p src/components/templates/{auth,profile,home,business}
+mkdir -p src/components/blocks/{auth,forms,lists,social,ecommerce,finance,health,media,location,booking,restaurant}
+mkdir -p src/components/templates/{auth,profile,home,business,booking,provider,restaurant,restaurant-management}
+mkdir -p src/components/flows/{auth,ecommerce,social,booking,restaurant}
 mkdir -p src/lib
 mkdir -p docs
 mkdir -p examples
@@ -387,9 +388,51 @@ Create these 9 additional social components:
 Focus on advanced social features and media handling.
 ```
 
-### 🏥 2.6 Specialized Blocks (Priority: LOW)
+### 📅 2.6 Booking & Service Blocks (Priority: HIGH)
 
-#### ✅ Task 2.6.1: Health & Fitness Blocks
+#### ✅ Task 2.6.1: Core Booking Blocks
+**LLM Prompt**:
+```
+Create these 8 booking and service-related block components:
+
+1. **ServiceCard** - Service display with pricing, duration, description
+2. **ServiceProviderCard** - Provider profile with ratings, specialties, availability
+3. **BookingCalendar** - Available time slots with provider schedule integration
+4. **TimeSlotGrid** - Visual time slot selection with availability indicators
+5. **BookingForm** - Complete booking form with customer details and preferences
+6. **BookingSummary** - Booking confirmation with service, time, provider, and pricing
+7. **AppointmentCard** - Individual appointment display with status and actions
+8. **ReviewCard** - Customer reviews with ratings and photos
+
+Requirements:
+- Use React Native Reusables: Card, Button, Calendar, etc.
+- Support multiple service types (appointments, classes, consultations, etc.)
+- Include pricing tiers and duration options
+- Provider availability and booking rules
+- Customer review and rating integration
+- Payment method integration readiness
+
+File structure: src/components/blocks/booking/[component-name].tsx
+```
+
+#### ✅ Task 2.6.2: Advanced Booking Blocks
+**LLM Prompt**:
+```
+Create these 6 additional service and booking components:
+
+1. **ClassScheduleCard** - Group classes with capacity and enrollment
+2. **RecurringBookingForm** - Recurring appointment setup (weekly, monthly, etc.)
+3. **CancellationPolicy** - Service cancellation terms and fee display
+4. **WaitlistCard** - Join waitlist for fully booked slots
+5. **PackageCard** - Service packages and membership tiers
+6. **ResourceBookingCard** - Equipment/room booking (separate from services)
+
+Focus on advanced booking scenarios and business rules.
+```
+
+### 🏥 2.7 Specialized Blocks (Priority: MEDIUM)
+
+#### ✅ Task 2.7.1: Health & Fitness Blocks
 **LLM Prompt**:
 ```
 Create these 12 health and fitness block components:
@@ -410,7 +453,7 @@ Create these 12 health and fitness block components:
 File structure: src/components/blocks/health/[component-name].tsx
 ```
 
-#### ✅ Task 2.6.2: Finance Blocks
+#### ✅ Task 2.7.2: Finance Blocks
 **LLM Prompt**:
 ```
 Create these 12 finance block components:
@@ -431,7 +474,7 @@ Create these 12 finance block components:
 File structure: src/components/blocks/finance/[component-name].tsx
 ```
 
-#### ✅ Task 2.6.3: Location & Maps Blocks
+#### ✅ Task 2.7.3: Location & Maps Blocks
 **LLM Prompt**:
 ```
 Create these 10 location and maps block components:
@@ -450,7 +493,7 @@ Create these 10 location and maps block components:
 File structure: src/components/blocks/location/[component-name].tsx
 ```
 
-#### ✅ Task 2.6.4: Media & Entertainment Blocks
+#### ✅ Task 2.7.4: Media & Entertainment Blocks
 **LLM Prompt**:
 ```
 Create these 12 media and entertainment block components:
@@ -470,6 +513,102 @@ Create these 12 media and entertainment block components:
 
 File structure: src/components/blocks/media/[component-name].tsx
 ```
+
+#### ✅ Task 2.7.5: Restaurant & Dining Blocks (NEW CATEGORY - PRIORITY: HIGH)
+**LLM Prompt**:
+```
+Create these 14 restaurant and dining block components:
+
+1. **MenuCard** - Food item display with photo, description, price, dietary tags
+2. **MenuCategoryHeader** - Menu section headers with descriptions and icons
+3. **RestaurantCard** - Restaurant listing with cuisine, rating, delivery time, price range
+4. **RestaurantHeader** - Restaurant hero section with banner, rating, hours, contact
+5. **OrderItemCard** - Cart item with customization options and quantity controls
+6. **OrderSummary** - Order total with breakdown (subtotal, tax, fees, tip)
+7. **DeliveryTracker** - Real-time order tracking with status and ETA
+8. **ReservationCard** - Table booking display with date, time, party size, special requests
+9. **ReviewCard** - Restaurant reviews with food photos and detailed ratings
+10. **DietaryFilter** - Filter panel for dietary restrictions and preferences
+11. **CuisineSelector** - Cuisine type selection with icons and descriptions
+12. **TableAvailability** - Available reservation times with party size options
+13. **RestaurantInfo** - Hours, location, contact, parking, amenities
+14. **PromotionBanner** - Special offers, discounts, and featured items
+
+Requirements:
+- Use React Native Reusables: Card, Button, Badge, etc.
+- Support multiple restaurant types (fast food, fine dining, cafes, etc.)
+- Include comprehensive food allergen and dietary information
+- Real-time availability and delivery tracking
+- Photo galleries for food items and restaurant interiors
+- Rating systems with breakdown (food, service, ambiance, value)
+- Integration readiness for Wix Restaurants API (see Wix Integration Notes below)
+- Customization options (ingredients, size, preparation)
+- Price calculations with tax, fees, and tip handling
+- Location-based features (delivery zones, pickup times)
+
+File structure: src/components/blocks/restaurant/[component-name].tsx
+```
+
+#### ✅ Task 2.7.6: Additional Restaurant Service Blocks
+**LLM Prompt**:
+```
+Create these 8 additional restaurant service components:
+
+1. **KitchenDisplayCard** - Order management for restaurant staff
+2. **TableManagement** - Table status and seating management
+3. **WaitlistCard** - Restaurant waitlist with estimated wait times
+4. **LoyaltyCard** - Rewards points and loyalty program display
+5. **NutritionCard** - Detailed nutritional information and calorie counts
+6. **SpecialRequestForm** - Custom instructions and dietary accommodations
+7. **GroupOrderCard** - Collaborative ordering for multiple people
+8. **CateringPackage** - Large order packages for events and catering
+
+Focus on restaurant operations and advanced dining experiences.
+```
+
+#### 🔗 Wix API Integration Notes for Restaurant Components
+
+**Design Principles for Wix Compatibility:**
+
+1. **Generic Data Interfaces**: All restaurant components use generic TypeScript interfaces that can be adapted to any API response format, including Wix Restaurants API.
+
+2. **Adapter Pattern Implementation**: Components accept standardized data structures that can be populated via adapter functions, similar to the existing `wixServiceAdapter.ts` pattern used for booking components.
+
+3. **Future Integration Points**:
+   - `wixRestaurantApiClient.ts` - REST API client for Wix Restaurants
+   - `wixRestaurantAdapter.ts` - Data transformation layer
+   - Integration with existing `wix/index.ts` unified client
+
+4. **API-Ready Features**:
+   - Menu and restaurant data fetching with caching
+   - Order placement and tracking
+   - Reservation management
+   - Review and rating synchronization
+   - Real-time order status updates
+   - Payment processing integration
+
+5. **Component Data Patterns**:
+   ```typescript
+   // Generic interfaces that work with any API
+   interface MenuItem {
+     id: string;
+     name: string;
+     description: string;
+     price: number;
+     // ... can be adapted from Wix response
+   }
+   
+   // Adapter function example (to be implemented)
+   function adaptWixMenuItem(wixItem: WixMenuItemResponse): MenuItem {
+     return {
+       id: wixItem._id,
+       name: wixItem.name,
+       // ... transformation logic
+     };
+   }
+   ```
+
+This approach ensures components remain framework-agnostic while being optimized for future Wix integration.
 
 ---
 
@@ -652,7 +791,7 @@ File structure: src/components/templates/business/[screen-name].tsx
 
 ### 🏢 3.7 Booking & Service Templates (NEW CATEGORY)
 
-#### 🔄 Task 3.7.1: Service Provider Blocks (PRIORITY: HIGH)
+#### ✅ Task 3.7.1: Service Provider Blocks (PRIORITY: HIGH)
 **LLM Prompt**:
 ```
 Create these 8 booking and service-related block components:
@@ -677,7 +816,7 @@ Requirements:
 File structure: src/components/blocks/booking/[component-name].tsx
 ```
 
-#### 🔄 Task 3.7.2: Additional Service Blocks
+#### ✅ Task 3.7.2: Additional Service Blocks
 **LLM Prompt**:
 ```
 Create these 6 additional service and booking components:
@@ -692,7 +831,46 @@ Create these 6 additional service and booking components:
 Focus on advanced booking scenarios and business rules.
 ```
 
-#### 🔄 Task 3.7.3: Booking & Service Templates
+#### ✅ Task 3.7.3: Advanced Booking Blocks Batch 3
+**LLM Prompt**:
+```
+Create these 8 advanced booking and service components:
+
+1. **AvailabilityManager** - Provider availability calendar with time blocks
+2. **BookingRulesCard** - Display booking policies and restrictions
+3. **ServiceLocationCard** - Location details with map and directions
+4. **PaymentOptionsCard** - Payment methods with deposit/full payment options
+5. **BookingStatusCard** - Real-time booking status with progress indicators
+6. **ServiceDurationPicker** - Flexible duration selection for services
+7. **GroupBookingCard** - Book for multiple people with group discounts
+8. **ServiceAddonSelector** - Optional add-on services and upgrades
+
+Requirements:
+- Complex booking logic handling
+- Multi-participant booking support
+- Dynamic pricing calculations
+- Location-based services
+- Advanced payment scenarios
+
+File structure: src/components/blocks/booking/[component-name].tsx
+```
+
+#### ✅ Task 3.7.4: Provider Management Blocks
+**LLM Prompt**:
+```
+Create these 6 provider-focused booking components:
+
+1. **ProviderScheduleCard** - Weekly schedule view with availability slots
+2. **BookingRequestCard** - Incoming booking requests for providers
+3. **ClientHistoryCard** - Customer history and preferences for providers
+4. **ServiceMetricsCard** - Booking statistics and performance metrics
+5. **BlockedTimeCard** - Manage unavailable time slots and breaks
+6. **ProviderNotesCard** - Internal notes and customer preferences
+
+Focus on provider-side booking management and business operations.
+```
+
+#### ✅ Task 3.7.5: Booking & Service Templates
 **LLM Prompt**:
 ```
 Create these 10 booking and service template components:
@@ -720,7 +898,31 @@ Requirements:
 File structure: src/components/templates/booking/[screen-name].tsx
 ```
 
-#### 🔄 Task 3.7.4: Service Business Flows
+#### ✅ Task 3.7.6: Provider Dashboard Templates
+**LLM Prompt**:
+```
+Create these 8 provider-focused template screens:
+
+1. **ProviderDashboardScreen** - Overview of bookings, revenue, and performance
+2. **ProviderCalendarScreen** - Comprehensive calendar view with booking management
+3. **ClientManagementScreen** - Customer database with history and preferences
+4. **ServiceManagementScreen** - Manage services, pricing, and availability
+5. **BookingRequestsScreen** - Pending requests and quick approval/rejection
+6. **RevenueReportsScreen** - Financial reporting and analytics
+7. **ProviderSettingsScreen** - Business settings, policies, and preferences
+8. **ProviderProfileScreen** - Public profile management and optimization
+
+Requirements:
+- Business management focus
+- Analytics and reporting capabilities
+- Client relationship management
+- Service optimization tools
+- Financial tracking and reporting
+
+File structure: src/components/templates/provider/[screen-name].tsx
+```
+
+#### ✅ Task 3.7.7: Service Business Flows
 **LLM Prompt**:
 ```
 Create these 5 service business flow components:
@@ -739,6 +941,104 @@ Requirements:
 - Cancellation and refund handling
 
 File structure: src/components/flows/booking/[flow-name].tsx
+```
+
+#### ✅ Task 3.7.8: Advanced Service Flows
+**LLM Prompt**:
+```
+Create these 7 additional service business flows:
+
+1. **RecurringBookingFlow** - Set up → Schedule → Payment → Confirm → Manage recurring appointments
+2. **WaitlistFlow** - Join waitlist → Notification → Book slot → Confirm when available
+3. **GroupBookingFlow** - Select group → Choose service → Coordinate schedules → Group payment
+4. **ServiceUpgradeFlow** - Current booking → Upgrade options → Price difference → Confirm upgrade
+5. **ReschedulingFlow** - Select booking → New time options → Reschedule policies → Confirm change
+6. **RefundRequestFlow** - Select booking → Reason → Policy check → Process refund → Confirmation
+7. **ProviderSubstitutionFlow** - Provider unavailable → Find replacement → Customer approval → Update booking
+
+Requirements:
+- Complex booking scenarios
+- Multi-party coordination
+- Policy enforcement
+- Payment adjustments
+- Customer communication
+
+File structure: src/components/flows/booking/[flow-name].tsx
+```
+
+### 🍽️ 3.8 Restaurant & Dining Templates (NEW CATEGORY - PRIORITY: HIGH)
+
+#### ✅ Task 3.8.1: Core Restaurant Templates
+**LLM Prompt**:
+```
+Create these 10 restaurant and dining template components:
+
+1. **RestaurantListScreen** - Browse restaurants with filters (cuisine, rating, delivery time, price range)
+2. **RestaurantDetailScreen** - Restaurant profile with menu preview, photos, reviews, info
+3. **MenuScreen** - Complete menu with categories, items, search, and dietary filters
+4. **MenuItemDetailScreen** - Individual food item with photos, ingredients, customization options
+5. **CartScreen** - Order review with item customization, quantity, and order summary
+6. **CheckoutScreen** - Payment, delivery/pickup options, special instructions, tip
+7. **OrderTrackingScreen** - Real-time order status with delivery tracking and ETA
+8. **OrderHistoryScreen** - Past orders with reorder functionality and receipts
+9. **ReservationScreen** - Table booking with date/time selection and party details
+10. **ReviewScreen** - Leave reviews with photos and detailed rating categories
+
+Requirements:
+- Use restaurant blocks from src/components/blocks/restaurant/
+- Support both delivery and pickup workflows
+- Real-time order tracking and notifications
+- Comprehensive search and filtering
+- Photo galleries and media handling
+- Payment integration readiness
+- Location-based services (delivery zones, restaurant finder)
+- Accessibility for screen readers and larger text
+- Multi-language support for menu items
+- Integration readiness with Wix Restaurants API
+
+File structure: src/components/templates/restaurant/[screen-name].tsx
+```
+
+#### ✅ Task 3.8.2: Restaurant Management Templates
+**LLM Prompt**:
+```
+Create these 8 restaurant management template screens:
+
+1. **RestaurantDashboardScreen** - Overview of orders, revenue, ratings, and key metrics
+2. **OrderManagementScreen** - Incoming orders with acceptance, preparation time estimates
+3. **MenuManagementScreen** - Add/edit menu items, categories, pricing, and availability
+4. **ReservationManagementScreen** - Table bookings with seating chart and waitlist
+5. **KitchenDisplayScreen** - Order queue for kitchen staff with timing and special instructions
+6. **DeliveryManagementScreen** - Delivery tracking, driver assignment, and route optimization
+7. **AnalyticsScreen** - Sales reports, popular items, customer insights, and performance metrics
+8. **RestaurantSettingsScreen** - Business hours, delivery zones, payment settings, staff management
+
+Requirements:
+- Restaurant owner/manager perspective
+- Real-time order management
+- Staff workflow optimization
+- Business analytics and reporting
+- Multi-location support
+- Integration with POS systems
+- Staff role management
+- Inventory tracking capabilities
+
+File structure: src/components/templates/restaurant-management/[screen-name].tsx
+```
+
+#### ✅ Task 3.8.3: Specialized Dining Templates
+**LLM Prompt**:
+```
+Create these 6 specialized dining template screens:
+
+1. **CateringScreen** - Large order management for events and corporate catering
+2. **GroupOrderScreen** - Collaborative ordering for multiple people with split payments
+3. **SubscriptionMealsScreen** - Meal plan subscriptions with dietary preferences and scheduling
+4. **LoyaltyProgramScreen** - Rewards tracking, points redemption, and exclusive offers
+5. **NutritionTrackingScreen** - Calorie counting and dietary goal tracking with restaurant meals
+6. **WaitlistScreen** - Restaurant waitlist management with real-time updates and notifications
+
+Focus on advanced dining scenarios and specialized restaurant services.
 ```
 
 ---
@@ -820,9 +1120,55 @@ Requirements:
 File structure: src/components/flows/social/[flow-name].tsx
 ```
 
-### 🏥 4.4 Specialized Flows
+### 📅 4.4 Booking & Service Flows
 
-#### ✅ Task 4.4.1: Healthcare Flows
+#### ✅ Task 4.4.1: Core Booking Flows
+**LLM Prompt**:
+```
+Create these 5 service business flow components:
+
+1. **ServiceDiscoveryFlow** - Browse → Filter → Service → Provider → Book → Confirm
+2. **BookingManagementFlow** - View bookings → Modify → Reschedule → Cancel → Refund
+3. **ProviderOnboardingFlow** - Register → Profile → Services → Availability → Payment → Live
+4. **ReviewFlow** - Service completion → Rating → Review → Photos → Submit → Thank you
+5. **ClassEnrollmentFlow** - Browse classes → Details → Schedule → Enroll → Payment → Confirmation
+
+Requirements:
+- Multi-step booking processes
+- Provider and customer user journeys
+- Payment processing integration points
+- Notification and reminder systems
+- Cancellation and refund handling
+
+File structure: src/components/flows/booking/[flow-name].tsx
+```
+
+#### ✅ Task 4.4.2: Advanced Booking Flows
+**LLM Prompt**:
+```
+Create these 7 additional service business flows:
+
+1. **RecurringBookingFlow** - Set up → Schedule → Payment → Confirm → Manage recurring appointments
+2. **WaitlistFlow** - Join waitlist → Notification → Book slot → Confirm when available
+3. **GroupBookingFlow** - Select group → Choose service → Coordinate schedules → Group payment
+4. **ServiceUpgradeFlow** - Current booking → Upgrade options → Price difference → Confirm upgrade
+5. **ReschedulingFlow** - Select booking → New time options → Reschedule policies → Confirm change
+6. **RefundRequestFlow** - Select booking → Reason → Policy check → Process refund → Confirmation
+7. **ProviderSubstitutionFlow** - Provider unavailable → Find replacement → Customer approval → Update booking
+
+Requirements:
+- Complex booking scenarios
+- Multi-party coordination
+- Policy enforcement
+- Payment adjustments
+- Customer communication
+
+File structure: src/components/flows/booking/[flow-name].tsx
+```
+
+### 🏥 4.5 Specialized Flows
+
+#### ✅ Task 4.5.1: Healthcare Flows
 **LLM Prompt**:
 ```
 Create these 4 healthcare flow components:
@@ -835,7 +1181,7 @@ Create these 4 healthcare flow components:
 File structure: src/components/flows/healthcare/[flow-name].tsx
 ```
 
-#### ✅ Task 4.4.2: Transportation Flows
+#### ✅ Task 4.5.2: Transportation Flows
 **LLM Prompt**:
 ```
 Create these 4 transportation flow components:
@@ -848,7 +1194,7 @@ Create these 4 transportation flow components:
 File structure: src/components/flows/transportation/[flow-name].tsx
 ```
 
-#### ✅ Task 4.4.3: Finance Flows
+#### ✅ Task 4.5.3: Finance Flows
 **LLM Prompt**:
 ```
 Create these 4 finance flow components:
@@ -859,6 +1205,57 @@ Create these 4 finance flow components:
 4. **BudgetSetupFlow** - Income → Categories → Limits → Track → Alerts → Adjust
 
 File structure: src/components/flows/finance/[flow-name].tsx
+```
+
+#### ✅ Task 4.5.4: Restaurant & Dining Flows (NEW CATEGORY)
+**LLM Prompt**:
+```
+Create these 8 restaurant and dining flow components:
+
+1. **RestaurantDiscoveryFlow** - Location → Cuisine → Filters → Browse → Select → Menu preview
+2. **FoodOrderingFlow** - Menu → Customize → Add to cart → Review order → Checkout → Tracking
+3. **TableReservationFlow** - Restaurant → Date/time → Party size → Special requests → Confirm
+4. **DeliveryTrackingFlow** - Order placed → Kitchen prep → Driver assigned → En route → Delivered
+5. **RestaurantReviewFlow** - Order completion → Rating → Photos → Written review → Submit
+6. **LoyaltySignupFlow** - Discover program → Benefits → Account creation → First reward
+7. **GroupOrderFlow** - Create group → Invite friends → Coordinate orders → Split payment → Track
+8. **CateringRequestFlow** - Event details → Menu selection → Quote request → Approval → Scheduling
+
+Requirements:
+- Multi-step restaurant experiences
+- Real-time order and delivery tracking
+- Social features for group ordering
+- Business coordination for catering
+- Payment handling with tips and splitting
+- Location-based services and delivery zones
+- Integration readiness with Wix Restaurants API
+- Notification systems for order updates
+- Review and rating collection
+
+File structure: src/components/flows/restaurant/[flow-name].tsx
+```
+
+#### ✅ Task 4.5.5: Advanced Restaurant Flows
+**LLM Prompt**:
+```
+Create these 6 additional restaurant business flows:
+
+1. **SubscriptionMealFlow** - Preferences → Plan selection → Scheduling → Payment → Delivery management
+2. **RestaurantOnboardingFlow** - Registration → Menu setup → Photos → Delivery zones → Payment setup → Go live
+3. **WaitlistFlow** - Join waitlist → Real-time updates → Table ready → Seating confirmation
+4. **DietaryAccommodationFlow** - Dietary needs → Restaurant filtering → Menu customization → Order placement
+5. **RefundRequestFlow** - Order issue → Report problem → Evidence → Resolution → Refund processing
+6. **RestaurantPartnershipFlow** - Apply → Verification → Contract → Integration → Launch
+
+Requirements:
+- Complex restaurant business scenarios
+- Subscription and recurring order management
+- Restaurant partner onboarding
+- Customer service and dispute resolution
+- Dietary restriction handling
+- Multi-party coordination
+
+File structure: src/components/flows/restaurant/[flow-name].tsx
 ```
 
 ---
@@ -960,8 +1357,18 @@ Create index files for each category:
 4. src/components/blocks/lists/index.ts - List blocks
 5. src/components/blocks/ecommerce/index.ts - E-commerce blocks
 6. src/components/blocks/social/index.ts - Social blocks
-7. src/components/templates/index.ts - All templates
-8. src/components/flows/index.ts - All flows
+7. src/components/blocks/booking/index.ts - Booking & service blocks
+8. src/components/blocks/health/index.ts - Health & fitness blocks
+9. src/components/blocks/finance/index.ts - Finance blocks
+10. src/components/blocks/restaurant/index.ts - Restaurant & dining blocks
+11. src/components/templates/index.ts - All templates
+12. src/components/templates/booking/index.ts - Booking templates
+13. src/components/templates/provider/index.ts - Provider templates
+14. src/components/templates/restaurant/index.ts - Restaurant templates
+15. src/components/templates/restaurant-management/index.ts - Restaurant management templates
+16. src/components/flows/index.ts - All flows
+17. src/components/flows/booking/index.ts - Booking flows
+18. src/components/flows/restaurant/index.ts - Restaurant flows
 
 Each index should include:
 - Named exports for all components
@@ -1015,6 +1422,18 @@ Create complete app examples in the examples/ folder:
    - Workout tracking using fitness blocks
    - Meal logging using nutrition templates
    - Progress tracking using health flows
+
+5. **Booking & Service App** (examples/booking-app.tsx)
+   - Service discovery using booking templates
+   - Provider management using provider templates
+   - Appointment booking using booking flows
+   - Review and rating using service blocks
+
+6. **Restaurant & Food Delivery App** (examples/restaurant-app.tsx)
+   - Restaurant discovery using restaurant templates
+   - Menu browsing and food ordering using restaurant blocks
+   - Order tracking using delivery flows
+   - Review and rating using restaurant review system
 
 Each example should show:
 - Complete app structure
@@ -1270,6 +1689,25 @@ Create prompts for generating complete apps:
    - Investment tracking
    - Bill management
 
+6. **Booking & Service App Prompt**
+   - Complete appointment booking app
+   - Service discovery and browsing
+   - Provider profiles and scheduling
+   - Booking management and history
+   - Review and rating system
+   - Payment and cancellation handling
+
+7. **Restaurant & Food Delivery App Prompt**
+   - Complete food ordering and delivery app
+   - Restaurant discovery with cuisine and location filtering
+   - Menu browsing with customization options
+   - Cart management and order placement
+   - Real-time order tracking and delivery
+   - Table reservation system
+   - Review and rating for restaurants and food
+   - Loyalty program and promotions
+   - Group ordering and payment splitting
+
 Each prompt should specify the complete feature set, navigation structure, and data requirements.
 ```
 
@@ -1309,11 +1747,11 @@ Each prompt should specify the complete feature set, navigation structure, and d
 
 ### 📋 Final Deliverables Checklist
 
-#### ✅ Components (270+ total)
+#### ✅ Components (350+ total)
 - [ ] 36 UI components (React Native Reusables) ✅
-- [ ] 150+ block components across 10 categories
-- [ ] 80+ template components (full screens)
-- [ ] 40+ flow components (user journeys)
+- [ ] 200+ block components across 13 categories (including restaurant)
+- [ ] 122+ template components (full screens)
+- [ ] 66+ flow components (user journeys)
 
 #### ✅ Documentation
 - [ ] Component library guide
@@ -1346,8 +1784,8 @@ Each prompt should specify the complete feature set, navigation structure, and d
 ## 🎯 SUCCESS METRICS
 
 ### Quantitative Goals
-- [ ] **270+ components** available for AI generation
-- [ ] **95% app type coverage** across mobile app categories
+- [ ] **350+ components** available for AI generation
+- [ ] **98% app type coverage** across mobile app categories (including restaurant/food delivery)
 - [ ] **<5 minutes** to generate basic app using AI prompts
 - [ ] **<30 minutes** to generate complex app using AI prompts
 - [ ] **100% TypeScript coverage** for all components
@@ -1390,6 +1828,6 @@ Each prompt should specify the complete feature set, navigation structure, and d
 ---
 
 **Total Estimated Timeline: 4-6 weeks**  
-**Total Components: 270+**  
-**App Categories Covered: 20+**  
+**Total Components: 350+**  
+**App Categories Covered: 23+ (including restaurant/food delivery)**  
 **AI Agent Ready: 100%**

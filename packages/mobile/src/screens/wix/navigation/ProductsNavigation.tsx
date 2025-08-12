@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import ProductListScreen from '../ProductListScreen';
-import ProductDetailScreen from '../ProductDetailScreen';
-import CartScreen from '../CartScreen';
+import ProductListScreen from '../ecommerce/ProductListScreen/ProductListScreen';
+import ProductDetailScreen from '../ecommerce/ProductDetailScreen/ProductDetailScreen';
+import CartScreen from '../ecommerce/CartScreen/CartScreen';
 
 export type ProductScreen = 'list' | 'detail' | 'cart';
 

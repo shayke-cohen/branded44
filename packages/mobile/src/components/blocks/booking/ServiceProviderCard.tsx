@@ -159,21 +159,21 @@ export interface ServiceProvider {
   /** Current availability status */
   status: ProviderStatus;
   /** Provider specialties */
-  specialties: ProviderSpecialty[];
+  specialties?: ProviderSpecialty[];
   /** Provider certifications */
-  certifications: ProviderCertification[];
+  certifications?: ProviderCertification[];
   /** Working hours */
-  workingHours: WorkingHours[];
+  workingHours?: WorkingHours[];
   /** Pricing information */
-  pricing: ProviderPricing;
+  pricing?: ProviderPricing;
   /** Provider statistics */
-  stats: ProviderStats;
+  stats?: ProviderStats;
   /** Languages spoken */
-  languages: string[];
+  languages?: string[];
   /** Services offered */
-  services: string[];
+  services?: string[];
   /** Provider badges */
-  badges: string[];
+  badges?: string[];
   /** Whether provider is featured */
   featured?: boolean;
   /** Provider portfolio images */
@@ -394,6 +394,17 @@ export default function ServiceProviderCard({
     );
   }
 
+  // Early safety check for provider data
+  if (!provider || !provider.id || !provider.name) {
+    return (
+      <Card style={{ width, padding: 16, marginBottom: 12 }}>
+        <Text style={{ color: '#EF4444', fontSize: 14, textAlign: 'center' }}>
+          Invalid provider data
+        </Text>
+      </Card>
+    );
+  }
+
   const isCompact = layout === 'compact';
   const isList = layout === 'list';
   const isDetailed = layout === 'detailed';
@@ -530,14 +541,14 @@ export default function ServiceProviderCard({
         )}
 
         {/* Specialties */}
-        {showSpecialties && provider.specialties.length > 0 && (
+        {showSpecialties && provider.specialties && provider.specialties.length > 0 && (
           <View className="mt-3">
             <Text className="text-sm font-medium text-gray-900 mb-2">
               Specialties
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row space-x-2">
-                {provider.specialties.slice(0, isCompact ? 2 : 4).map((specialty) => (
+                {provider.specialties?.slice(0, isCompact ? 2 : 4).map((specialty) => (
                   <View
                     key={specialty.id}
                     className="bg-blue-50 px-3 py-1 rounded-full border border-blue-200"
@@ -546,11 +557,11 @@ export default function ServiceProviderCard({
                       {specialty.name}
                     </Text>
                   </View>
-                ))}
-                {provider.specialties.length > (isCompact ? 2 : 4) && (
+                )) || []}
+                {(provider.specialties?.length || 0) > (isCompact ? 2 : 4) && (
                   <View className="bg-gray-100 px-3 py-1 rounded-full">
                     <Text className="text-xs text-gray-600">
-                      +{provider.specialties.length - (isCompact ? 2 : 4)} more
+                      +{(provider.specialties?.length || 0) - (isCompact ? 2 : 4)} more
                     </Text>
                   </View>
                 )}
@@ -599,13 +610,13 @@ export default function ServiceProviderCard({
               <View className="bg-gray-50 p-2 rounded-lg">
                 <Text className="text-xs text-gray-500">Completed Services</Text>
                 <Text className="text-sm font-semibold text-gray-900">
-                  {provider.stats.completedServices}
+                  {provider.stats?.completedServices || 0}
                 </Text>
               </View>
               <View className="bg-gray-50 p-2 rounded-lg">
                 <Text className="text-xs text-gray-500">On-Time Rate</Text>
                 <Text className="text-sm font-semibold text-gray-900">
-                  {(provider.stats.onTimeRate * 100).toFixed(0)}%
+                  {((provider.stats?.onTimeRate || 0) * 100).toFixed(0)}%
                 </Text>
               </View>
             </View>
@@ -613,14 +624,14 @@ export default function ServiceProviderCard({
         )}
 
         {/* Portfolio Preview */}
-        {showPortfolio && provider.portfolio && provider.portfolio.length > 0 && (
+        {showPortfolio && provider.portfolio && (provider.portfolio?.length || 0) > 0 && (
           <View className="mt-4">
             <Text className="text-sm font-medium text-gray-900 mb-2">
               Portfolio
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row space-x-2">
-                {provider.portfolio.slice(0, 5).map((image, index) => (
+                {(provider.portfolio || []).slice(0, 5).map((image, index) => (
                   <Image
                     key={index}
                     source={{ uri: image }}
@@ -637,13 +648,13 @@ export default function ServiceProviderCard({
         <View className="flex-row items-center justify-between mt-4">
           
           {/* Pricing */}
-          {showPricing && (
+          {showPricing && provider.pricing && (
             <View>
               <Text className="text-lg font-bold text-gray-900">
-                {formatCurrency(provider.pricing.hourlyRate, provider.pricing.currency)}
+                {formatCurrency(provider.pricing.hourlyRate || 0, provider.pricing.currency || 'USD')}
               </Text>
               <Text className="text-xs text-gray-600">
-                per {provider.pricing.durationUnit.slice(0, -1)} • {provider.pricing.minimumDuration} min min
+                per {(provider.pricing.durationUnit || 'hours').slice(0, -1)} • {provider.pricing.minimumDuration || 60} min min
               </Text>
             </View>
           )}
@@ -682,9 +693,9 @@ export default function ServiceProviderCard({
         </View>
 
         {/* Custom Actions */}
-        {actions.length > 0 && (
+        {(actions?.length || 0) > 0 && (
           <View className="flex-row space-x-2 mt-3">
-            {actions.map((action) => (
+            {(actions || []).map((action) => (
               <Button
                 key={action.id}
                 onPress={action.onPress}
@@ -705,11 +716,11 @@ export default function ServiceProviderCard({
         )}
 
         {/* Languages */}
-        {!isCompact && provider.languages.length > 0 && (
+        {!isCompact && (provider.languages?.length || 0) > 0 && (
           <View className="mt-3">
             <Text className="text-xs text-gray-500 mb-1">Languages:</Text>
             <Text className="text-xs text-gray-600">
-              {provider.languages.join(', ')}
+              {(provider.languages || []).join(', ')}
             </Text>
           </View>
         )}

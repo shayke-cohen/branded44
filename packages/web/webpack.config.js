@@ -17,6 +17,18 @@ module.exports = {
     alias: {
       'react-native$': 'react-native-web',
       '@mobile': path.resolve(__dirname, '../mobile/src'),
+      // Override entire mobile context index with web version
+      '@mobile/context$': path.resolve(__dirname, 'src/context/WebMobileContextIndex.ts'),
+      '@mobile/context/index$': path.resolve(__dirname, 'src/context/WebMobileContextIndex.ts'),
+      // Override specific context files directly
+      '@mobile/context/WixCartContext': path.resolve(__dirname, 'src/context/WebWixCartContext.tsx'),
+      '@mobile/context/MemberContext': path.resolve(__dirname, 'src/context/WebMemberContext.tsx'),
+      '../mobile/src/context/WixCartContext': path.resolve(__dirname, 'src/context/WebWixCartContext.tsx'),
+      '../mobile/src/context/MemberContext': path.resolve(__dirname, 'src/context/WebMemberContext.tsx'),
+      // Override mobile context with web-compatible versions - try multiple patterns
+      '@mobile/context/PlatformContextResolver': path.resolve(__dirname, 'src/context/WebPlatformContextResolver.ts'),
+      '../mobile/src/context/PlatformContextResolver': path.resolve(__dirname, 'src/context/WebPlatformContextResolver.ts'),
+      './PlatformContextResolver': path.resolve(__dirname, 'src/context/WebPlatformContextResolver.ts'),
       '@react-native-async-storage/async-storage': path.resolve(
         appDirectory,
         'src/polyfills/AsyncStorage.js',
@@ -30,6 +42,11 @@ module.exports = {
       '@react-native-cookies/cookies': path.resolve(
         appDirectory,
         'src/polyfills/ReactNativeCookies.js',
+      ),
+      // React Native Safe Area Context polyfill
+      'react-native-safe-area-context': path.resolve(
+        appDirectory,
+        'src/polyfills/ReactNativeSafeAreaContext.js',
       ),
       // RN Primitives polyfills - exact matches to override node_modules
       '@rn-primitives/avatar$': path.resolve(

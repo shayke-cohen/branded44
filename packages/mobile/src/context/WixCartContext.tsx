@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { wixApiClient, WixCart, WixCartItem } from '../utils/wixApiClient';
+import { wixApiClient, WixCart, WixCartItem, WixProduct } from '../utils/wixApiClient';
 import { useMember } from './MemberContext';
 
 interface WixCartContextType {
   cart: WixCart | null;
   loading: boolean;
-  addToCart: (item: WixCartItem) => Promise<void>;
+  addToCart: (item: WixCartItem | WixProduct, quantity?: number) => Promise<void>;
   updateQuantity: (lineItemId: string, quantity: number) => Promise<void>;
   removeFromCart: (lineItemIds: string[]) => Promise<void>;
   refreshCart: () => Promise<void>;
@@ -118,11 +118,21 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
     refreshCart();
   }, [refreshCart, isLoggedIn, member?.id]); // Trigger when login status or member ID changes
 
-  const addToCart = useCallback(async (item: WixCartItem) => {
+  const addToCart = useCallback(async (item: WixCartItem | WixProduct, quantity: number = 1) => {
     try {
+      // Transform WixProduct to WixCartItem if needed
+      const cartItem: WixCartItem = 'catalogReference' in item ? item : {
+        catalogReference: {
+          appId: wixApiClient.storesAppId,
+          catalogItemId: item.id,
+          options: {}
+        },
+        quantity
+      };
+
       console.log('🛒 [CART CONTEXT] Adding item to cart:', {
-        productId: item.catalogReference.catalogItemId,
-        quantity: item.quantity
+        productId: cartItem.catalogReference.catalogItemId,
+        quantity: cartItem.quantity
       });
       console.log('🛒 [CART CONTEXT] Member context during add:', {
         isLoggedIn,
@@ -131,7 +141,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
       });
       
       setLoading(true);
-      const updatedCart = await wixApiClient.addToCart([item]);
+      const updatedCart = await wixApiClient.addToCart([cartItem]);
       setCart(updatedCart);
       
       console.log('🛒 [CART CONTEXT] Add to cart result:', {
@@ -146,7 +156,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
         console.log('🔍 [CART CONTEXT] Item not added - running automatic product analysis...');
         // Import the debug function dynamically to avoid circular dependency
         import('../utils/wixApiClient').then(({ debugProduct }) => {
-          debugProduct(item.catalogReference.catalogItemId);
+          debugProduct(cartItem.catalogReference.catalogItemId);
         });
       }
     } catch (error) {

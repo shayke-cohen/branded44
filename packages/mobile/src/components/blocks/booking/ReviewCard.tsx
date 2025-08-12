@@ -244,9 +244,13 @@ export interface ReviewCardProps {
 /**
  * Format date for display
  */
-const formatDate = (date: Date): string => {
+const formatDate = (date: Date | undefined | null): string => {
+  if (!date) return 'Date N/A';
+  const dateObj = date instanceof Date ? date : new Date(date);
+  if (isNaN(dateObj.getTime())) return 'Invalid Date';
+  
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = now.getTime() - dateObj.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   
   if (diffDays === 0) {
@@ -387,6 +391,22 @@ export default function ReviewCard({
   testID = 'review-card',
 }: ReviewCardProps) {
   
+  // Guard clause for undefined review
+  if (!review) {
+    return (
+      <Card className="overflow-hidden mb-3 p-4" style={{ width }}>
+        <View className="flex-row items-center mb-3">
+          <View className="w-12 h-12 bg-gray-200 rounded-full mr-3" />
+          <View className="flex-1">
+            <View className="h-4 bg-gray-200 rounded w-32 mb-1" />
+            <View className="h-3 bg-gray-200 rounded w-24" />
+          </View>
+        </View>
+        <Text className="text-gray-500 text-center">No review available</Text>
+      </Card>
+    );
+  }
+  
   // State
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
@@ -422,11 +442,11 @@ export default function ReviewCard({
       <Card className={cn(
         'overflow-hidden mb-3',
         isCompact ? 'p-3' : 'p-4',
-        review.featured && 'border-yellow-300 bg-yellow-50'
+        review?.featured && 'border-yellow-300 bg-yellow-50'
       )} style={{ width }}>
         
         {/* Featured Badge */}
-        {review.featured && (
+        {review?.featured && (
           <View className="absolute top-2 right-2">
             <Badge variant="secondary" style={{ backgroundColor: COLORS.yellow[500] }}>
               <Text className="text-white text-xs font-medium">Featured</Text>
@@ -442,10 +462,10 @@ export default function ReviewCard({
             <Avatar className={cn(isCompact ? 'w-10 h-10' : 'w-12 h-12')}>
               <Image
                 source={{ 
-                  uri: review.author.avatar || 'https://via.placeholder.com/48x48' 
+                  uri: review.author?.avatar || 'https://via.placeholder.com/48x48' 
                 }}
                 className="w-full h-full rounded-full"
-                alt={review.author.name}
+                alt={review.author?.name || 'Reviewer'}
               />
             </Avatar>
           </TouchableOpacity>
@@ -458,10 +478,10 @@ export default function ReviewCard({
                   'font-medium text-gray-900 mr-2',
                   isCompact ? 'text-sm' : 'text-base'
                 )}>
-                  {review.author.anonymous ? 'Anonymous' : review.author.name}
+                  {review.author?.anonymous ? 'Anonymous' : (review.author?.name || 'Reviewer')}
                 </Text>
                 
-                {review.author.verified && (
+                {review.author?.verified && (
                   <Text className="text-xs">✅</Text>
                 )}
                 
@@ -480,12 +500,12 @@ export default function ReviewCard({
             {/* Rating and Date */}
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
-                {renderStars(review.rating.overall, isCompact ? 'sm' : 'md')}
+                {renderStars(review.rating?.overall ?? 0, isCompact ? 'sm' : 'md')}
                 <Text className={cn(
                   'ml-2 font-medium text-gray-900',
                   isCompact ? 'text-sm' : 'text-base'
                 )}>
-                  {review.rating.overall.toFixed(1)}
+                  {(review.rating?.overall ?? 0).toFixed(1)}
                 </Text>
               </View>
               
@@ -500,8 +520,8 @@ export default function ReviewCard({
             {/* Author Stats */}
             {!isCompact && (
               <Text className="text-xs text-gray-500 mt-1">
-                {review.author.totalReviews} review{review.author.totalReviews !== 1 ? 's' : ''}
-                {review.author.location && ` • ${review.author.location}`}
+                {review.author?.totalReviews ?? 0} review{(review.author?.totalReviews ?? 0) !== 1 ? 's' : ''}
+                {review.author?.location && ` • ${review.author?.location}`}
               </Text>
             )}
           </View>
@@ -511,16 +531,16 @@ export default function ReviewCard({
         {showServiceInfo && review.service && (
           <View className="mb-3 p-2 bg-gray-50 rounded">
             <Text className="text-sm font-medium text-gray-900 mb-1">
-              Service: {review.service.name}
+              Service: {review.service?.name || 'Service N/A'}
             </Text>
-            {review.service.serviceDate && (
+            {review.service?.serviceDate && (
               <Text className="text-xs text-gray-600">
-                Service Date: {formatDate(review.service.serviceDate)}
+                Service Date: {formatDate(review.service?.serviceDate)}
               </Text>
             )}
-            {review.service.price && (
+            {review.service?.price && (
               <Text className="text-xs text-gray-600">
-                Price: {formatCurrency(review.service.price, review.service.currency)}
+                Price: {formatCurrency(review.service.price, review.service?.currency || 'USD')}
               </Text>
             )}
           </View>
@@ -549,7 +569,7 @@ export default function ReviewCard({
           </Text>
           
           {/* Expand/Collapse Button */}
-          {review.content.length > 200 && (
+          {(review.content?.length ?? 0) > 200 && (
             <TouchableOpacity
               onPress={() => setIsExpanded(!isExpanded)}
               className="mt-1"
@@ -574,35 +594,35 @@ export default function ReviewCard({
               Rating Breakdown
             </Text>
             <View className="space-y-1">
-              {review.rating.serviceQuality && (
+              {review.rating?.serviceQuality && (
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm text-gray-600">Service Quality</Text>
                   <View className="flex-row items-center">
-                    {renderStars(review.rating.serviceQuality, 'sm')}
+                    {renderStars(review.rating?.serviceQuality ?? 0, 'sm')}
                     <Text className="text-sm text-gray-700 ml-1">
-                      {review.rating.serviceQuality.toFixed(1)}
+                      {(review.rating?.serviceQuality ?? 0).toFixed(1)}
                     </Text>
                   </View>
                 </View>
               )}
-              {review.rating.communication && (
+              {review.rating?.communication && (
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm text-gray-600">Communication</Text>
                   <View className="flex-row items-center">
-                    {renderStars(review.rating.communication, 'sm')}
+                    {renderStars(review.rating?.communication ?? 0, 'sm')}
                     <Text className="text-sm text-gray-700 ml-1">
-                      {review.rating.communication.toFixed(1)}
+                      {(review.rating?.communication ?? 0).toFixed(1)}
                     </Text>
                   </View>
                 </View>
               )}
-              {review.rating.punctuality && (
+              {review.rating?.punctuality && (
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm text-gray-600">Punctuality</Text>
                   <View className="flex-row items-center">
-                    {renderStars(review.rating.punctuality, 'sm')}
+                    {renderStars(review.rating?.punctuality ?? 0, 'sm')}
                     <Text className="text-sm text-gray-700 ml-1">
-                      {review.rating.punctuality.toFixed(1)}
+                      {(review.rating?.punctuality ?? 0).toFixed(1)}
                     </Text>
                   </View>
                 </View>
@@ -612,11 +632,11 @@ export default function ReviewCard({
         )}
 
         {/* Media */}
-        {showMedia && review.media.length > 0 && (
+        {showMedia && (review.media?.length ?? 0) > 0 && (
           <View className="mb-3">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row space-x-2">
-                {review.media.slice(0, showAllPhotos ? undefined : 4).map((media, index) => (
+                {(review.media ?? []).slice(0, showAllPhotos ? undefined : 4).map((media, index) => (
                   <TouchableOpacity
                     key={media.id}
                     onPress={() => onMediaPress?.(media, index)}
@@ -634,13 +654,13 @@ export default function ReviewCard({
                   </TouchableOpacity>
                 ))}
                 
-                {!showAllPhotos && review.media.length > 4 && (
+                {!showAllPhotos && (review.media?.length ?? 0) > 4 && (
                   <TouchableOpacity
                     className="w-20 h-20 bg-gray-100 rounded-lg items-center justify-center"
                     onPress={() => setShowAllPhotos(true)}
                   >
                     <Text className="text-gray-600 text-sm font-medium">
-                      +{review.media.length - 4}
+                      +{(review.media?.length ?? 0) - 4}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -650,11 +670,11 @@ export default function ReviewCard({
         )}
 
         {/* Tags */}
-        {showTags && review.tags.length > 0 && (
+        {showTags && (review.tags?.length ?? 0) > 0 && (
           <View className="mb-3">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row space-x-2">
-                {review.tags.map((tag, index) => (
+                {(review.tags ?? []).map((tag, index) => (
                   <View
                     key={index}
                     className="bg-blue-100 px-2 py-1 rounded-full"
@@ -677,17 +697,17 @@ export default function ReviewCard({
           >
             <View className="flex-row items-center mb-2">
               <Text className="text-sm font-medium text-blue-900">
-                Response from {review.response.providerName}
+                Response from {review.response?.providerName || 'Provider'}
               </Text>
-              {review.response.verified && (
+              {review.response?.verified && (
                 <Text className="text-xs ml-1">✅</Text>
               )}
             </View>
             <Text className="text-sm text-blue-800">
-              {review.response.text}
+              {review.response?.text}
             </Text>
             <Text className="text-xs text-blue-600 mt-1">
-              {formatDate(review.response.date)}
+              {formatDate(review.response?.date)}
             </Text>
           </TouchableOpacity>
         )}
@@ -702,13 +722,13 @@ export default function ReviewCard({
                 onPress={onHelpfulVote}
                 className={cn(
                   'flex-row items-center',
-                  review.helpfulness.userVotedHelpful && 'opacity-60'
+                  review.helpfulness?.userVotedHelpful && 'opacity-60'
                 )}
-                disabled={review.helpfulness.userVotedHelpful}
+                disabled={review.helpfulness?.userVotedHelpful}
               >
                 <Text className="text-green-600 mr-1">👍</Text>
                 <Text className="text-sm text-gray-600">
-                  {review.helpfulness.helpful}
+                  {review.helpfulness?.helpful ?? 0}
                 </Text>
               </TouchableOpacity>
               
@@ -716,13 +736,13 @@ export default function ReviewCard({
                 onPress={onNotHelpfulVote}
                 className={cn(
                   'flex-row items-center',
-                  review.helpfulness.userVotedNotHelpful && 'opacity-60'
+                  review.helpfulness?.userVotedNotHelpful && 'opacity-60'
                 )}
-                disabled={review.helpfulness.userVotedNotHelpful}
+                disabled={review.helpfulness?.userVotedNotHelpful}
               >
                 <Text className="text-red-600 mr-1">👎</Text>
                 <Text className="text-sm text-gray-600">
-                  {review.helpfulness.notHelpful}
+                  {review.helpfulness?.notHelpful ?? 0}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -745,7 +765,7 @@ export default function ReviewCard({
         </View>
 
         {/* Custom Actions */}
-        {actions.length > 0 && (
+        {(actions?.length ?? 0) > 0 && (
           <View className="mt-3 flex-row space-x-2">
             {actions.map((action) => (
               <Button

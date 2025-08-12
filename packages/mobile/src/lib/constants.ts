@@ -257,6 +257,17 @@ export const COLORS = {
   black: '#000000',
   transparent: 'transparent',
   
+  // Semantic colors for easy theming
+  background: '#ffffff',
+  card: '#ffffff',
+  border: '#e5e7eb',
+  
+  text: {
+    primary: '#111827',
+    secondary: '#6b7280',
+    tertiary: '#9ca3af',
+  },
+  
   // Social media brand colors
   social: {
     facebook: '#1877f2',
