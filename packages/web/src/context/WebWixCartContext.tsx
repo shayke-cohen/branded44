@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { wixApiClient, WixCart, WixCartItem } from '@mobile/utils/wixApiClient';
+import { WixCart, WixCartItem } from '@mobile/utils/wixApiClient';
+import { webWixApiClient } from '../utils/webWixApiClient';
 import { useMember } from './WebMemberContext';
 
 interface WixCartContextType {
@@ -32,7 +33,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
   const refreshCart = useCallback(async () => {
     try {
       setLoading(true);
-      const currentCart = await wixApiClient.getCurrentCart();
+      const currentCart = await webWixApiClient.getCurrentCart();
       setCart(currentCart);
       console.log('✅ [CART] Cart refreshed:', currentCart ? `${currentCart.lineItems?.length || 0} items` : 'empty');
       console.log('🛒 [MEMBER CART] Cart context:', {
@@ -52,7 +53,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
   const addToCart = useCallback(async (item: WixCartItem) => {
     try {
       setLoading(true);
-      const updatedCart = await wixApiClient.addToCart([item]);
+      const updatedCart = await webWixApiClient.addToCart([item]);
       setCart(updatedCart);
       console.log('✅ [CART] Item added to cart:', item.catalogReference.catalogItemId);
     } catch (error) {
@@ -80,7 +81,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
   const removeFromCart = useCallback(async (lineItemIds: string[]) => {
     try {
       setLoading(true);
-      const updatedCart = await wixApiClient.removeFromCart(lineItemIds);
+      const updatedCart = await webWixApiClient.removeFromCart(lineItemIds);
       setCart(updatedCart);
       console.log('✅ [CART] Items removed from cart:', lineItemIds);
     } catch (error) {

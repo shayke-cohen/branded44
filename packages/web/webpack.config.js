@@ -29,6 +29,14 @@ module.exports = {
       '@mobile/context/PlatformContextResolver': path.resolve(__dirname, 'src/context/WebPlatformContextResolver.ts'),
       '../mobile/src/context/PlatformContextResolver': path.resolve(__dirname, 'src/context/WebPlatformContextResolver.ts'),
       './PlatformContextResolver': path.resolve(__dirname, 'src/context/WebPlatformContextResolver.ts'),
+      // Override WixProductService with web-specific version
+      '@mobile/screens/wix/ecommerce/shared/WixProductService': path.resolve(__dirname, 'src/utils/WebWixProductService.ts'),
+      '../mobile/src/screens/wix/ecommerce/shared/WixProductService': path.resolve(__dirname, 'src/utils/WebWixProductService.ts'),
+      // Handle relative imports from different locations
+      '../shared/WixProductService': path.resolve(__dirname, 'src/utils/WebWixProductService.ts'),
+      '../../screens/wix/ecommerce/shared/WixProductService': path.resolve(__dirname, 'src/utils/WebWixProductService.ts'),
+      '../../../screens/wix/ecommerce/shared/WixProductService': path.resolve(__dirname, 'src/utils/WebWixProductService.ts'),
+      '../../../../screens/wix/ecommerce/shared/WixProductService': path.resolve(__dirname, 'src/utils/WebWixProductService.ts'),
       '@react-native-async-storage/async-storage': path.resolve(
         appDirectory,
         'src/polyfills/AsyncStorage.js',

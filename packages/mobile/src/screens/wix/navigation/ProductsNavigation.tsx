@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import ProductListScreen from '../ecommerce/ProductListScreen/ProductListScreen';
 import ProductDetailScreen from '../ecommerce/ProductDetailScreen/ProductDetailScreen';
 import CartScreen from '../ecommerce/CartScreen/CartScreen';
+import type { WixProduct } from '../../../utils/wixApiClient';
 
 export type ProductScreen = 'list' | 'detail' | 'cart';
 
@@ -10,9 +11,9 @@ const ProductsNavigation: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ProductScreen>('list');
   const [selectedProductId, setSelectedProductId] = useState<string | undefined>();
 
-  const navigateToProductDetail = (productId: string) => {
-    console.log('🛍️ [NAV] Navigating to product detail:', productId);
-    setSelectedProductId(productId);
+  const navigateToProductDetail = (product: WixProduct) => {
+    console.log('🛍️ [NAV] Navigating to product detail:', product);
+    setSelectedProductId(product.id);
     setCurrentScreen('detail');
   };
 

@@ -28,6 +28,7 @@ export interface WixProduct {
   id: string;
   name: string;
   description?: string;
+  priceValue?: number; // Numeric price value for calculations
   priceData?: {
     currency: string;
     price: number;
@@ -86,6 +87,14 @@ export interface WixProduct {
   createdDate?: string;
   slug?: string;
   ribbon?: string;
+  currency?: string; // Currency for price calculations
+  imageUrl?: string; // Main image URL
+  images?: string[]; // Array of image URLs
+  stockQuantity?: number; // Stock quantity
+  sku?: string; // SKU
+  categories?: string[]; // Categories (for backward compatibility)
+  variants?: any[]; // Product variants
+  additionalInfoSections?: any[]; // Additional info sections
 }
 
 export interface WixCategory {

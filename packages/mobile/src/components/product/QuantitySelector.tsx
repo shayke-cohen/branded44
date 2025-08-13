@@ -30,14 +30,16 @@ export const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   const styles = createProductDetailStyles(theme);
 
   const handleIncrement = () => {
-    if (quantity < maxQuantity) {
-      onQuantityChange(quantity + 1);
+    const currentQuantity = quantity || minQuantity;
+    if (currentQuantity < maxQuantity) {
+      onQuantityChange(currentQuantity + 1);
     }
   };
 
   const handleDecrement = () => {
-    if (quantity > minQuantity) {
-      onQuantityChange(quantity - 1);
+    const currentQuantity = quantity || minQuantity;
+    if (currentQuantity > minQuantity) {
+      onQuantityChange(currentQuantity - 1);
     }
   };
 
@@ -57,12 +59,12 @@ export const QuantitySelector: React.FC<QuantitySelectorProps> = ({
           <TouchableOpacity
             style={styles.quantityButton}
             onPress={handleDecrement}
-            disabled={quantity <= minQuantity}
+            disabled={(quantity || minQuantity) <= minQuantity}
           >
             <Text
               style={[
                 styles.quantityButtonText,
-                quantity <= minQuantity && { opacity: 0.5 },
+                (quantity || minQuantity) <= minQuantity && { opacity: 0.5 },
               ]}
             >
               −
@@ -71,7 +73,7 @@ export const QuantitySelector: React.FC<QuantitySelectorProps> = ({
 
           <TextInput
             style={styles.quantityInput}
-            value={quantity.toString()}
+            value={(quantity || minQuantity).toString()}
             onChangeText={handleTextInput}
             keyboardType="numeric"
             textAlign="center"
@@ -81,12 +83,12 @@ export const QuantitySelector: React.FC<QuantitySelectorProps> = ({
           <TouchableOpacity
             style={styles.quantityButton}
             onPress={handleIncrement}
-            disabled={quantity >= maxQuantity}
+            disabled={(quantity || minQuantity) >= maxQuantity}
           >
             <Text
               style={[
                 styles.quantityButtonText,
-                quantity >= maxQuantity && { opacity: 0.5 },
+                (quantity || minQuantity) >= maxQuantity && { opacity: 0.5 },
               ]}
             >
               +

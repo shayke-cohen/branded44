@@ -99,7 +99,7 @@ class WixProductService {
       });
 
       return {
-        products: products.map(this.transformProduct),
+        products: products.map(product => this.transformProduct(product)),
         totalCount,
         hasMore,
       };
@@ -203,14 +203,21 @@ class WixProductService {
   /**
    * Transform API response to standardized format
    */
+  /**
+   * Strip HTML tags from text
+   */
+  private stripHtmlTags(html: string): string {
+    return html.replace(/<[^>]*>/g, '').trim();
+  }
+
   private transformProduct(apiProduct: any): WixProduct {
     return {
       id: apiProduct.id || '',
       name: apiProduct.name || 'Unnamed Product',
-      description: apiProduct.description || '',
+      description: this.stripHtmlTags(apiProduct.description || ''),
       price: apiProduct.price?.formatted?.price || '$0.00',
-      priceValue: apiProduct.price?.value || 0,
-      currency: apiProduct.price?.currency || 'USD',
+      priceValue: apiProduct.price?.price || apiProduct.priceData?.price || 0,
+      currency: apiProduct.price?.currency || apiProduct.priceData?.currency || 'USD',
       imageUrl: apiProduct.media?.mainMedia?.image?.url || '',
       images: apiProduct.media?.items?.map((item: any) => item.image?.url).filter(Boolean) || [],
       inStock: apiProduct.stock?.inStock ?? true,

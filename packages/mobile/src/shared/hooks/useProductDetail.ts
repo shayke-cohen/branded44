@@ -95,6 +95,7 @@ export const useProductDetail = (productId: string): UseProductDetailReturn => {
 
       if (mounted.current) {
         safeSetState(prev => ({
+          ...prev,
           product,
           loading: false,
           error: null,
@@ -131,7 +132,7 @@ export const useProductDetail = (productId: string): UseProductDetailReturn => {
 
       // Get products from the same category
       const relatedProducts = await productService.getProductsByCategory(
-        state.product.categories[0] || '',
+        state.product.categoryIds?.[0] || '',
         { limit: 6 }
       );
 
@@ -196,7 +197,7 @@ export const useProductDetail = (productId: string): UseProductDetailReturn => {
   /**
    * Derived state
    */
-  const isInStock = !!(state.product?.inStock && state.product?.stockQuantity > 0);
+  const isInStock = !!(state.product?.inStock);
   const canAddToCart = !!(state.product && isInStock && !state.loading);
   
   const totalPrice = state.product 

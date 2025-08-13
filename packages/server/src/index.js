@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const { spawn } = require('child_process');
 const { query } = require('@anthropic-ai/claude-code');
+const fetch = require('node-fetch');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -130,6 +131,292 @@ app.use((req, res, next) => {
   };
   
   next();
+});
+
+// Wix API Configuration
+const WIX_CONFIG = {
+  siteId: process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316',
+  clientId: process.env.WIX_CLIENT_ID || '6bfa6d89-e039-4145-ad77-948605cfc694',
+  apiBaseUrl: 'https://www.wixapis.com'
+};
+
+// Wix API Proxy Endpoints
+
+// Generate visitor tokens
+app.post('/api/wix/visitor-tokens', async (req, res) => {
+  try {
+    log('info', 'Generating Wix visitor tokens', {
+      siteId: WIX_CONFIG.siteId,
+      clientId: WIX_CONFIG.clientId
+    });
+
+    const response = await fetch(`${WIX_CONFIG.apiBaseUrl}/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'wix-site-id': WIX_CONFIG.siteId
+      },
+      body: JSON.stringify({
+        clientId: WIX_CONFIG.clientId,
+        grantType: 'anonymous'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log('error', 'Failed to generate visitor tokens', {
+        status: response.status,
+        error: errorText
+      });
+      return res.status(response.status).json({
+        error: 'Failed to generate visitor tokens',
+        details: errorText
+      });
+    }
+
+    const data = await response.json();
+    log('success', 'Visitor tokens generated successfully');
+    
+    res.json({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_in: data.expires_in
+    });
+  } catch (error) {
+    log('error', 'Visitor token generation error', { error: error.message });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Refresh visitor tokens
+app.post('/api/wix/refresh-tokens', async (req, res) => {
+  try {
+    const { refresh_token } = req.body;
+    
+    if (!refresh_token) {
+      return res.status(400).json({ error: 'Refresh token is required' });
+    }
+
+    log('info', 'Refreshing Wix visitor tokens');
+
+    const response = await fetch(`${WIX_CONFIG.apiBaseUrl}/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        refresh_token: refresh_token,
+        grantType: 'refresh_token'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log('error', 'Failed to refresh tokens', {
+        status: response.status,
+        error: errorText
+      });
+      return res.status(response.status).json({
+        error: 'Failed to refresh tokens',
+        details: errorText
+      });
+    }
+
+    const data = await response.json();
+    log('success', 'Visitor tokens refreshed successfully');
+    
+    res.json({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_in: data.expires_in
+    });
+  } catch (error) {
+    log('error', 'Token refresh error', { error: error.message });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Member login
+app.post('/api/wix/member/login', async (req, res) => {
+  try {
+    const { email, password, visitorToken } = req.body;
+    
+    if (!email || !password || !visitorToken) {
+      return res.status(400).json({ 
+        error: 'Email, password, and visitor token are required' 
+      });
+    }
+
+    log('info', 'Processing member login', { email });
+
+    const response = await fetch(`${WIX_CONFIG.apiBaseUrl}/_api/iam/authentication/v2/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'wix-site-id': WIX_CONFIG.siteId,
+        'Authorization': `Bearer ${visitorToken}`
+      },
+      body: JSON.stringify({
+        loginId: { email },
+        password
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log('error', 'Member login failed', {
+        status: response.status,
+        error: errorText,
+        email
+      });
+      return res.status(response.status).json({
+        error: 'Login failed',
+        details: errorText
+      });
+    }
+
+    const data = await response.json();
+    log('success', 'Member login successful', { email });
+    
+    res.json(data);
+  } catch (error) {
+    log('error', 'Member login error', { error: error.message });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Member registration
+app.post('/api/wix/member/register', async (req, res) => {
+  try {
+    const { email, password, profile, visitorToken } = req.body;
+    
+    if (!email || !password || !visitorToken) {
+      return res.status(400).json({ 
+        error: 'Email, password, and visitor token are required' 
+      });
+    }
+
+    log('info', 'Processing member registration', { email });
+
+    const requestBody = {
+      loginId: { email },
+      password,
+      ...(profile && { profile })
+    };
+
+    const response = await fetch(`${WIX_CONFIG.apiBaseUrl}/_api/iam/authentication/v2/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'wix-site-id': WIX_CONFIG.siteId,
+        'Authorization': `Bearer ${visitorToken}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log('error', 'Member registration failed', {
+        status: response.status,
+        error: errorText,
+        email
+      });
+      return res.status(response.status).json({
+        error: 'Registration failed',
+        details: errorText
+      });
+    }
+
+    const data = await response.json();
+    log('success', 'Member registration successful', { email });
+    
+    res.json(data);
+  } catch (error) {
+    log('error', 'Member registration error', { error: error.message });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Generic Wix API proxy
+app.post('/api/wix/proxy', async (req, res) => {
+  try {
+    const { url, method = 'GET', headers = {}, body, visitorToken } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    log('info', 'Proxying Wix API request', { 
+      url: url.replace(WIX_CONFIG.apiBaseUrl, ''),
+      method 
+    });
+
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'wix-site-id': WIX_CONFIG.siteId,
+      ...headers
+    };
+
+    if (visitorToken) {
+      requestHeaders['Authorization'] = `Bearer ${visitorToken}`;
+    }
+
+    const fetchOptions = {
+      method,
+      headers: requestHeaders
+    };
+
+    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+      fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
+    }
+
+    const response = await fetch(url, fetchOptions);
+    const responseText = await response.text();
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      responseData = responseText;
+    }
+
+    if (!response.ok) {
+      log('error', 'Wix API proxy request failed', {
+        status: response.status,
+        url: url.replace(WIX_CONFIG.apiBaseUrl, ''),
+        error: responseData
+      });
+      return res.status(response.status).json({
+        error: 'API request failed',
+        details: responseData
+      });
+    }
+
+    log('success', 'Wix API proxy request successful', {
+      url: url.replace(WIX_CONFIG.apiBaseUrl, ''),
+      method
+    });
+    
+    res.json(responseData);
+  } catch (error) {
+    log('error', 'Wix API proxy error', { error: error.message });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
 });
 
 // Health check endpoint with enhanced statistics

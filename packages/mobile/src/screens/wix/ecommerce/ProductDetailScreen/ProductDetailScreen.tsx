@@ -43,7 +43,8 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 }) => {
   const { theme } = useTheme();
   const styles = createProductDetailStyles(theme);
-  const { addToCart, cartItemCount } = useWixCart();
+  const { addToCart, getItemCount } = useWixCart();
+  const cartItemCount = getItemCount();
 
   // Get product ID from props or route
   const productId = propProductId || route?.params?.productId || '';
@@ -223,7 +224,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
               {isInStock ? '✅' : '❌'}
             </Text>
             <Text style={[styles.stockText, isInStock ? styles.stockInStock : styles.stockOutOfStock]}>
-              {isInStock ? `In Stock (${product.stockQuantity})` : 'Out of Stock'}
+              {isInStock ? (product.stockQuantity && product.stockQuantity > 0 ? `In Stock (${product.stockQuantity})` : 'In Stock') : 'Out of Stock'}
             </Text>
           </View>
         </View>
@@ -241,11 +242,11 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
         <QuantitySelector
           quantity={selectedQuantity}
           onQuantityChange={setQuantity}
-          maxQuantity={Math.min(99, product.stockQuantity || 99)}
+          maxQuantity={product.stockQuantity && product.stockQuantity > 0 ? Math.min(99, product.stockQuantity) : 99}
         />
 
         {/* Related Products */}
-        {relatedProducts.length > 0 && (
+        {relatedProducts && relatedProducts.length > 0 && (
           <View style={styles.relatedSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Related Products</Text>
