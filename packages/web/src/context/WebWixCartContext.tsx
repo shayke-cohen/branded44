@@ -50,12 +50,45 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
     }
   }, [isLoggedIn, member?.email?.address]);
 
-  const addToCart = useCallback(async (item: WixCartItem) => {
+  const addToCart = useCallback(async (item: WixCartItem | any) => {
     try {
       setLoading(true);
-      const updatedCart = await webWixApiClient.addToCart([item]);
+      
+      // Transform product to cart item if needed
+      let cartItem: WixCartItem;
+      if ('catalogReference' in item) {
+        // Already a cart item
+        cartItem = item;
+      } else {
+        // Transform product to cart item
+        cartItem = {
+          catalogReference: {
+            appId: 'wix-stores', // Default Wix Stores app ID
+            catalogItemId: item.catalogItemId || item.id,
+            options: item.selectedVariant ? { variant: item.selectedVariant } : {}
+          },
+          quantity: item.quantity || 1
+        };
+      }
+      
+      console.log('🛒 [CART] Transforming item for cart:', {
+        originalItem: item,
+        cartItem: cartItem,
+        catalogItemId: cartItem.catalogReference?.catalogItemId
+      });
+      
+      // Extract the product ID and quantity for the web API client
+      const productId = cartItem.catalogReference?.catalogItemId || item.id || item.catalogItemId;
+      const quantity = cartItem.quantity || 1;
+      const options = cartItem.catalogReference?.options;
+      
+      if (!productId) {
+        throw new Error('Product ID is required to add item to cart');
+      }
+      
+      const updatedCart = await webWixApiClient.addToCart(productId, quantity, options);
       setCart(updatedCart);
-      console.log('✅ [CART] Item added to cart:', item.catalogReference.catalogItemId);
+      console.log('✅ [CART] Item added to cart:', productId);
     } catch (error) {
       console.error('❌ [CART] Failed to add item to cart:', error);
       throw error;
@@ -81,8 +114,14 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
   const removeFromCart = useCallback(async (lineItemIds: string[]) => {
     try {
       setLoading(true);
-      const updatedCart = await webWixApiClient.removeFromCart(lineItemIds);
-      setCart(updatedCart);
+      
+      // Remove items one by one since the API expects single lineItemId
+      for (const lineItemId of lineItemIds) {
+        await webWixApiClient.removeFromCart(lineItemId);
+      }
+      
+      // Refresh cart after removing all items
+      await refreshCart();
       console.log('✅ [CART] Items removed from cart:', lineItemIds);
     } catch (error) {
       console.error('❌ [CART] Failed to remove items from cart:', error);
@@ -90,7 +129,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshCart]);
 
   const getItemCount = useCallback(() => {
     return cart?.lineItems?.reduce((total, item) => total + (item.quantity || 0), 0) || 0;

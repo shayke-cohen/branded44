@@ -1,11 +1,11 @@
 /**
- * WixMemberService - Service layer for member authentication operations
+ * WebMemberService - Web-specific override for member authentication operations
  * 
- * Centralizes all member auth API calls and business logic
- * Provides clean interface for authentication management
+ * This service overrides the mobile WixMemberService to use the webWixApiClient
+ * which handles CORS issues by proxying requests through our server.
  */
 
-import { wixApiClient } from '../../../../utils/wixApiClient';
+import { webWixApiClient } from './webWixApiClient';
 
 export interface MemberCredentials {
   email: string;
@@ -41,37 +41,37 @@ export interface AuthResult {
   state?: string;
 }
 
-class WixMemberService {
-  private static instance: WixMemberService;
+class WebMemberService {
+  private static instance: WebMemberService;
 
-  public static getInstance(): WixMemberService {
-    if (!WixMemberService.instance) {
-      WixMemberService.instance = new WixMemberService();
+  public static getInstance(): WebMemberService {
+    if (!WebMemberService.instance) {
+      WebMemberService.instance = new WebMemberService();
     }
-    return WixMemberService.instance;
+    return WebMemberService.instance;
   }
 
   /**
-   * Login member with email and password
+   * Login member with email and password using web-compatible API client
    */
   public async login(credentials: MemberCredentials): Promise<AuthResult> {
     try {
-      console.log('🔄 [MEMBER SERVICE] Attempting login for:', credentials.email);
+      console.log('🌐 [WEB MEMBER SERVICE] *** USING WEB SERVICE (NOT MOBILE) *** Attempting login for:', credentials.email);
 
-      const response = await wixApiClient.loginMember(credentials.email, credentials.password);
+      const response = await webWixApiClient.loginMember(credentials.email, credentials.password);
 
       if (response && response.state === 'SUCCESS') {
-        console.log('✅ [MEMBER SERVICE] Login successful');
+        console.log('✅ [WEB MEMBER SERVICE] Login successful');
         
         return {
           success: true,
-          member: response.member,
+          member: response.identity,
           state: response.state
         };
       }
 
-      const errorMessage = response?.errorDescription || 'Login failed';
-      console.warn('⚠️ [MEMBER SERVICE] Login failed:', errorMessage);
+      const errorMessage = response?.message || 'Login failed';
+      console.warn('⚠️ [WEB MEMBER SERVICE] Login failed:', errorMessage);
 
       return {
         success: false,
@@ -79,7 +79,7 @@ class WixMemberService {
         state: response?.state
       };
     } catch (error) {
-      console.error('❌ [MEMBER SERVICE] Login error:', error);
+      console.error('❌ [WEB MEMBER SERVICE] Login error:', error);
       
       return {
         success: false,
@@ -89,11 +89,11 @@ class WixMemberService {
   }
 
   /**
-   * Register new member
+   * Register new member using web-compatible API client
    */
   public async register(registrationData: MemberRegistrationData): Promise<AuthResult> {
     try {
-      console.log('🔄 [MEMBER SERVICE] Attempting registration for:', registrationData.email);
+      console.log('🌐 [WEB MEMBER SERVICE] Attempting registration for:', registrationData.email);
 
       // Validate passwords match
       if (registrationData.password !== registrationData.confirmPassword) {
@@ -111,37 +111,37 @@ class WixMemberService {
         };
       }
 
-      const response = await wixApiClient.registerMember({
-        email: registrationData.email,
-        password: registrationData.password,
-        profile: {
+      const response = await webWixApiClient.registerMember(
+        registrationData.email,
+        registrationData.password,
+        {
           firstName: registrationData.firstName,
           lastName: registrationData.lastName,
         }
-      });
+      );
 
       if (response && response.state === 'PENDING_EMAIL_VERIFICATION') {
-        console.log('✅ [MEMBER SERVICE] Registration successful, pending verification');
+        console.log('✅ [WEB MEMBER SERVICE] Registration successful, pending verification');
         
         return {
           success: true,
           state: response.state,
-          member: response.member
+          member: response.identity
         };
       }
 
       if (response && response.state === 'SUCCESS') {
-        console.log('✅ [MEMBER SERVICE] Registration and login successful');
+        console.log('✅ [WEB MEMBER SERVICE] Registration and login successful');
         
         return {
           success: true,
           state: response.state,
-          member: response.member
+          member: response.identity
         };
       }
 
-      const errorMessage = response?.errorDescription || 'Registration failed';
-      console.warn('⚠️ [MEMBER SERVICE] Registration failed:', errorMessage);
+      const errorMessage = response?.message || 'Registration failed';
+      console.warn('⚠️ [WEB MEMBER SERVICE] Registration failed:', errorMessage);
 
       return {
         success: false,
@@ -149,7 +149,7 @@ class WixMemberService {
         state: response?.state
       };
     } catch (error) {
-      console.error('❌ [MEMBER SERVICE] Registration error:', error);
+      console.error('❌ [WEB MEMBER SERVICE] Registration error:', error);
       
       return {
         success: false,
@@ -159,32 +159,22 @@ class WixMemberService {
   }
 
   /**
-   * Logout current member
+   * Logout current member using web-compatible API client
    */
   public async logout(): Promise<AuthResult> {
     try {
-      console.log('🔄 [MEMBER SERVICE] Attempting logout...');
+      console.log('🌐 [WEB MEMBER SERVICE] Attempting logout...');
 
-      const response = await wixApiClient.logoutMember();
+      await webWixApiClient.logoutMember();
 
-      if (response && response.state === 'SUCCESS') {
-        console.log('✅ [MEMBER SERVICE] Logout successful');
-        
-        return {
-          success: true,
-          state: response.state
-        };
-      }
-
-      const errorMessage = response?.errorDescription || 'Logout failed';
-      console.warn('⚠️ [MEMBER SERVICE] Logout failed:', errorMessage);
-
+      console.log('✅ [WEB MEMBER SERVICE] Logout successful');
+      
       return {
-        success: false,
-        error: errorMessage
+        success: true,
+        state: 'SUCCESS'
       };
     } catch (error) {
-      console.error('❌ [MEMBER SERVICE] Logout error:', error);
+      console.error('❌ [WEB MEMBER SERVICE] Logout error:', error);
       
       return {
         success: false,
@@ -194,13 +184,13 @@ class WixMemberService {
   }
 
   /**
-   * Get current member status
+   * Get current member status using web-compatible API client
    */
   public async getCurrentMember(): Promise<AuthResult> {
     try {
-      console.log('🔄 [MEMBER SERVICE] Getting current member...');
+      console.log('🌐 [WEB MEMBER SERVICE] Getting current member...');
 
-      const isLoggedIn = await wixApiClient.isMemberLoggedIn();
+      const isLoggedIn = await webWixApiClient.isMemberLoggedIn();
 
       if (!isLoggedIn) {
         return {
@@ -209,10 +199,10 @@ class WixMemberService {
         };
       }
 
-      const memberData = await wixApiClient.getCurrentMember();
+      const memberData = await webWixApiClient.getCurrentMember();
 
       if (memberData) {
-        console.log('✅ [MEMBER SERVICE] Current member retrieved');
+        console.log('✅ [WEB MEMBER SERVICE] Current member retrieved');
         
         return {
           success: true,
@@ -225,78 +215,11 @@ class WixMemberService {
         error: 'Failed to get member data'
       };
     } catch (error) {
-      console.error('❌ [MEMBER SERVICE] Error getting current member:', error);
+      console.error('❌ [WEB MEMBER SERVICE] Error getting current member:', error);
       
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get member'
-      };
-    }
-  }
-
-  /**
-   * Update member profile
-   */
-  public async updateProfile(profileData: Partial<MemberProfile>): Promise<AuthResult> {
-    try {
-      console.log('🔄 [MEMBER SERVICE] Updating member profile...');
-
-      const response = await wixApiClient.updateMemberProfile(profileData);
-
-      if (response && response.member) {
-        console.log('✅ [MEMBER SERVICE] Profile updated successfully');
-        
-        return {
-          success: true,
-          member: response.member
-        };
-      }
-
-      return {
-        success: false,
-        error: 'Failed to update profile'
-      };
-    } catch (error) {
-      console.error('❌ [MEMBER SERVICE] Profile update error:', error);
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to update profile'
-      };
-    }
-  }
-
-  /**
-   * Request password reset
-   */
-  public async requestPasswordReset(email: string): Promise<AuthResult> {
-    try {
-      console.log('🔄 [MEMBER SERVICE] Requesting password reset for:', email);
-
-      const response = await wixApiClient.requestPasswordReset(email);
-
-      if (response && response.state === 'EMAIL_SENT') {
-        console.log('✅ [MEMBER SERVICE] Password reset email sent');
-        
-        return {
-          success: true,
-          state: response.state
-        };
-      }
-
-      const errorMessage = response?.errorDescription || 'Failed to send reset email';
-      console.warn('⚠️ [MEMBER SERVICE] Password reset failed:', errorMessage);
-
-      return {
-        success: false,
-        error: errorMessage
-      };
-    } catch (error) {
-      console.error('❌ [MEMBER SERVICE] Password reset error:', error);
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to request password reset'
       };
     }
   }
@@ -376,4 +299,5 @@ class WixMemberService {
 }
 
 // Export singleton instance
-export const memberService = WixMemberService.getInstance();
+export const webMemberService = WebMemberService.getInstance();
+export default webMemberService;

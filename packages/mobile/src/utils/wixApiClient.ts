@@ -95,6 +95,7 @@ export interface WixProduct {
   categories?: string[]; // Categories (for backward compatibility)
   variants?: any[]; // Product variants
   additionalInfoSections?: any[]; // Additional info sections
+  catalogItemId?: string; // Catalog item ID for cart operations
 }
 
 export interface WixCategory {
@@ -1208,8 +1209,94 @@ class WixApiClient {
 
   // Public member authentication methods
 
+  // Login member with web override check
+  async loginMember(email: string, password: string): Promise<AuthResponse | null> {
+    // Check for web override when running in browser environment
+    if (typeof window !== 'undefined') {
+      const webOverride = (global as any).webWixApiClientOverride || (window as any).webWixApiClientOverride;
+      if (webOverride && webOverride.loginMember) {
+        console.log('🌐 [WIX API CLIENT] Using web override for loginMember');
+        return await webOverride.loginMember(email, password);
+      }
+    }
+
+    try {
+      console.log('🔐 [MEMBER AUTH] Logging in member...');
+      
+      // Ensure we have valid visitor tokens with site context
+      await this.ensureValidVisitorTokens();
+      
+      if (!this.visitorTokens?.accessToken) {
+        throw new Error('Missing visitor authentication context. Please ensure visitor tokens are initialized.');
+      }
+      
+      const requestBody = {
+        loginId: { email },
+        password,
+      };
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'wix-site-id': this.siteId,
+        'Authorization': `Bearer ${this.visitorTokens.accessToken}`,
+      };
+
+      console.log('🌐 [MEMBER AUTH] Making login request with site ID:', this.siteId);
+
+      const response = await fetch('https://www.wixapis.com/_api/iam/authentication/v2/login', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [MEMBER AUTH] Login failed:', {
+          status: response.status,
+          error: errorText,
+          siteId: this.siteId,
+          hasVisitorToken: !!this.visitorTokens?.accessToken
+        });
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const authResponse: AuthResponse = await response.json();
+      
+      if (authResponse.state === 'SUCCESS' && authResponse.sessionToken) {
+        // Store session token for direct use
+        this.sessionToken = authResponse.sessionToken;
+        await AsyncStorage.setItem('wix_session_token', authResponse.sessionToken);
+        
+        // Store member profile first
+        this.currentMember = authResponse.identity;
+        await AsyncStorage.setItem('wix_current_member', JSON.stringify(this.currentMember));
+        
+        // Convert session token to member tokens (this may fail, but that's okay)
+        await this.getMemberTokensFromSession(authResponse.sessionToken);
+        
+        // Attempt to migrate visitor cart to member cart
+        await this.migrateVisitorCartToMember();
+        
+        console.log('✅ [MEMBER AUTH] Member login successful');
+      }
+
+      return authResponse;
+    } catch (error) {
+      console.error('❌ [MEMBER AUTH] Failed to login member:', error);
+      return null;
+    }
+  }
+
   // Register a new member
   async registerMember(email: string, password: string, profile?: Partial<MemberProfile>): Promise<AuthResponse | null> {
+    // Check for web override when running in browser environment
+    if (typeof window !== 'undefined') {
+      const webOverride = (global as any).webWixApiClientOverride || (window as any).webWixApiClientOverride;
+      if (webOverride && webOverride.registerMember) {
+        console.log('🌐 [WIX API CLIENT] Using web override for registerMember');
+        return await webOverride.registerMember(email, password, profile);
+      }
+    }
     try {
       console.log('🆕 [MEMBER AUTH] Registering new member...');
       

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { webWixApiClient } from '../utils/webWixApiClient';
+import { wixApiClient } from '@mobile/utils/wixApiClient';
 
 // Member data interface - same as mobile
 interface MemberData {
@@ -84,10 +84,10 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
       setLoading(true);
       
       // Check if user is already logged in
-      const isUserLoggedIn = await webWixApiClient.isMemberLoggedIn();
+      const isUserLoggedIn = await wixApiClient.isMemberLoggedIn();
       
       if (isUserLoggedIn) {
-        const currentMember = await webWixApiClient.getCurrentMember();
+        const currentMember = await wixApiClient.getCurrentMember();
         if (currentMember) {
           console.log('🌐 [WEB MEMBER CONTEXT] Found existing member session:', currentMember.id);
           setIsLoggedIn(true);
@@ -113,10 +113,10 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
       console.log('🌐 [WEB MEMBER CONTEXT] Refreshing member status...');
       setLoading(true);
       
-      const isUserLoggedIn = await webWixApiClient.isMemberLoggedIn();
+      const isUserLoggedIn = await wixApiClient.isMemberLoggedIn();
       
       if (isUserLoggedIn) {
-        const currentMember = await webWixApiClient.getCurrentMember();
+        const currentMember = await wixApiClient.getCurrentMember();
         if (currentMember) {
           console.log('🌐 [WEB MEMBER CONTEXT] Member status refreshed:', currentMember.id);
           setIsLoggedIn(true);
@@ -144,7 +144,7 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
       console.log('🌐 [WEB MEMBER CONTEXT] Logging out member...');
       setLoading(true);
       
-      await webWixApiClient.logoutMember();
+      await wixApiClient.logoutMember();
       
       setIsLoggedIn(false);
       setMember(null);

@@ -125,6 +125,33 @@ module.exports = {
         appDirectory,
         'src/context',
       ),
+      // Override mobile ProductGrid with web-optimized responsive version
+      '../../components/product/ProductGrid': path.resolve(
+        appDirectory,
+        'src/components/product/ProductGrid.tsx',
+      ),
+      '../../../components/product/ProductGrid': path.resolve(
+        appDirectory,
+        'src/components/product/ProductGrid.tsx',
+      ),
+      
+      // API Client consolidation - use mobile API client interface with web server proxy implementation
+      '@mobile/utils/wixApiClient': path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
+      '@mobile/utils/wix': path.resolve(__dirname, '../mobile/src/utils/wix'),
+      
+      // Handle relative imports from mobile screens - CRITICAL FOR WEB OVERRIDE
+      '../utils/wixApiClient': path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
+      '../../utils/wixApiClient': path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
+      '../../../utils/wixApiClient': path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
+      '../../../../utils/wixApiClient': path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
+      
+      // Absolute path override - this should definitely work
+      [path.resolve(__dirname, '../mobile/src/utils/wixApiClient')]: path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
+      [path.resolve(__dirname, '../mobile/src/utils/wixApiClient.ts')]: path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
+      
+      // EXACT absolute path aliases (these MUST work)
+      '/Users/shayco/branded44/packages/mobile/src/utils/wixApiClient.ts': path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
+      '/Users/shayco/branded44/packages/mobile/src/utils/wixApiClient': path.resolve(__dirname, 'src/mobile-overrides/utils/wixApiClient.ts'),
       react: path.resolve(__dirname, '../../node_modules/react'),
     },
     extensions: [

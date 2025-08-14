@@ -5,7 +5,7 @@
  * Provides clean interface for CMS data management
  */
 
-import { wixCmsClient, WixDataItem, WixCollection, WixDataResponse } from '../utils/wixApiClient';
+import { wixCmsClient, WixDataItem, WixCollection, WixDataResponse } from '../../../../utils/wixApiClient';
 
 export interface CMSItem extends WixDataItem {
   title?: string;

@@ -45,6 +45,15 @@ class WixMemberService {
   private static instance: WixMemberService;
 
   public static getInstance(): WixMemberService {
+    // Check for web override when running in browser environment
+    if (typeof window !== 'undefined') {
+      const webOverride = (global as any).webMemberServiceOverride || (window as any).webMemberServiceOverride;
+      if (webOverride) {
+        console.log('🌐 [MEMBER SERVICE] Using web-compatible member service override');
+        return webOverride;
+      }
+    }
+    
     if (!WixMemberService.instance) {
       WixMemberService.instance = new WixMemberService();
     }

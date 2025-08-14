@@ -5,7 +5,7 @@
  * Keeps screens thin and focused on presentation
  */
 
-import { wixApiClient, type WixProduct } from '../utils/wixApiClient';
+import { wixApiClient, type WixProduct } from '../../../../utils/wixApiClient';
 
 export interface SortOption {
   label: string;

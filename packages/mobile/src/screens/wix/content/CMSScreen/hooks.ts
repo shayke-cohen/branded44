@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { cmsService, CMSItem, CMSQueryOptions } from '../shared/WixCMSService';
-import type { WixCollection } from '../utils/wixApiClient';
+import type { WixCollection } from '../../../../utils/wixApiClient';
 
 interface UseCMSState {
   collections: WixCollection[];

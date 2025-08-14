@@ -9,6 +9,12 @@ import {MemberProvider, useMember} from './context/WebMemberContext';
 // Initialize self-registering screens for web preview
 import './utils/initializeScreens';
 
+// Initialize web-specific overrides for CORS compatibility
+import './context-override/WebMemberServiceOverride';
+
+// Test the web override system
+import './utils/testWebOverride';
+
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'preview' | 'generate'>('preview');
   const { visitorMode, toggleVisitorMode, isLoggedIn, member } = useMember();

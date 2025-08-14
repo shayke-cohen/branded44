@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWixCart } from '../../../../context';
-import type { WixProduct } from '../utils/wixApiClient';
+import type { WixProduct } from '../../../../utils/wixApiClient';
 
 interface CartItem extends WixProduct {
   quantity: number;

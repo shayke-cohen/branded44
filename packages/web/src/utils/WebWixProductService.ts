@@ -5,7 +5,7 @@
  * the webWixApiClient to handle CORS issues and provide fallback functionality
  */
 
-import { webWixApiClient } from './webWixApiClient';
+import { wixApiClient } from '@mobile/utils/wixApiClient';
 import type { WixProduct } from '@mobile/utils/wixApiClient';
 
 export interface SortOption {
@@ -81,156 +81,40 @@ class WebWixProductService {
       offset 
     });
 
-    // For web, immediately return demo products to avoid CORS issues
-    // This is similar to how booking services handle web environments
-    const demoProducts = this.generateDemoProducts();
-    
-    // Apply basic filtering
-    let filteredProducts = demoProducts;
-    
-    if (searchTerm) {
-      filteredProducts = filteredProducts.filter(product => 
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Apply sorting
-    if (sortBy.field === 'name') {
-      filteredProducts.sort((a, b) => {
-        const comparison = a.name.localeCompare(b.name);
-        return sortBy.order === 'ASC' ? comparison : -comparison;
+    // Use real Wix API via our server proxy (no more demo data!)
+    try {
+      const response = await wixApiClient.queryProducts({
+        visible: true,
+        limit,
+        offset,
+        // Note: Additional filtering/sorting can be implemented as needed
+        // searchQuery: searchTerm,
+        // sort: sortBy ? `[{"${sortBy.field}": "${sortBy.order}"}]` : undefined,
       });
-    } else if (sortBy.field === 'price') {
-      filteredProducts.sort((a, b) => {
-        const comparison = a.priceValue - b.priceValue;
-        return sortBy.order === 'ASC' ? comparison : -comparison;
-      });
-    }
-    
-    // Apply pagination
-    const startIndex = offset;
-    const endIndex = startIndex + limit;
-    const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-    
-    console.log('✅ [WEB PRODUCT SERVICE] Demo products loaded:', { 
-      count: paginatedProducts.length, 
-      totalCount: filteredProducts.length, 
-      hasMore: endIndex < filteredProducts.length,
-      isDemo: true
-    });
-    
-    console.log('ℹ️ [WEB PRODUCT SERVICE] Using demo data for web preview. Real products available in mobile app.');
 
-    return {
-      products: paginatedProducts,
-      totalCount: filteredProducts.length,
-      hasMore: endIndex < filteredProducts.length,
-    };
+      const products = response.products || [];
+      const totalCount = response.totalCount || products.length;
+      const hasMore = response.hasNext || false;
+
+      console.log('✅ [WEB PRODUCT SERVICE] Real products loaded via API:', { 
+        count: products.length, 
+        totalCount, 
+        hasMore,
+        isReal: true
+      });
+
+      return {
+        products: products.map(product => this.transformProduct(product)),
+        totalCount,
+        hasMore,
+      };
+    } catch (error) {
+      console.error('❌ [WEB PRODUCT SERVICE] Error fetching real products:', error);
+      throw new Error('Failed to load products. Please try again.');
+    }
   }
 
-  /**
-   * Generate demo products for web preview
-   */
-  private generateDemoProducts(): WixProduct[] {
-    return [
-      {
-        id: 'demo-product-1',
-        name: 'Premium Wireless Headphones',
-        description: 'High-quality wireless headphones with noise cancellation and premium sound quality.',
-        price: '$299.99',
-        priceValue: 299.99,
-        currency: 'USD',
-        imageUrl: 'https://via.placeholder.com/400x400/4A90E2/FFFFFF?text=Headphones',
-        images: ['https://via.placeholder.com/400x400/4A90E2/FFFFFF?text=Headphones'],
-        inStock: true,
-        stockQuantity: 15,
-        sku: 'WH-DEMO-001',
-        visible: true,
-        categories: ['electronics', 'audio'],
-        createdDate: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        variants: [],
-        additionalInfoSections: [],
-      },
-      {
-        id: 'demo-product-2',
-        name: 'Smart Fitness Tracker',
-        description: 'Advanced fitness tracker with heart rate monitoring, GPS, and smartphone integration.',
-        price: '$199.99',
-        priceValue: 199.99,
-        currency: 'USD',
-        imageUrl: 'https://via.placeholder.com/400x400/50C878/FFFFFF?text=Fitness+Tracker',
-        images: ['https://via.placeholder.com/400x400/50C878/FFFFFF?text=Fitness+Tracker'],
-        inStock: true,
-        stockQuantity: 8,
-        sku: 'FT-DEMO-002',
-        visible: true,
-        categories: ['electronics', 'fitness'],
-        createdDate: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        variants: [],
-        additionalInfoSections: [],
-      },
-      {
-        id: 'demo-product-3',
-        name: 'Organic Coffee Blend',
-        description: 'Premium organic coffee blend with rich flavor and sustainable sourcing.',
-        price: '$24.99',
-        priceValue: 24.99,
-        currency: 'USD',
-        imageUrl: 'https://via.placeholder.com/400x400/8B4513/FFFFFF?text=Coffee',
-        images: ['https://via.placeholder.com/400x400/8B4513/FFFFFF?text=Coffee'],
-        inStock: true,
-        stockQuantity: 25,
-        sku: 'CF-DEMO-003',
-        visible: true,
-        categories: ['food', 'beverages'],
-        createdDate: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        variants: [],
-        additionalInfoSections: [],
-      },
-      {
-        id: 'demo-product-4',
-        name: 'Eco-Friendly Water Bottle',
-        description: 'Sustainable stainless steel water bottle that keeps drinks cold for 24 hours.',
-        price: '$39.99',
-        priceValue: 39.99,
-        currency: 'USD',
-        imageUrl: 'https://via.placeholder.com/400x400/20B2AA/FFFFFF?text=Water+Bottle',
-        images: ['https://via.placeholder.com/400x400/20B2AA/FFFFFF?text=Water+Bottle'],
-        inStock: true,
-        stockQuantity: 12,
-        sku: 'WB-DEMO-004',
-        visible: true,
-        categories: ['lifestyle', 'eco-friendly'],
-        createdDate: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        variants: [],
-        additionalInfoSections: [],
-      },
-      {
-        id: 'demo-product-5',
-        name: 'Luxury Skincare Set',
-        description: 'Complete skincare routine with natural ingredients and anti-aging properties.',
-        price: '$149.99',
-        priceValue: 149.99,
-        currency: 'USD',
-        imageUrl: 'https://via.placeholder.com/400x400/FF69B4/FFFFFF?text=Skincare',
-        images: ['https://via.placeholder.com/400x400/FF69B4/FFFFFF?text=Skincare'],
-        inStock: true,
-        stockQuantity: 6,
-        sku: 'SK-DEMO-005',
-        visible: true,
-        categories: ['beauty', 'skincare'],
-        createdDate: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        variants: [],
-        additionalInfoSections: [],
-      },
-    ];
-  }
+
 
   /**
    * Get a single product by ID
@@ -239,7 +123,7 @@ class WebWixProductService {
     try {
       console.log('🛍️ [WEB PRODUCT SERVICE] Fetching product:', productId);
 
-      const product = await webWixApiClient.getProduct(productId);
+      const product = await wixApiClient.getProduct(productId);
       if (!product) {
         throw new Error('Product not found');
       }
@@ -273,7 +157,7 @@ class WebWixProductService {
     try {
       console.log('🛍️ [WEB PRODUCT SERVICE] Fetching categories');
       
-      const categories = await webWixApiClient.getCollections();
+      const categories = await wixApiClient.queryCategories();
 
       console.log('✅ [WEB PRODUCT SERVICE] Categories loaded:', categories.length);
       return categories;

@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { productService, type SortOption, type FilterOption, type ProductQuery, SORT_OPTIONS, FILTER_OPTIONS } from '../shared/WixProductService';
-import type { WixProduct } from '../utils/wixApiClient';
+import type { WixProduct } from '../../../../utils/wixApiClient';
 
 interface UseProductListState {
   products: WixProduct[];

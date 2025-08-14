@@ -1,3 +1,6 @@
+// Initialize web-specific overrides FIRST to avoid CORS issues
+import './context-override/WebMemberServiceOverride';
+
 import React from 'react';
 import {AppRegistry} from 'react-native';
 import {createRoot} from 'react-dom/client';

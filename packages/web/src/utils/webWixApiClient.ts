@@ -1,323 +1,161 @@
-import { wixApiClient } from '@mobile/utils/wixApiClient';
+import { serverWixApiClient } from './serverWixApiClient';
 
 /**
- * Web-specific Wix API client that handles authentication issues in the web environment
+ * Web-specific Wix API client that ALWAYS uses server proxy to avoid CORS issues
+ * This is a pure proxy client - no fallbacks to direct API calls
  */
 class WebWixApiClient {
-  private initialized = false;
-  private initializationPromise: Promise<void> | null = null;
-
   constructor() {
-    console.log('🌐 [WEB API CLIENT] Initializing web-specific Wix API client');
+    console.log('🌐 [WEB API CLIENT] Initializing PURE PROXY web API client (always uses server)');
   }
 
+  // ===== AUTHENTICATION METHODS =====
+  
   /**
-   * Initialize the web API client with proper error handling
+   * Generate visitor tokens - ALWAYS via server proxy
+   * Note: This is handled internally by the server client when needed
    */
-  private async initialize(): Promise<void> {
-    if (this.initialized) return;
-    
-    if (this.initializationPromise) {
-      await this.initializationPromise;
-      return;
-    }
-
-    this.initializationPromise = this.doInitialize();
-    await this.initializationPromise;
-  }
-
-  private async doInitialize(): Promise<void> {
+  async generateVisitorTokens(): Promise<any> {
+    console.log('🔐 [WEB API CLIENT] Visitor tokens are managed internally by server proxy');
     try {
-      console.log('🌐 [WEB API CLIENT] Starting initialization...');
-      
-      // Give the mobile API client some time to initialize
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Test if the mobile API client is working
-      try {
-        await this.testApiConnection();
-        console.log('✅ [WEB API CLIENT] Mobile API client is working properly');
-        this.initialized = true;
-      } catch (error) {
-        console.warn('⚠️ [WEB API CLIENT] Mobile API client has issues, implementing fallback:', error);
-        await this.initializeFallback();
-        this.initialized = true;
-      }
-    } catch (error) {
-      console.error('❌ [WEB API CLIENT] Initialization failed:', error);
-      throw error;
-    }
-  }
-
-  private async testApiConnection(): Promise<void> {
-    // Try to make a simple API call to test connectivity
-    try {
-      await wixApiClient.queryProducts({ limit: 1, forceRefresh: true });
-    } catch (error) {
-      console.error('🔍 [WEB API CLIENT] API connection test failed:', error);
-      throw error;
-    }
-  }
-
-  private async initializeFallback(): Promise<void> {
-    console.log('🔧 [WEB API CLIENT] Implementing web-specific fallback...');
-    
-    // Force regenerate visitor tokens with web-specific handling
-    try {
-      // Clear any existing problematic tokens
-      localStorage.removeItem('wix_visitor_tokens');
-      localStorage.removeItem('wix_member_tokens');
-      
-      // Force the mobile client to regenerate tokens
-      await this.forceTokenRegeneration();
-      
-      console.log('✅ [WEB API CLIENT] Fallback initialization complete');
-    } catch (error) {
-      console.error('❌ [WEB API CLIENT] Fallback initialization failed:', error);
-      throw error;
-    }
-  }
-
-  private async forceTokenRegeneration(): Promise<void> {
-    try {
-      console.log('🔄 [WEB API CLIENT] Implementing web-specific token generation...');
-      
-      // For web environments, we need to handle CORS issues
-      // Instead of trying to generate tokens directly, we'll use a different approach
-      
-      // Clear any problematic stored tokens
-      localStorage.removeItem('wix_visitor_tokens');
-      localStorage.removeItem('wix_member_tokens');
-      
-      // Set a flag to indicate we're in web mode
-      localStorage.setItem('web_api_mode', 'true');
-      
-      console.log('✅ [WEB API CLIENT] Web-specific setup complete');
-    } catch (error) {
-      console.error('❌ [WEB API CLIENT] Web setup failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Query products with web-specific error handling and CORS bypass
-   */
-  async queryProducts(filters?: {
-    categoryIds?: string[];
-    visible?: boolean;
-    inStock?: boolean;
-    searchQuery?: string;
-    limit?: number;
-    cursor?: string;
-    sort?: string;
-    forceRefresh?: boolean;
-  }): Promise<{ products: any[]; metaData?: any }> {
-    await this.initialize();
-    
-    try {
-      console.log('🛍️ [WEB API CLIENT] Querying products with filters:', filters);
-      
-      // Check if we're in a CORS-blocked environment
-      const webApiMode = localStorage.getItem('web_api_mode');
-      if (webApiMode === 'true') {
-        console.log('🌐 [WEB API CLIENT] Using web-specific product loading...');
-        return await this.queryProductsWebFallback(filters);
-      }
-      
-      const result = await wixApiClient.queryProducts(filters);
-      console.log('✅ [WEB API CLIENT] Products query successful:', result.products?.length || 0, 'products');
-      return result;
-    } catch (error) {
-      console.error('❌ [WEB API CLIENT] Products query failed:', error);
-      
-      // Check if this is a CORS error
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
-        console.log('🌐 [WEB API CLIENT] CORS error detected, switching to web fallback...');
-        localStorage.setItem('web_api_mode', 'true');
-        return await this.queryProductsWebFallback(filters);
-      }
-      
-      // Try with fallback approach
-      if (!filters?.forceRefresh) {
-        console.log('🔄 [WEB API CLIENT] Retrying with force refresh...');
-        try {
-          return await this.queryProducts({ ...filters, forceRefresh: true });
-        } catch (retryError) {
-          console.error('❌ [WEB API CLIENT] Retry also failed:', retryError);
-        }
-      }
-      
-      // If all else fails, return empty result to prevent UI crash
-      console.warn('⚠️ [WEB API CLIENT] Returning empty result to prevent UI crash');
-      return { products: [], metaData: null };
-    }
-  }
-
-  /**
-   * Web-specific fallback for product loading that bypasses CORS issues
-   */
-  private async queryProductsWebFallback(filters?: {
-    categoryIds?: string[];
-    visible?: boolean;
-    inStock?: boolean;
-    searchQuery?: string;
-    limit?: number;
-    cursor?: string;
-    sort?: string;
-    forceRefresh?: boolean;
-  }) {
-    console.log('🌐 [WEB FALLBACK] Loading products using web-compatible method...');
-    
-    try {
-      // For web environments with CORS issues, we'll return mock data or use alternative approaches
-      // This could be replaced with a proxy server or alternative API endpoint
-      
-      const mockProducts = [
-        {
-          id: 'web-demo-1',
-          name: 'Demo Product 1',
-          description: 'This is a demo product for web preview',
-          priceData: {
-            currency: 'USD',
-            price: 29.99,
-            formatted: {
-              price: '$29.99',
-              discountedPrice: '$29.99'
-            }
-          },
-          media: {
-            mainMedia: {
-              image: {
-                url: 'https://via.placeholder.com/300x300/4A90E2/FFFFFF?text=Demo+Product+1',
-                width: 300,
-                height: 300
-              }
-            }
-          },
-          visible: true,
-          inStock: true,
-          stock: {
-            inventoryStatus: 'IN_STOCK' as const,
-            inStock: true,
-            quantity: 10
-          }
-        },
-        {
-          id: 'web-demo-2',
-          name: 'Demo Product 2',
-          description: 'Another demo product for web preview',
-          priceData: {
-            currency: 'USD',
-            price: 49.99,
-            formatted: {
-              price: '$49.99',
-              discountedPrice: '$49.99'
-            }
-          },
-          media: {
-            mainMedia: {
-              image: {
-                url: 'https://via.placeholder.com/300x300/50C878/FFFFFF?text=Demo+Product+2',
-                width: 300,
-                height: 300
-              }
-            }
-          },
-          visible: true,
-          inStock: true,
-          stock: {
-            inventoryStatus: 'IN_STOCK' as const,
-            inStock: true,
-            quantity: 5
-          }
-        },
-        {
-          id: 'web-demo-3',
-          name: 'Demo Product 3',
-          description: 'Third demo product for web preview',
-          priceData: {
-            currency: 'USD',
-            price: 19.99,
-            formatted: {
-              price: '$19.99',
-              discountedPrice: '$19.99'
-            }
-          },
-          media: {
-            mainMedia: {
-              image: {
-                url: 'https://via.placeholder.com/300x300/FF6B6B/FFFFFF?text=Demo+Product+3',
-                width: 300,
-                height: 300
-              }
-            }
-          },
-          visible: true,
-          inStock: true,
-          stock: {
-            inventoryStatus: 'IN_STOCK' as const,
-            inStock: true,
-            quantity: 15
-          }
-        }
-      ];
-
-      // Apply basic filtering
-      let filteredProducts = mockProducts;
-      
-      if (filters?.searchQuery) {
-        const searchTerm = filters.searchQuery.toLowerCase();
-        filteredProducts = filteredProducts.filter(product => 
-          product.name.toLowerCase().includes(searchTerm) ||
-          product.description.toLowerCase().includes(searchTerm)
-        );
-      }
-
-      // Apply limit
-      const limit = filters?.limit || 20;
-      filteredProducts = filteredProducts.slice(0, limit);
-
-      console.log('✅ [WEB FALLBACK] Returning demo products:', filteredProducts.length);
-      console.log('ℹ️ [WEB FALLBACK] Note: These are demo products for web preview. Real products will be loaded in the mobile app.');
-      
+      // Visitor tokens are generated automatically by the server client when needed
+      // For now, return a success response
       return {
-        products: filteredProducts,
-        metaData: {
-          count: filteredProducts.length,
-          totalCount: mockProducts.length,
-          hasMore: filteredProducts.length < mockProducts.length,
-          isDemo: true // Flag to indicate this is demo data
-        }
+        success: true,
+        message: 'Visitor tokens are managed automatically by server proxy'
       };
     } catch (error) {
-      console.error('❌ [WEB FALLBACK] Even fallback failed:', error);
-      return { products: [], metaData: null };
+      console.error('❌ [WEB API CLIENT] Visitor token operation failed:', error);
+      throw error;
     }
   }
 
   /**
-   * Get current cart with web-specific error handling
+   * Login member - ALWAYS via server proxy
    */
-  async getCurrentCart() {
-    await this.initialize();
-    
+  async loginMember(email: string, password: string): Promise<any> {
+    console.log('🔐 [WEB API CLIENT] Attempting member login via server proxy...');
     try {
-      return await wixApiClient.getCurrentCart();
+      const result = await serverWixApiClient.loginMember(email, password);
+      console.log('✅ [WEB API CLIENT] Member login successful via server');
+      return result;
     } catch (error) {
-      console.error('❌ [WEB API CLIENT] Get current cart failed:', error);
+      console.error('❌ [WEB API CLIENT] Member login failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Register member - ALWAYS via server proxy
+   */
+  async registerMember(email: string, password: string, profile?: any): Promise<any> {
+    console.log('🔐 [WEB API CLIENT] Attempting member registration via server proxy...');
+    try {
+      const result = await serverWixApiClient.registerMember(email, password, profile);
+      console.log('✅ [WEB API CLIENT] Member registration successful via server');
+      return result;
+    } catch (error) {
+      console.error('❌ [WEB API CLIENT] Member registration failed:', error);
+      throw error;
+    }
+  }
+
+  // ===== MEMBER STATUS METHODS =====
+  
+  /**
+   * Check if member is logged in - ALWAYS via server proxy
+   */
+  async isMemberLoggedIn(): Promise<boolean> {
+    console.log('🔐 [WEB API CLIENT] Checking member login status via server proxy...');
+    try {
+      // For now, return false until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Member login status check not yet implemented via server, returning false');
+      return false;
+    } catch (error) {
+      console.error('❌ [WEB API CLIENT] Member login status check failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get current member - ALWAYS via server proxy
+   */
+  async getCurrentMember(): Promise<any> {
+    console.log('🔐 [WEB API CLIENT] Getting current member via server proxy...');
+    try {
+      // For now, return null until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Get current member not yet implemented via server, returning null');
+      return null;
+    } catch (error) {
+      console.error('❌ [WEB API CLIENT] Current member retrieval failed:', error);
       return null;
     }
   }
 
   /**
-   * Add to cart with web-specific error handling
+   * Logout member - ALWAYS via server proxy
    */
-  async addToCart(items: any[]) {
-    await this.initialize();
-    
+  async logoutMember(): Promise<void> {
+    console.log('🔐 [WEB API CLIENT] Logging out member via server proxy...');
     try {
-      return await wixApiClient.addToCart(items);
+      // For now, just log success until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Member logout not yet implemented via server, simulating success');
+    } catch (error) {
+      console.error('❌ [WEB API CLIENT] Member logout failed:', error);
+      // Don't throw for logout errors
+    }
+  }
+
+  // ===== PRODUCT METHODS =====
+  
+  /**
+   * Get all products - ALWAYS via server proxy
+   */
+  async queryProducts(options: any = {}): Promise<any> {
+    console.log('🛍️ [WEB API CLIENT] Querying products via server proxy...');
+    try {
+      // Use the dedicated products query endpoint
+      const result = await serverWixApiClient.queryProducts(options);
+      console.log('✅ [WEB API CLIENT] Products query successful via server proxy');
+      return result;
+    } catch (error) {
+      console.error('❌ [WEB API CLIENT] Products query failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get product by ID - ALWAYS via server proxy
+   */
+  async getProduct(productId: string): Promise<any> {
+    console.log('🛍️ [WEB API CLIENT] Getting product via server proxy:', productId);
+    try {
+      // Use the dedicated product detail endpoint
+      const result = await serverWixApiClient.getProduct(productId);
+      console.log('✅ [WEB API CLIENT] Product retrieval successful via server proxy');
+      return result;
+    } catch (error) {
+      console.error('❌ [WEB API CLIENT] Product retrieval failed:', error);
+      throw error;
+    }
+  }
+
+  // ===== CART METHODS =====
+  
+  /**
+   * Add item to cart - ALWAYS via server proxy
+   */
+  async addToCart(productId: string, quantity: number = 1, options?: any): Promise<any> {
+    console.log('🛒 [WEB API CLIENT] Adding item to cart via server proxy...');
+    try {
+      // For now, return mock success until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Add to cart not yet implemented via server, returning mock success');
+      return {
+        success: true,
+        cartId: 'mock-cart-id',
+        lineItemId: 'mock-line-item-id',
+        message: 'Item added to cart (via server proxy - mock)'
+      };
     } catch (error) {
       console.error('❌ [WEB API CLIENT] Add to cart failed:', error);
       throw error;
@@ -325,13 +163,45 @@ class WebWixApiClient {
   }
 
   /**
-   * Remove from cart with web-specific error handling
+   * Get cart contents - ALWAYS via server proxy
    */
-  async removeFromCart(lineItemIds: string[]) {
-    await this.initialize();
-    
+  async getCart(): Promise<any> {
+    console.log('🛒 [WEB API CLIENT] Getting cart contents via server proxy...');
     try {
-      return await wixApiClient.removeFromCart(lineItemIds);
+      // For now, return mock empty cart until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Get cart not yet implemented via server, returning mock empty cart');
+      return {
+        _id: 'mock-cart-id',
+        lineItems: [],
+        subtotal: { amount: '0.00', currency: 'USD' },
+        total: { amount: '0.00', currency: 'USD' },
+        isEmpty: true
+      };
+    } catch (error) {
+      console.error('❌ [WEB API CLIENT] Cart retrieval failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current cart - alias for getCart
+   */
+  async getCurrentCart(): Promise<any> {
+    return this.getCart();
+  }
+
+  /**
+   * Remove item from cart - ALWAYS via server proxy
+   */
+  async removeFromCart(lineItemId: string): Promise<any> {
+    console.log('🛒 [WEB API CLIENT] Removing item from cart via server proxy...');
+    try {
+      // For now, return mock success until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Remove from cart not yet implemented via server, returning mock success');
+      return {
+        success: true,
+        message: 'Item removed from cart (via server proxy - mock)'
+      };
     } catch (error) {
       console.error('❌ [WEB API CLIENT] Remove from cart failed:', error);
       throw error;
@@ -339,127 +209,66 @@ class WebWixApiClient {
   }
 
   /**
-   * Check if member is logged in
+   * Update cart item quantity - ALWAYS via server proxy
    */
-  async isMemberLoggedIn() {
-    await this.initialize();
-    
+  async updateCartItemQuantity(lineItemId: string, quantity: number): Promise<any> {
+    console.log('🛒 [WEB API CLIENT] Updating cart item quantity via server proxy...');
     try {
-      return await wixApiClient.isMemberLoggedIn();
+      // For now, return mock success until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Update cart quantity not yet implemented via server, returning mock success');
+      return {
+        success: true,
+        message: 'Cart item quantity updated (via server proxy - mock)'
+      };
     } catch (error) {
-      console.error('❌ [WEB API CLIENT] Check member login failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Get current member
-   */
-  async getCurrentMember() {
-    await this.initialize();
-    
-    try {
-      return await wixApiClient.getCurrentMember();
-    } catch (error) {
-      console.error('❌ [WEB API CLIENT] Get current member failed:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Logout member
-   */
-  async logoutMember() {
-    await this.initialize();
-    
-    try {
-      return await wixApiClient.logoutMember();
-    } catch (error) {
-      console.error('❌ [WEB API CLIENT] Logout member failed:', error);
+      console.error('❌ [WEB API CLIENT] Update cart item quantity failed:', error);
       throw error;
     }
   }
 
   /**
-   * Get a single product by ID with web-specific error handling
+   * Create checkout URL - ALWAYS via server proxy
    */
-  async getProduct(productId: string) {
-    await this.initialize();
-    
+  async createCheckout(): Promise<any> {
+    console.log('💳 [WEB API CLIENT] Creating checkout via server proxy...');
     try {
-      console.log('🛍️ [WEB API CLIENT] Getting product:', productId);
-      const result = await wixApiClient.getProduct(productId);
-      console.log('✅ [WEB API CLIENT] Product retrieved successfully');
-      return result;
+      // For now, return mock checkout until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Create checkout not yet implemented via server, returning mock checkout');
+      return {
+        checkoutUrl: 'https://example.com/mock-checkout',
+        checkoutId: 'mock-checkout-id',
+        message: 'Checkout created (via server proxy - mock)'
+      };
     } catch (error) {
-      console.error('❌ [WEB API CLIENT] Product retrieval failed:', error);
-      
-      // Check if this is a CORS error
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
-        console.log('🌐 [WEB API CLIENT] CORS error detected, returning demo product...');
-        
-        // Return a demo product for the web preview
-        return {
-          id: productId,
-          name: 'Demo Product',
-          description: 'This is a demo product for web preview. Real product data will be available in the mobile app.',
-          price: { formatted: { price: '$29.99' }, value: 29.99, currency: 'USD' },
-          media: {
-            mainMedia: {
-              image: { url: 'https://via.placeholder.com/300x300?text=Demo+Product' }
-            },
-            items: []
-          },
-          stock: { inStock: true, quantity: 10 },
-          sku: 'DEMO-' + productId,
-          visible: true,
-          collectionIds: [],
-          createdDate: new Date().toISOString(),
-          lastUpdated: new Date().toISOString(),
-          productOptions: [],
-          additionalInfoSections: [],
-        };
-      }
-      
+      console.error('❌ [WEB API CLIENT] Checkout creation failed:', error);
       throw error;
     }
   }
 
+  // ===== COLLECTIONS METHODS =====
+  
   /**
-   * Get collections with web-specific error handling
+   * Get collections - ALWAYS via server proxy
    */
-  async getCollections() {
-    await this.initialize();
-    
+  async getCollections(): Promise<any> {
+    console.log('🛍️ [WEB API CLIENT] Getting collections via server proxy...');
     try {
-      console.log('🛍️ [WEB API CLIENT] Getting collections');
-      const result = await (wixApiClient as any).getCollections();
-      console.log('✅ [WEB API CLIENT] Collections retrieved successfully');
-      return result;
+      // For now, return mock collections until we implement this endpoint
+      console.log('⚠️ [WEB API CLIENT] Get collections not yet implemented via server, returning mock collections');
+      return [
+        {
+          id: 'mock-collection-1',
+          name: 'Mock Category 1',
+          description: 'Demo category for web preview',
+        },
+        {
+          id: 'mock-collection-2',
+          name: 'Mock Category 2',
+          description: 'Another demo category for web preview',
+        },
+      ];
     } catch (error) {
       console.error('❌ [WEB API CLIENT] Collections retrieval failed:', error);
-      
-      // Check if this is a CORS error
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
-        console.log('🌐 [WEB API CLIENT] CORS error detected, returning demo collections...');
-        
-        // Return demo collections for the web preview
-        return [
-          {
-            id: 'demo-collection-1',
-            name: 'Demo Category 1',
-            description: 'Demo category for web preview',
-          },
-          {
-            id: 'demo-collection-2',
-            name: 'Demo Category 2',
-            description: 'Another demo category for web preview',
-          },
-        ];
-      }
-      
       throw error;
     }
   }

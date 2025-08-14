@@ -49,70 +49,6 @@ export const FILTER_OPTIONS: FilterOption[] = [
   { label: 'Visible Only', value: 'visible' },
 ];
 
-// Demo products for web fallback
-const DEMO_PRODUCTS: WixProduct[] = [
-  {
-    _id: 'demo-1',
-    name: 'Premium Wireless Headphones',
-    description: 'High-quality wireless headphones with noise cancellation and premium sound quality.',
-    price: { formatted: { price: '$299.99' }, value: 299.99, currency: 'USD' },
-    media: { mainMedia: { image: { url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop' } } },
-    stock: { inStock: true, quantity: 50 },
-    ribbon: 'Best Seller',
-    slug: 'premium-wireless-headphones'
-  },
-  {
-    _id: 'demo-2',
-    name: 'Smart Fitness Watch',
-    description: 'Advanced fitness tracking with heart rate monitoring, GPS, and smartphone integration.',
-    price: { formatted: { price: '$199.99' }, value: 199.99, currency: 'USD' },
-    media: { mainMedia: { image: { url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop' } } },
-    stock: { inStock: true, quantity: 25 },
-    ribbon: 'New',
-    slug: 'smart-fitness-watch'
-  },
-  {
-    _id: 'demo-3',
-    name: 'Organic Coffee Beans',
-    description: 'Premium organic coffee beans sourced from sustainable farms. Rich, full-bodied flavor.',
-    price: { formatted: { price: '$24.99' }, value: 24.99, currency: 'USD' },
-    media: { mainMedia: { image: { url: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&h=400&fit=crop' } } },
-    stock: { inStock: true, quantity: 100 },
-    ribbon: 'Organic',
-    slug: 'organic-coffee-beans'
-  },
-  {
-    _id: 'demo-4',
-    name: 'Minimalist Desk Lamp',
-    description: 'Modern LED desk lamp with adjustable brightness and sleek minimalist design.',
-    price: { formatted: { price: '$89.99' }, value: 89.99, currency: 'USD' },
-    media: { mainMedia: { image: { url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop' } } },
-    stock: { inStock: true, quantity: 15 },
-    ribbon: 'Limited',
-    slug: 'minimalist-desk-lamp'
-  },
-  {
-    _id: 'demo-5',
-    name: 'Eco-Friendly Water Bottle',
-    description: 'Sustainable stainless steel water bottle that keeps drinks cold for 24 hours.',
-    price: { formatted: { price: '$34.99' }, value: 34.99, currency: 'USD' },
-    media: { mainMedia: { image: { url: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop' } } },
-    stock: { inStock: true, quantity: 75 },
-    ribbon: 'Eco-Friendly',
-    slug: 'eco-friendly-water-bottle'
-  },
-  {
-    _id: 'demo-6',
-    name: 'Wireless Phone Charger',
-    description: 'Fast wireless charging pad compatible with all Qi-enabled devices.',
-    price: { formatted: { price: '$49.99' }, value: 49.99, currency: 'USD' },
-    media: { mainMedia: { image: { url: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400&h=400&fit=crop' } } },
-    stock: { inStock: true, quantity: 40 },
-    ribbon: 'Fast Charging',
-    slug: 'wireless-phone-charger'
-  }
-];
-
 class WixProductService {
   private static instance: WixProductService;
 
@@ -145,51 +81,8 @@ class WixProductService {
         offset 
       });
 
-      // Web platform fallback - return demo products to avoid CORS issues
-      if (Platform.OS === 'web') {
-        console.log('🌐 [PRODUCT SERVICE] Using web fallback with demo products');
-        console.log('ℹ️ [PRODUCT SERVICE] Note: Demo products shown for web preview. Real products available in mobile app.');
-        
-        let filteredProducts = [...DEMO_PRODUCTS];
-        
-        // Apply search filter
-        if (searchTerm) {
-          filteredProducts = filteredProducts.filter(product =>
-            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.description?.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        }
-        
-        // Apply stock filter
-        if (filterBy.value === 'in_stock') {
-          filteredProducts = filteredProducts.filter(product => product.stock?.inStock);
-        }
-        
-        // Apply sorting
-        if (sortBy.field === 'name') {
-          filteredProducts.sort((a, b) => {
-            const comparison = a.name.localeCompare(b.name);
-            return sortBy.order === 'ASC' ? comparison : -comparison;
-          });
-        } else if (sortBy.field === 'price') {
-          filteredProducts.sort((a, b) => {
-            const priceA = a.price?.value || 0;
-            const priceB = b.price?.value || 0;
-            return sortBy.order === 'ASC' ? priceA - priceB : priceB - priceA;
-          });
-        }
-        
-        // Apply pagination
-        const startIndex = offset;
-        const endIndex = startIndex + limit;
-        const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-        
-        return {
-          products: paginatedProducts,
-          totalCount: filteredProducts.length,
-          hasMore: endIndex < filteredProducts.length
-        };
-      }
+      // For all platforms (including web), use the real API
+      console.log('🛍️ [PRODUCT SERVICE] Fetching real products from Wix API...');
 
       const response = await wixApiClient.queryProducts({
         visible: true,
@@ -315,7 +208,15 @@ class WixProductService {
    * Strip HTML tags from text
    */
   private stripHtmlTags(html: string): string {
-    return html.replace(/<[^>]*>/g, '').trim();
+    if (!html || typeof html !== 'string') return '';
+    return html
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+      .replace(/&amp;/g, '&') // Replace &amp; with &
+      .replace(/&lt;/g, '<') // Replace &lt; with <
+      .replace(/&gt;/g, '>') // Replace &gt; with >
+      .replace(/&quot;/g, '"') // Replace &quot; with "
+      .trim();
   }
 
   /**
@@ -340,6 +241,7 @@ class WixProductService {
       lastUpdated: apiProduct.lastUpdated,
       variants: apiProduct.productOptions || [],
       additionalInfoSections: apiProduct.additionalInfoSections || [],
+      catalogItemId: apiProduct.id || '', // Use product ID as catalog item ID
     };
   }
 }

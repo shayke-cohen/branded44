@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { productService } from '../shared/WixProductService';
-import type { WixProduct } from '../utils/wixApiClient';
+import type { WixProduct } from '../../../../utils/wixApiClient';
 
 interface UseProductDetailState {
   product: WixProduct | null;
