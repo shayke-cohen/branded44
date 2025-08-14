@@ -16,11 +16,11 @@ const getResponsiveLayout = () => {
   const isInIPhoneFrame = width <= 375 || (typeof window !== 'undefined' && window.innerWidth <= 375);
   const isInAndroidFrame = width <= 360 || (typeof window !== 'undefined' && window.innerWidth <= 360);
   
-  // For iPhone/Android frame, always use mobile layout (2 columns)
+  // For iPhone/Android frame, use 2-column layout like mobile
   if (isInIPhoneFrame || isInAndroidFrame) {
     const containerPadding = 12; // Slightly less padding for mobile frame
     const cardSpacing = 6; // Slightly less spacing for mobile frame
-    const numColumns = 2;
+    const numColumns = 2; // 2-column grid like mobile
     const effectiveWidth = isInIPhoneFrame ? 375 : (isInAndroidFrame ? 360 : width);
     const totalSpacing = (containerPadding * 2) + (cardSpacing * (numColumns - 1));
     const cardWidth = (effectiveWidth - totalSpacing) / numColumns;

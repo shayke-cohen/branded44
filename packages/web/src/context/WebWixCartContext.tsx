@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { WixCart, WixCartItem } from '@mobile/utils/wixApiClient';
-import { webWixApiClient } from '../utils/webWixApiClient';
+import { wixApiClient } from '@mobile/utils/wixApiClient';
 import { useMember } from './WebMemberContext';
 
 interface WixCartContextType {
@@ -33,7 +33,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
   const refreshCart = useCallback(async () => {
     try {
       setLoading(true);
-      const currentCart = await webWixApiClient.getCurrentCart();
+      const currentCart = await wixApiClient.getCurrentCart();
       setCart(currentCart);
       console.log('✅ [CART] Cart refreshed:', currentCart ? `${currentCart.lineItems?.length || 0} items` : 'empty');
       console.log('🛒 [MEMBER CART] Cart context:', {
@@ -86,7 +86,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
         throw new Error('Product ID is required to add item to cart');
       }
       
-      const updatedCart = await webWixApiClient.addToCart(productId, quantity, options);
+      const updatedCart = await wixApiClient.addToCart([cartItem]);
       setCart(updatedCart);
       console.log('✅ [CART] Item added to cart:', productId);
     } catch (error) {
@@ -115,13 +115,9 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
     try {
       setLoading(true);
       
-      // Remove items one by one since the API expects single lineItemId
-      for (const lineItemId of lineItemIds) {
-        await webWixApiClient.removeFromCart(lineItemId);
-      }
-      
-      // Refresh cart after removing all items
-      await refreshCart();
+      // Use the consolidated API client that accepts array of lineItemIds
+      const updatedCart = await wixApiClient.removeFromCart(lineItemIds);
+      setCart(updatedCart);
       console.log('✅ [CART] Items removed from cart:', lineItemIds);
     } catch (error) {
       console.error('❌ [CART] Failed to remove items from cart:', error);

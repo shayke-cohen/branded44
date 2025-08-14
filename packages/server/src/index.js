@@ -4,6 +4,8 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { query } = require('@anthropic-ai/claude-code');
 const fetch = require('node-fetch');
+const { createClient } = require('@wix/sdk');
+const { currentCart } = require('@wix/ecom');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -174,6 +176,21 @@ async function generateVisitorTokens() {
     throw error;
   }
 }
+
+// Create Wix SDK client with authentication
+const createWixClient = (accessToken) => {
+  return createClient({
+    modules: {
+      currentCart
+    },
+    auth: {
+      accessToken
+    },
+    host: {
+      siteId: WIX_CONFIG.siteId
+    }
+  });
+};
 
 // Wix API Proxy Endpoints
 
@@ -946,6 +963,637 @@ app.get('/api/wix/products/:productId', async (req, res) => {
       productId: req.params.productId,
       error: error.message,
       responseTime
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// ===== BOOKING API ENDPOINTS =====
+
+// Query services endpoint
+app.post('/api/wix/bookings/v2/services/query', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = req.requestId;
+  
+  try {
+    const { query = {}, fieldsets = [], visitorToken } = req.body;
+    
+    log('info', 'Booking services query request', { 
+      requestId,
+      query,
+      fieldsets,
+      hasVisitorToken: !!visitorToken
+    });
+
+    // Generate visitor tokens if none provided
+    let tokens;
+    if (visitorToken) {
+      tokens = { access_token: visitorToken };
+      log('debug', 'Using provided visitor token for services', { requestId });
+    } else {
+      log('info', 'No visitor token provided, generating new tokens', { requestId });
+      tokens = await generateVisitorTokens();
+      if (!tokens) {
+        log('error', 'Failed to generate visitor tokens for services', { requestId });
+        return res.status(500).json({
+          error: 'Authentication failed',
+          details: 'Could not generate visitor tokens'
+        });
+      }
+      log('info', 'Visitor tokens generated internally for services', { requestId });
+    }
+
+    // Build request body for Bookings V2 API
+    const requestBody = {
+      query: {
+        paging: {
+          limit: query.paging?.limit || 50,
+          offset: query.paging?.offset || 0
+        },
+        filter: query.filter || {}
+      },
+      fieldsets: fieldsets.length > 0 ? fieldsets : ['FULL']
+    };
+
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'wix-site-id': WIX_CONFIG.siteId,
+      'Authorization': `Bearer ${tokens.access_token}`
+    };
+
+    const url = `${WIX_CONFIG.apiBaseUrl}/bookings/v2/services/query`;
+    
+    log('debug', 'Making services query request to Wix API', {
+      requestId,
+      url: url.replace(WIX_CONFIG.apiBaseUrl, ''),
+      bodySize: JSON.stringify(requestBody).length
+    });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify(requestBody)
+    });
+
+    const responseData = await response.json();
+    const responseTime = Date.now() - startTime;
+    updateConnectionStats(response.ok, responseTime);
+
+    if (!response.ok) {
+      log('error', 'Services query failed', {
+        requestId,
+        status: response.status,
+        error: responseData,
+        responseTime
+      });
+      return res.status(response.status).json({
+        error: 'Services query failed',
+        details: responseData
+      });
+    }
+
+    log('success', 'Services query successful', {
+      requestId,
+      servicesCount: responseData.services?.length || 0,
+      responseTime
+    });
+
+    res.json(responseData);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    updateConnectionStats(false, responseTime);
+    
+    log('error', 'Services query error', { 
+      requestId,
+      error: error.message,
+      responseTime
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Get single service endpoint
+app.get('/api/wix/bookings/v2/services/:serviceId', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = req.requestId;
+  
+  try {
+    const { serviceId } = req.params;
+    const visitorToken = req.headers.authorization?.replace('Bearer ', '');
+    
+    log('info', 'Service detail request', { 
+      requestId,
+      serviceId,
+      hasVisitorToken: !!visitorToken
+    });
+
+    // Generate visitor tokens if none provided
+    let tokens;
+    if (visitorToken) {
+      tokens = { access_token: visitorToken };
+      log('debug', 'Using provided visitor token for service detail', { requestId });
+    } else {
+      log('info', 'No visitor token provided, generating new tokens', { requestId });
+      tokens = await generateVisitorTokens();
+      if (!tokens) {
+        log('error', 'Failed to generate visitor tokens for service detail', { requestId });
+        return res.status(500).json({
+          error: 'Authentication failed',
+          details: 'Could not generate visitor tokens'
+        });
+      }
+      log('info', 'Visitor tokens generated internally for service detail', { requestId });
+    }
+
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'wix-site-id': WIX_CONFIG.siteId,
+      'Authorization': `Bearer ${tokens.access_token}`
+    };
+
+    const url = `${WIX_CONFIG.apiBaseUrl}/bookings/v2/services/${serviceId}`;
+    
+    log('debug', 'Making service detail request to Wix API', {
+      requestId,
+      url: url.replace(WIX_CONFIG.apiBaseUrl, ''),
+      serviceId
+    });
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: requestHeaders
+    });
+
+    const responseData = await response.json();
+    const responseTime = Date.now() - startTime;
+    updateConnectionStats(response.ok, responseTime);
+
+    if (!response.ok) {
+      log('error', 'Service detail failed', {
+        requestId,
+        serviceId,
+        status: response.status,
+        error: responseData,
+        responseTime
+      });
+      return res.status(response.status).json({
+        error: 'Service detail failed',
+        details: responseData
+      });
+    }
+
+    log('success', 'Service detail successful', {
+      requestId,
+      serviceId,
+      serviceName: responseData.service?.name || 'Unknown',
+      responseTime
+    });
+
+    res.json(responseData);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    updateConnectionStats(false, responseTime);
+    
+    log('error', 'Service detail error', { 
+      requestId,
+      serviceId: req.params.serviceId,
+      error: error.message,
+      responseTime
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Query categories endpoint
+app.post('/api/wix/bookings/v1/categories/query', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = req.requestId;
+  
+  try {
+    const { query = {}, visitorToken } = req.body;
+    
+    log('info', 'Booking categories query request', { 
+      requestId,
+      query,
+      hasVisitorToken: !!visitorToken
+    });
+
+    // Generate visitor tokens if none provided
+    let tokens;
+    if (visitorToken) {
+      tokens = { access_token: visitorToken };
+    } else {
+      tokens = await generateVisitorTokens();
+      if (!tokens) {
+        return res.status(500).json({
+          error: 'Authentication failed',
+          details: 'Could not generate visitor tokens'
+        });
+      }
+    }
+
+    const requestBody = {
+      query: {
+        paging: {
+          limit: query.paging?.limit || 100,
+          offset: query.paging?.offset || 0
+        }
+      }
+    };
+
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'wix-site-id': WIX_CONFIG.siteId,
+      'Authorization': `Bearer ${tokens.access_token}`
+    };
+
+    const url = `${WIX_CONFIG.apiBaseUrl}/bookings/v1/categories/query`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify(requestBody)
+    });
+
+    const responseData = await response.json();
+    const responseTime = Date.now() - startTime;
+    updateConnectionStats(response.ok, responseTime);
+
+    if (!response.ok) {
+      log('error', 'Categories query failed', {
+        requestId,
+        status: response.status,
+        error: responseData,
+        responseTime
+      });
+      return res.status(response.status).json({
+        error: 'Categories query failed',
+        details: responseData
+      });
+    }
+
+    log('success', 'Categories query successful', {
+      requestId,
+      categoriesCount: responseData.categories?.length || 0,
+      responseTime
+    });
+
+    res.json(responseData);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    updateConnectionStats(false, responseTime);
+    
+    log('error', 'Categories query error', { 
+      requestId,
+      error: error.message,
+      responseTime
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Query staff members endpoint
+app.post('/api/wix/bookings/v1/staff-members/query', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = req.requestId;
+  
+  try {
+    const { query = {}, visitorToken } = req.body;
+    
+    log('info', 'Booking staff members query request', { 
+      requestId,
+      query,
+      hasVisitorToken: !!visitorToken
+    });
+
+    // Generate visitor tokens if none provided
+    let tokens;
+    if (visitorToken) {
+      tokens = { access_token: visitorToken };
+    } else {
+      tokens = await generateVisitorTokens();
+      if (!tokens) {
+        return res.status(500).json({
+          error: 'Authentication failed',
+          details: 'Could not generate visitor tokens'
+        });
+      }
+    }
+
+    const requestBody = {
+      query: {
+        paging: {
+          limit: query.paging?.limit || 100,
+          offset: query.paging?.offset || 0
+        },
+        filter: query.filter || {}
+      }
+    };
+
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'wix-site-id': WIX_CONFIG.siteId,
+      'Authorization': `Bearer ${tokens.access_token}`
+    };
+
+    const url = `${WIX_CONFIG.apiBaseUrl}/bookings/v1/staff-members/query`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify(requestBody)
+    });
+
+    const responseData = await response.json();
+    const responseTime = Date.now() - startTime;
+    updateConnectionStats(response.ok, responseTime);
+
+    if (!response.ok) {
+      log('error', 'Staff members query failed', {
+        requestId,
+        status: response.status,
+        error: responseData,
+        responseTime
+      });
+      return res.status(response.status).json({
+        error: 'Staff members query failed',
+        details: responseData
+      });
+    }
+
+    log('success', 'Staff members query successful', {
+      requestId,
+      staffMembersCount: responseData.staffMembers?.length || 0,
+      responseTime
+    });
+
+    res.json(responseData);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    updateConnectionStats(false, responseTime);
+    
+    log('error', 'Staff members query error', { 
+      requestId,
+      error: error.message,
+      responseTime
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// ===== CART API ENDPOINTS =====
+
+// Get current cart endpoint
+app.get('/api/wix/cart/current', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = req.requestId;
+  
+  try {
+    const visitorToken = req.headers.authorization?.replace('Bearer ', '');
+    
+    log('info', 'Get current cart request', { 
+      requestId,
+      hasVisitorToken: !!visitorToken
+    });
+
+    // Generate visitor tokens if none provided
+    let tokens;
+    if (visitorToken) {
+      tokens = { access_token: visitorToken };
+    } else {
+      tokens = await generateVisitorTokens();
+      if (!tokens) {
+        return res.status(500).json({
+          error: 'Authentication failed',
+          details: 'Could not generate visitor tokens'
+        });
+      }
+    }
+
+    // Create Wix SDK client with authentication
+    const wixClient = createWixClient(tokens.access_token);
+
+    log('info', 'Using Wix SDK for get current cart', { 
+      requestId,
+      hasAccessToken: !!tokens.access_token
+    });
+
+    // Use Wix SDK instead of direct REST API
+    const response = await wixClient.currentCart.getCurrentCart();
+
+    const responseTime = Date.now() - startTime;
+    const cartData = { cart: response.cart };
+    log('info', 'Get current cart successful', { 
+      requestId, 
+      cartId: cartData.cart?.id,
+      itemCount: cartData.cart?.lineItems?.length || 0,
+      responseTime 
+    });
+
+    res.json(cartData);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    log('error', 'Get current cart error', { 
+      requestId, 
+      error: error.message,
+      responseTime 
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Add to cart endpoint
+app.post('/api/wix/cart/add', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = req.requestId;
+  
+  try {
+    const { lineItems, visitorToken } = req.body;
+    
+    log('info', 'Add to cart request', { 
+      requestId,
+      itemCount: lineItems?.length || 0,
+      hasVisitorToken: !!visitorToken
+    });
+
+    // Generate visitor tokens if none provided
+    let tokens;
+    if (visitorToken) {
+      tokens = { access_token: visitorToken };
+    } else {
+      tokens = await generateVisitorTokens();
+      if (!tokens) {
+        return res.status(500).json({
+          error: 'Authentication failed',
+          details: 'Could not generate visitor tokens'
+        });
+      }
+    }
+
+    const requestBody = {
+      lineItems: lineItems || []
+    };
+
+    // Try different authentication headers to match mobile SDK behavior
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'wix-site-id': WIX_CONFIG.siteId,
+      'Authorization': `Bearer ${tokens.access_token}`,
+      'wix-client-id': WIX_CONFIG.clientId
+    };
+
+    log('info', 'Making add to cart request with enhanced headers', { 
+      requestId,
+      itemCount: lineItems?.length || 0,
+      hasAccessToken: !!tokens.access_token,
+      siteId: WIX_CONFIG.siteId,
+      clientId: WIX_CONFIG.clientId
+    });
+
+    const response = await fetch(`https://www.wixapis.com/ecom/v1/carts/current/add-to-cart`, {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify(requestBody)
+    });
+
+    const responseTime = Date.now() - startTime;
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log('error', 'Add to cart failed', { 
+        requestId, 
+        status: response.status, 
+        error: errorText,
+        responseTime 
+      });
+      return res.status(response.status).json({
+        error: 'Failed to add to cart',
+        details: errorText
+      });
+    }
+
+    const cartData = await response.json();
+    log('info', 'Add to cart successful', { 
+      requestId, 
+      cartId: cartData.cart?.id,
+      itemCount: cartData.cart?.lineItems?.length || 0,
+      responseTime 
+    });
+
+    // Include visitor tokens in response for web client session persistence
+    const responseData = {
+      ...cartData,
+      visitorTokens: tokens
+    };
+
+    res.json(responseData);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    log('error', 'Add to cart error', { 
+      requestId, 
+      error: error.message,
+      responseTime 
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// Remove from cart endpoint
+app.post('/api/wix/cart/remove', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = req.requestId;
+  
+  try {
+    const { lineItemIds, visitorToken } = req.body;
+    
+    log('info', 'Remove from cart request', { 
+      requestId,
+      lineItemIds,
+      hasVisitorToken: !!visitorToken
+    });
+
+    // Generate visitor tokens if none provided
+    let tokens;
+    if (visitorToken) {
+      tokens = { access_token: visitorToken };
+    } else {
+      tokens = await generateVisitorTokens();
+      if (!tokens) {
+        return res.status(500).json({
+          error: 'Authentication failed',
+          details: 'Could not generate visitor tokens'
+        });
+      }
+    }
+
+    const requestBody = {
+      lineItemIds: Array.isArray(lineItemIds) ? lineItemIds : [lineItemIds]
+    };
+
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'wix-site-id': WIX_CONFIG.siteId,
+      'Authorization': `Bearer ${tokens.access_token}`
+    };
+
+    const response = await fetch(`https://www.wixapis.com/ecom/v1/carts/current/remove-line-items`, {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify(requestBody)
+    });
+
+    const responseTime = Date.now() - startTime;
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log('error', 'Remove from cart failed', { 
+        requestId, 
+        status: response.status, 
+        error: errorText,
+        responseTime 
+      });
+      return res.status(response.status).json({
+        error: 'Failed to remove from cart',
+        details: errorText
+      });
+    }
+
+    const cartData = await response.json();
+    log('info', 'Remove from cart successful', { 
+      requestId, 
+      cartId: cartData.cart?.id,
+      itemCount: cartData.cart?.lineItems?.length || 0,
+      responseTime 
+    });
+
+    res.json(cartData);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    log('error', 'Remove from cart error', { 
+      requestId, 
+      error: error.message,
+      responseTime 
     });
     res.status(500).json({
       error: 'Internal server error',

@@ -131,7 +131,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       keyExtractor={(item) => item.id || item._id || Math.random().toString()}
       numColumns={numColumns}
       key={`grid-${numColumns}`} // Force re-render when columns change
-      columnWrapperStyle={styles.productRow}
+      columnWrapperStyle={numColumns > 1 ? styles.productRow : undefined}
       contentContainerStyle={styles.scrollContainer}
       showsVerticalScrollIndicator={false}
       refreshControl={

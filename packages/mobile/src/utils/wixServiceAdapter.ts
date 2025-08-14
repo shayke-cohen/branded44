@@ -102,7 +102,7 @@ export const adaptWixService = (wixService: WixService, providers?: WixServicePr
 
   // Find primary provider for this service
   const primaryProvider = providers?.find(provider => 
-    provider.services.includes(wixService.id)
+    provider.services && provider.services.includes(wixService.id)
   ) || providers?.[0];
 
   // Convert pricing - handle both simplified and full API response formats

@@ -28,6 +28,7 @@ class WebWixApiClient {
   public siteId: string;
   public clientId: string;
   public storesAppId: string;
+  private visitorTokens: { access_token: string; refresh_token?: string } | null = null;
 
   constructor() {
     console.log('🚨🚨🚨 [WEB API CLIENT] *** USING WEB OVERRIDE WITH SERVER PROXY *** 🚨🚨🚨');
@@ -39,6 +40,31 @@ class WebWixApiClient {
     this.siteId = '';
     this.clientId = '';
     this.storesAppId = '';
+
+    // Try to load stored visitor tokens for session persistence
+    this.loadStoredTokens();
+  }
+
+  private loadStoredTokens() {
+    try {
+      const stored = localStorage.getItem('wix_visitor_tokens');
+      if (stored) {
+        this.visitorTokens = JSON.parse(stored);
+        console.log('🔑 [WEB API] Loaded stored visitor tokens');
+      }
+    } catch (error) {
+      console.warn('⚠️ [WEB API] Failed to load stored tokens:', error);
+    }
+  }
+
+  private storeTokens(tokens: { access_token: string; refresh_token?: string }) {
+    try {
+      this.visitorTokens = tokens;
+      localStorage.setItem('wix_visitor_tokens', JSON.stringify(tokens));
+      console.log('🔑 [WEB API] Stored visitor tokens');
+    } catch (error) {
+      console.warn('⚠️ [WEB API] Failed to store tokens:', error);
+    }
   }
 
   // ===== PRODUCT METHODS =====
@@ -71,8 +97,30 @@ class WebWixApiClient {
   async getCurrentCart(): Promise<WixCart | null> {
     console.log('🛒 [WEB API] Getting current cart via server proxy...');
     try {
-      // TODO: Implement cart endpoint in server
-      return null;
+      const SERVER_BASE_URL = 'http://localhost:3001';
+      const headers: any = {
+        'Content-Type': 'application/json',
+      };
+
+      // Include visitor token if available
+      if (this.visitorTokens?.access_token) {
+        headers['Authorization'] = `Bearer ${this.visitorTokens.access_token}`;
+        console.log('🔑 [WEB API] Using stored visitor token for cart request');
+      }
+
+      const response = await fetch(`${SERVER_BASE_URL}/api/wix/cart/current`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        console.error('❌ [WEB API] Failed to get cart:', response.status, response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('✅ [WEB API] Cart fetched successfully:', data.cart?.lineItems?.length || 0, 'items');
+      return data.cart || null;
     } catch (error) {
       console.error('❌ [WEB API] Failed to get cart:', error);
       return null;
@@ -82,26 +130,49 @@ class WebWixApiClient {
   async addToCart(items: WixCartItem[]): Promise<WixCart> {
     console.log('🛒 [WEB API] Adding to cart via server proxy...', items.length, 'items');
     try {
-      // TODO: Implement add to cart endpoint in server
-      // For now, return a mock cart
-      return {
-        id: 'web-cart-' + Date.now(),
-        lineItems: items.map((item, index) => ({
-          id: 'line-item-' + index,
-          quantity: item.quantity,
-          catalogReference: item.catalogReference,
-          price: {
-            amount: '0',
-            currency: 'USD'
-          },
-          productName: 'Product'
-        })),
-        totals: {
-          subtotal: '0',
-          total: '0',
-          currency: 'USD'
-        }
+      const SERVER_BASE_URL = 'http://localhost:3001';
+      const headers: any = {
+        'Content-Type': 'application/json',
       };
+
+      const requestBody: any = {
+        lineItems: items.map(item => ({
+          catalogReference: {
+            appId: 'wix-stores',
+            catalogItemId: item.catalogReference.catalogItemId,
+            options: item.catalogReference.options || {}
+          },
+          quantity: item.quantity
+        }))
+      };
+
+      // Include visitor token if available
+      if (this.visitorTokens?.access_token) {
+        requestBody.visitorToken = this.visitorTokens.access_token;
+        console.log('🔑 [WEB API] Using stored visitor token for add to cart');
+      }
+
+      const response = await fetch(`${SERVER_BASE_URL}/api/wix/cart/add`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ [WEB API] Failed to add to cart:', response.status, errorData);
+        throw new Error(`Failed to add to cart: ${errorData.error || response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Store visitor tokens if returned by server
+      if (data.visitorTokens) {
+        this.storeTokens(data.visitorTokens);
+      }
+
+      console.log('✅ [WEB API] Items added to cart successfully:', data.cart?.lineItems?.length || 0, 'total items');
+      return data.cart;
     } catch (error) {
       console.error('❌ [WEB API] Failed to add to cart:', error);
       throw error;
@@ -115,9 +186,32 @@ class WebWixApiClient {
   }
 
   async removeFromCart(lineItemIds: string[]): Promise<WixCart> {
-    console.log('🛒 [WEB API] Removing from cart via server proxy...');
-    // TODO: Implement remove from cart endpoint in server
-    throw new Error('Remove from cart not yet implemented for web');
+    console.log('🛒 [WEB API] Removing from cart via server proxy...', lineItemIds.length, 'items');
+    try {
+      const SERVER_BASE_URL = 'http://localhost:3001';
+      const response = await fetch(`${SERVER_BASE_URL}/api/wix/cart/remove`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lineItemIds: lineItemIds
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ [WEB API] Failed to remove from cart:', response.status, errorData);
+        throw new Error(`Failed to remove from cart: ${errorData.error || response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ [WEB API] Items removed from cart successfully:', data.cart?.lineItems?.length || 0, 'remaining items');
+      return data.cart;
+    } catch (error) {
+      console.error('❌ [WEB API] Failed to remove from cart:', error);
+      throw error;
+    }
   }
 
   // ===== SERVICE METHODS (for booking) =====
@@ -202,6 +296,46 @@ class WebWixApiClient {
     }
     
     return originalUrl;
+  }
+
+  // === INTERNAL METHOD FOR BOOKING API CLIENT ===
+  
+  /**
+   * Internal method used by wixBookingApiClient to make requests through server proxy
+   * This method is called by the booking client to leverage our server infrastructure
+   */
+  async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    console.log('🌐 [WEB API] makeRequest called via server proxy:', endpoint);
+    
+    const SERVER_BASE_URL = 'http://localhost:3001';
+    const url = `${SERVER_BASE_URL}/api/wix${endpoint}`;
+    
+    const requestOptions: RequestInit = {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    };
+
+    console.log('🌐 [WEB API] Making request to:', url);
+
+    try {
+      const response = await fetch(url, requestOptions);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [WEB API] Request failed:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ [WEB API] Request successful:', endpoint);
+      return data;
+    } catch (error) {
+      console.error('❌ [WEB API] Request error:', error);
+      throw error;
+    }
   }
 }
 
