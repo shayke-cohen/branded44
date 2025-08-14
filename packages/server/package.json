@@ -13,9 +13,12 @@
     "@wix/ecom": "^1.0.1309",
     "@wix/sdk": "^1.15.27",
     "@wix/stores": "^1.0.502",
+    "chokidar": "^4.0.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "node-fetch": "^2.6.7"
+    "fs-extra": "^11.3.1",
+    "node-fetch": "^2.6.7",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

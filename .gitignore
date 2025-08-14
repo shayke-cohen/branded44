@@ -49,3 +49,6 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+
+# Visual Editor temporary directory
+packages/mobile/src2/

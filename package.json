@@ -11,13 +11,21 @@
     "dev:server": "cd packages/server && npm run dev",
     "start:server": "cd packages/server && npm start",
     "dev:web": "cd packages/web && npm start",
-    "install:all": "npm install && cd packages/server && npm install && cd ../web && npm install",
+    "dev:editor": "cd packages/visual-editor && npm run dev",
+    "dev:mobile": "cd packages/mobile && npm run start",
+    "dev:mobile:src2": "cd packages/mobile && RN_USE_SRC2=true npm run start",
+    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev:web\" \"npm run dev:editor\" \"npm run dev:mobile:src2\"",
+    "install:all": "npm install && cd packages/server && npm install && cd ../web && npm install && cd ../visual-editor && npm install",
+    "build:all": "npm run build --workspaces",
+    "editor:init": "cd packages/visual-editor && npm run init:src2",
+    "editor:cleanup": "cd packages/visual-editor && npm run cleanup:src2",
     "clean": "rm -rf node_modules packages/*/node_modules",
     "health-check": "curl -s http://localhost:3001/health || echo 'Server not running'"
   },
   "keywords": [
     "react-native",
     "mobile-development",
+    "visual-editor",
     "claude-code",
     "prompt-generator",
     "screen-templates"

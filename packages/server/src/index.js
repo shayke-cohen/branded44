@@ -2294,7 +2294,233 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 handler
+// ===== VISUAL EDITOR API ENDPOINTS =====
+
+const fs = require('fs-extra');
+const chokidar = require('chokidar');
+const { Server } = require('socket.io');
+
+// Initialize Socket.IO
+const server = require('http').createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3002",
+    methods: ["GET", "POST"]
+  }
+});
+
+// File watcher for src2 directory
+let src2Watcher = null;
+
+// Mutex to prevent concurrent src2 operations
+let src2OperationInProgress = false;
+const src2OperationQueue = [];
+
+// Helper function to acquire mutex using a proper queue
+const acquireMutex = () => {
+  return new Promise((resolve) => {
+    if (!src2OperationInProgress) {
+      src2OperationInProgress = true;
+      resolve();
+    } else {
+      src2OperationQueue.push(resolve);
+    }
+  });
+};
+
+// Helper function to release mutex
+const releaseMutex = () => {
+  if (src2OperationQueue.length > 0) {
+    const nextResolve = src2OperationQueue.shift();
+    nextResolve();
+  } else {
+    src2OperationInProgress = false;
+  }
+};
+
+// Visual Editor initialization endpoint
+app.post('/api/editor/init', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+  
+  try {
+    // Acquire mutex to prevent concurrent operations
+    await acquireMutex();
+    log('info', 'Initializing visual editor environment', { requestId });
+    
+    const src2Path = path.resolve(__dirname, '../../mobile/src2');
+    const srcPath = path.resolve(__dirname, '../../mobile/src');
+    
+    // Ensure clean state - always remove and recreate
+    log('info', 'Ensuring clean src2 directory...', { requestId });
+    await fs.remove(src2Path);
+    
+    // Ensure src directory exists
+    if (!(await fs.pathExists(srcPath))) {
+      throw new Error(`Source directory not found: ${srcPath}`);
+    }
+    
+    // Copy src to src2
+    log('info', 'Copying src to src2...', { requestId });
+    await fs.copy(srcPath, src2Path, {
+      filter: (src) => {
+        const relativePath = path.relative(srcPath, src);
+        const skipPatterns = [
+          '__tests__',
+          '*.test.ts',
+          '*.test.tsx',
+          '*.spec.ts',
+          '*.spec.tsx',
+          '.DS_Store',
+          'node_modules',
+        ];
+        
+        return !skipPatterns.some(pattern => {
+          if (pattern.includes('*')) {
+            const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+            return regex.test(relativePath);
+          }
+          return relativePath.includes(pattern);
+        });
+      }
+    });
+    
+    // Start file watcher
+    if (src2Watcher) {
+      src2Watcher.close();
+    }
+    
+    src2Watcher = chokidar.watch(src2Path, {
+      ignored: /(^|[\/\\])\../, // ignore dotfiles
+      persistent: true
+    });
+    
+    src2Watcher
+      .on('change', (filePath) => {
+        log('info', 'File changed in src2', { filePath });
+        io.emit('file-changed', {
+          filePath: path.relative(src2Path, filePath),
+          timestamp: Date.now()
+        });
+      });
+    
+    const endTime = Date.now();
+    updateConnectionStats(true, endTime - startTime);
+    
+    log('success', 'Visual editor environment initialized', {
+      requestId,
+      src2Path,
+      duration: endTime - startTime
+    });
+    
+    res.json({
+      success: true,
+      message: 'Visual editor environment initialized successfully',
+      data: {
+        src2Path,
+        srcPath
+      },
+      meta: {
+        requestId,
+        duration: endTime - startTime,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    const endTime = Date.now();
+    updateConnectionStats(false, endTime - startTime);
+    
+    log('error', 'Failed to initialize visual editor environment', {
+      requestId,
+      error: error.message,
+      duration: endTime - startTime
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      requestId
+    });
+  } finally {
+    // Always release the mutex
+    releaseMutex();
+  }
+});
+
+// Visual Editor cleanup endpoint
+app.post('/api/editor/cleanup', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+  
+  try {
+    // Acquire mutex to prevent concurrent operations
+    await acquireMutex();
+    log('info', 'Cleaning up visual editor environment', { requestId });
+    
+    const src2Path = path.resolve(__dirname, '../../mobile/src2');
+    
+    // Stop file watcher
+    if (src2Watcher) {
+      src2Watcher.close();
+      src2Watcher = null;
+    }
+    
+    // Remove src2 directory
+    if (await fs.pathExists(src2Path)) {
+      await fs.remove(src2Path);
+      log('info', 'src2 directory removed', { requestId });
+    }
+    
+    const endTime = Date.now();
+    updateConnectionStats(true, endTime - startTime);
+    
+    log('success', 'Visual editor environment cleaned up', {
+      requestId,
+      duration: endTime - startTime
+    });
+    
+    res.json({
+      success: true,
+      message: 'Visual editor environment cleaned up successfully',
+      meta: {
+        requestId,
+        duration: endTime - startTime,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    const endTime = Date.now();
+    updateConnectionStats(false, endTime - startTime);
+    
+    log('error', 'Failed to cleanup visual editor environment', {
+      requestId,
+      error: error.message,
+      duration: endTime - startTime
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      requestId
+    });
+  } finally {
+    // Always release the mutex
+    releaseMutex();
+  }
+});
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  log('info', 'Visual editor client connected', { socketId: socket.id });
+  
+  socket.on('disconnect', () => {
+    log('info', 'Visual editor client disconnected', { socketId: socket.id });
+  });
+});
+
+// 404 handler (must be after all route definitions)
 app.use((req, res) => {
   res.status(404).json({
     error: 'Endpoint not found',
@@ -2302,12 +2528,14 @@ app.use((req, res) => {
       'GET /health',
       'GET /check-claude-code', 
       'POST /execute-claude-code',
-      'GET /working-directory'
+      'GET /working-directory',
+      'POST /api/editor/init',
+      'POST /api/editor/cleanup'
     ]
   });
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log('🎯 ==========================================');
   console.log(`🚀 Claude Code Server (SDK) running on port ${port}`);
   console.log(`📋 Health check: http://localhost:${port}/health`);
