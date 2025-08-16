@@ -13,7 +13,7 @@ export interface ComponentNode {
 }
 
 export interface EditorState {
-  selectedComponent: ComponentNode | null;
+  selectedComponent: string | null; // Changed to component ID for LiveRenderer
   componentTree: ComponentNode[];
   currentScreen: string | null;
   isInspecting: boolean;
@@ -34,7 +34,7 @@ export interface FileNode {
 }
 
 type EditorAction =
-  | { type: 'SELECT_COMPONENT'; payload: ComponentNode | null }
+  | { type: 'SELECT_COMPONENT'; payload: string | null }
   | { type: 'UPDATE_COMPONENT_TREE'; payload: ComponentNode[] }
   | { type: 'SET_CURRENT_SCREEN'; payload: string }
   | { type: 'TOGGLE_INSPECTION'; payload?: boolean }
@@ -149,9 +149,8 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         componentTree: updateComponentInTree(state.componentTree),
-        selectedComponent: state.selectedComponent?.id === action.payload.id
-          ? { ...state.selectedComponent, props: { ...state.selectedComponent.props, ...action.payload.props } }
-          : state.selectedComponent,
+        // selectedComponent is now just an ID string, so we don't update it here
+        selectedComponent: state.selectedComponent,
       };
 
     default:
@@ -163,7 +162,7 @@ interface EditorContextType {
   state: EditorState;
   dispatch: React.Dispatch<EditorAction>;
   // Helper functions
-  selectComponent: (component: ComponentNode | null) => void;
+  selectComponent: (componentId: string | null) => void;
   updateComponentTree: (tree: ComponentNode[]) => void;
   setCurrentScreen: (screen: string) => void;
   toggleInspection: (enabled?: boolean) => void;
@@ -182,8 +181,8 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [state, dispatch] = useReducer(editorReducer, initialState);
 
   // Helper functions
-  const selectComponent = (component: ComponentNode | null) => {
-    dispatch({ type: 'SELECT_COMPONENT', payload: component });
+  const selectComponent = (componentId: string | null) => {
+    dispatch({ type: 'SELECT_COMPONENT', payload: componentId });
   };
 
   const updateComponentTree = (tree: ComponentNode[]) => {

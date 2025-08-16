@@ -17,7 +17,10 @@ const WIX_SITE_ID = '975ab44d-feb8-4af0-bec1-ca5ef2519316'; // ✅ Updated with 
 const WIX_STORES_APP_ID = '215238eb-22a5-4c36-9e7b-e7c08025e04e';
 
 // API Configuration
-const WIX_API_BASE_URL = 'https://www.wixapis.com';
+// Use proxy when running in browser (visual editor) to avoid CORS issues
+const WIX_API_BASE_URL = typeof window !== 'undefined' && window.location?.hostname === 'localhost'
+  ? 'http://localhost:3001/api/wix-proxy'  // Use proxy for browser/visual editor
+  : 'https://www.wixapis.com';             // Use direct API for React Native
 
 // Wix Configuration Interface
 export interface WixConfig {

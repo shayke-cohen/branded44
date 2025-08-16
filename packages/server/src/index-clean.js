@@ -5,16 +5,11 @@ const socketIo = require('socket.io');
 const path = require('path');
 
 const visualEditorRoutes = require('./routes/visualEditor');
-const { loggingMiddleware } = require('./middleware/logging');
-const SessionManager = require('./sessions/SessionManager');
+const loggingMiddleware = require('./middleware/logging');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
-
-// Initialize SessionManager and attach to app
-const sessionManager = new SessionManager();
-app.set('sessionManager', sessionManager);
 
 // Middleware
 app.use(cors());

@@ -93,7 +93,7 @@ const StatusBar: React.FC = () => {
 
   const getSelectedComponentText = () => {
     if (!state.selectedComponent) return 'No component selected';
-    return `Selected: ${state.selectedComponent.name || state.selectedComponent.type}`;
+    return `Selected: ${state.selectedComponent}`;
   };
 
   const getCurrentTime = () => {

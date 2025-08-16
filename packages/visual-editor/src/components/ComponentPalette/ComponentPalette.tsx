@@ -1,6 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useDrag } from 'react-dnd';
+import { useEditor } from '../../contexts/EditorContext';
+import { dropZoneManager } from '../../services/DropZoneManager';
+import { componentScanner } from '../../services/ComponentScanner';
+import { componentRegistry, ComponentMetadata } from '../../services/ComponentRegistry';
 
 const PaletteContainer = styled.div`
   width: 300px;
@@ -208,24 +212,47 @@ interface DraggableComponentProps {
 }
 
 const DraggableComponent: React.FC<DraggableComponentProps> = ({ component }) => {
-  const [{ isDragging }, drag] = useDrag({
+  const { selectComponent } = useEditor();
+  
+    const [{ isDragging }, drag] = useDrag({
     type: 'component',
-    item: { 
-      type: 'component',
-      componentId: component.id,
-      componentName: component.name,
-      componentType: component.id,
+    item: () => {
+      // Start drag with DropZoneManager
+      dropZoneManager.startDrag(component.id, {
+        componentId: component.id,
+        componentName: component.name,
+        componentType: component.id,
+        category: component.category,
+      });
+
+      return {
+        type: 'component',
+        componentId: component.id,
+        componentName: component.name,
+        componentType: component.id,
+      };
+    },
+    end: () => {
+      // End drag with DropZoneManager
+      dropZoneManager.endDrag();
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
   });
 
+  const handleClick = () => {
+    console.log(`🎯 [ComponentPalette] Selecting component: ${component.name} (${component.id})`);
+    selectComponent(component.id);
+  };
+
   return (
     <ComponentItem
-      ref={drag}
+      ref={drag as any}
+      onClick={handleClick}
       style={{
         opacity: isDragging ? 0.5 : 1,
+        cursor: 'pointer',
       }}
     >
       <ComponentIcon>{component.icon}</ComponentIcon>
@@ -236,16 +263,94 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({ component }) =>
 };
 
 const ComponentPalette: React.FC = () => {
+  const { state } = useEditor();
   const [activeCategory, setActiveCategory] = useState('blocks');
   const [searchTerm, setSearchTerm] = useState('');
+  const [scannedComponents, setScannedComponents] = useState<ComponentMetadata[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load components from src2 when session is ready
+  useEffect(() => {
+    const loadComponents = async () => {
+      try {
+        setIsLoading(true);
+        console.log('🔍 [ComponentPalette] Loading components from src2...');
+        
+        const components = await componentScanner.scanComponents();
+        setScannedComponents(components);
+        
+        // Also update the registry
+        components.forEach(comp => componentRegistry.addComponent(comp));
+        
+        console.log(`✅ [ComponentPalette] Loaded ${components.length} components`);
+      } catch (error) {
+        console.error('❌ [ComponentPalette] Failed to load components:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Only load components when the session is ready
+    if (state.src2Status === 'ready') {
+      loadComponents();
+    } else {
+      setIsLoading(state.src2Status === 'initializing');
+    }
+  }, [state.src2Status]);
+
+  // Helper function to get icon for component category
+  const getComponentIcon = useCallback((category: string): string => {
+    const icons: Record<string, string> = {
+      'auth': '🔐',
+      'booking': '📅',
+      'ecommerce': '🛍️',
+      'restaurant': '🍽️',
+      'forms': '📝',
+      'lists': '📋',
+      'social': '👥',
+      'media': '🎬',
+      'location': '📍',
+      'finance': '💳',
+      'health': '🏥',
+      'business': '💼',
+      'communication': '💬',
+      'utility': '🔧',
+      'screens': '📱',
+      'templates': '📄'
+    };
+    return icons[category] || '📦';
+  }, []);
 
   const filteredComponents = useMemo(() => {
+    // Combine static components with scanned components
     const category = COMPONENT_CATEGORIES.find(cat => cat.id === activeCategory);
-    if (!category) return [];
+    let sections = category ? [...category.sections] : [];
 
-    if (!searchTerm) return category.sections;
+    // Add scanned components as a new section
+    if (scannedComponents.length > 0) {
+      const scannedByCategory = scannedComponents.filter(comp => {
+        if (activeCategory === 'blocks') return comp.category !== 'screens' && comp.category !== 'templates';
+        if (activeCategory === 'templates') return comp.category === 'templates';
+        if (activeCategory === 'screens') return comp.category === 'screens';
+        return true;
+      });
 
-    return category.sections
+      if (scannedByCategory.length > 0) {
+        sections.push({
+          title: 'From src2',
+          components: scannedByCategory.map((comp, index) => ({
+            id: `${comp.id}-${index}`, // Make keys unique by adding index
+            name: comp.name,
+            description: comp.description || `${comp.category} component`,
+            icon: getComponentIcon(comp.category)
+          }))
+        });
+      }
+    }
+
+    if (!searchTerm) return sections;
+
+    return sections
       .map(section => ({
         ...section,
         components: section.components.filter(component =>
@@ -254,7 +359,7 @@ const ComponentPalette: React.FC = () => {
         )
       }))
       .filter(section => section.components.length > 0);
-  }, [activeCategory, searchTerm]);
+  }, [activeCategory, searchTerm, scannedComponents, getComponentIcon]);
 
   return (
     <PaletteContainer>
@@ -280,29 +385,62 @@ const ComponentPalette: React.FC = () => {
       </CategoryTabs>
 
       <ComponentList>
-        {filteredComponents.map(section => (
-          <ComponentSection key={section.title}>
-            <SectionTitle>{section.title}</SectionTitle>
-            <ComponentGrid>
-              {section.components.map(component => (
-                <DraggableComponent
-                  key={component.id}
-                  component={component}
-                />
-              ))}
-            </ComponentGrid>
-          </ComponentSection>
-        ))}
-        
-        {filteredComponents.length === 0 && searchTerm && (
+        {isLoading ? (
           <div style={{ 
+            padding: '40px 20px', 
             textAlign: 'center', 
-            color: '#666', 
-            padding: '40px 20px',
-            fontSize: '14px'
+            color: '#666',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px'
           }}>
-            No components found for "{searchTerm}"
+            <div style={{ fontSize: '24px' }}>🔍</div>
+            <div>Scanning components from src2...</div>
+            <div style={{ fontSize: '12px', opacity: 0.7 }}>
+              This may take a moment on first load
+            </div>
           </div>
+        ) : (
+          <>
+            {filteredComponents.map(section => (
+              <ComponentSection key={section.title}>
+                <SectionTitle>{section.title}</SectionTitle>
+                <ComponentGrid>
+                  {section.components.map(component => (
+                    <DraggableComponent
+                      key={component.id}
+                      component={component}
+                    />
+                  ))}
+                </ComponentGrid>
+              </ComponentSection>
+            ))}
+            
+            {filteredComponents.length === 0 && searchTerm && (
+              <div style={{ 
+                textAlign: 'center', 
+                color: '#666', 
+                padding: '40px 20px',
+                fontSize: '14px'
+              }}>
+                No components found for "{searchTerm}"
+              </div>
+            )}
+
+            {scannedComponents.length > 0 && (
+              <div style={{ 
+                padding: '16px', 
+                textAlign: 'center', 
+                fontSize: '12px', 
+                color: '#666',
+                borderTop: '1px solid #e0e0e0',
+                backgroundColor: '#f8f9fa'
+              }}>
+                ✅ Loaded {scannedComponents.length} components from src2
+              </div>
+            )}
+          </>
         )}
       </ComponentList>
     </PaletteContainer>

@@ -15,9 +15,10 @@ if (!container) {
 const root = createRoot(container);
 
 root.render(
-  <React.StrictMode>
+  // Temporarily disable StrictMode to fix session cleanup issues
+  // <React.StrictMode>
     <App />
-  </React.StrictMode>
+  // </React.StrictMode>
 );
 
 console.log('🎨 [Visual Editor] Visual Editor started successfully');

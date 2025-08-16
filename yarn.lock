@@ -36,8 +36,8 @@ __metadata:
   linkType: hard
 
 "@anthropic-ai/claude-code@npm:^1.0.56":
-  version: 1.0.80
-  resolution: "@anthropic-ai/claude-code@npm:1.0.80"
+  version: 1.0.83
+  resolution: "@anthropic-ai/claude-code@npm:1.0.83"
   dependencies:
     "@img/sharp-darwin-arm64": ^0.33.5
     "@img/sharp-darwin-x64": ^0.33.5
@@ -60,7 +60,7 @@ __metadata:
       optional: true
   bin:
     claude: cli.js
-  checksum: 4eda20602e0b07119f913916494079a8571d6700ee767c5a9ad8a388887e7e67886e77d8fbd70f3db62e2f78d8ce5ce54794f0e162423762411c2553649144b8
+  checksum: 8d8ddb259c37d3628746ee145f477b0d6232c669396deb431c0f21a72d2539de0f0ab906b1c4dd5fefb1e1af8592bbbd324d6d8737e50883b0948faf13a2a97d
   languageName: node
   linkType: hard
 
@@ -1653,21 +1653,33 @@ __metadata:
   resolution: "@branded44/server@workspace:packages/server"
   dependencies:
     "@anthropic-ai/claude-code": ^1.0.56
+    "@babel/core": ^7.25.2
+    "@babel/plugin-proposal-class-properties": ^7.18.6
+    "@babel/plugin-transform-class-properties": ^7.25.9
+    "@babel/plugin-transform-private-methods": ^7.27.1
+    "@babel/plugin-transform-private-property-in-object": ^7.27.1
+    "@babel/preset-env": ^7.25.3
+    "@babel/preset-react": ^7.25.3
+    "@babel/preset-typescript": ^7.25.3
     "@types/cors": ^2.8.19
     "@types/express": ^5.0.3
     "@types/node": ^24.0.15
     "@wix/ecom": ^1.0.1309
     "@wix/sdk": ^1.15.27
     "@wix/stores": ^1.0.502
+    babel-loader: ^9.1.3
     chokidar: ^4.0.3
     cors: ^2.8.5
     express: ^4.18.2
+    file-loader: ^6.2.0
     fs-extra: ^11.3.1
     node-fetch: ^2.6.7
     nodemon: ^3.0.1
+    react-native-web: ^0.19.12
     socket.io: ^4.8.1
     ts-node: ^10.9.2
     typescript: ^5.8.3
+    webpack: ^5.95.0
   languageName: unknown
   linkType: soft
 
@@ -5228,11 +5240,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:>=10.0.0, @types/node@npm:^24.0.15":
-  version: 24.2.1
-  resolution: "@types/node@npm:24.2.1"
+  version: 24.3.0
+  resolution: "@types/node@npm:24.3.0"
   dependencies:
     undici-types: ~7.10.0
-  checksum: d7a12a35bcb6ade13787bd9b40d8f59b96170f228dfbd19326170b4df2a66ae86cf21eec6867e92f979405235431e580a9668b167aa3ce8e89531c00792551d3
+  checksum: 0f98e492032007d7be811b5598d24b6260f6ef3d21b6fe3b9ca61a1c88f70d5d94c33f361b0f2bd9a1f5963426584c7c2514e29ca69b0649f6b075e7abd551cb
   languageName: node
   linkType: hard
 
@@ -9945,9 +9957,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.199":
-  version: 1.5.200
-  resolution: "electron-to-chromium@npm:1.5.200"
-  checksum: 2784fb7d40ab80d3dee900a8c9f4307d5d2fe16dcace62ba16b0e64ee72fe3c664c080241fa1142e295c496bdd9eeb82affccfd085c64ad93c3037d3c785d748
+  version: 1.5.203
+  resolution: "electron-to-chromium@npm:1.5.203"
+  checksum: f0302b679f638936dac945d08b159130968398787c4b0157925ffdf9fae1ca73d98d0fb013d64fd0404840724cb679c2bc0e8fd2c7ed0c73b3c738a891d428b5
   languageName: node
   linkType: hard
 
@@ -10921,14 +10933,14 @@ __metadata:
   linkType: hard
 
 "fdir@npm:^6.4.4":
-  version: 6.4.6
-  resolution: "fdir@npm:6.4.6"
+  version: 6.5.0
+  resolution: "fdir@npm:6.5.0"
   peerDependencies:
     picomatch: ^3 || ^4
   peerDependenciesMeta:
     picomatch:
       optional: true
-  checksum: fe9f3014901d023cf631831dcb9eae5447f4d7f69218001dd01ecf007eccc40f6c129a04411b5cc273a5f93c14e02e971e17270afc9022041c80be924091eb6f
+  checksum: bd537daa9d3cd53887eed35efa0eab2dbb1ca408790e10e024120e7a36c6e9ae2b33710cb8381e35def01bc9c1d7eaba746f886338413e68ff6ebaee07b9a6e8
   languageName: node
   linkType: hard
 
@@ -17891,8 +17903,8 @@ __metadata:
   linkType: hard
 
 "webpack@npm:^5.90.1, webpack@npm:^5.95.0":
-  version: 5.101.1
-  resolution: "webpack@npm:5.101.1"
+  version: 5.101.2
+  resolution: "webpack@npm:5.101.2"
   dependencies:
     "@types/eslint-scope": ^3.7.7
     "@types/estree": ^1.0.8
@@ -17924,7 +17936,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: 15edd8f2294af6716bbb8e7cf5fd6b8829af4d979f5a8a4b57ca16629e5de4a9ee64e6bdbd2281177fd3cf0da5c64b2a28c659fa61bd57b6b87f67cb98600c36
+  checksum: bde8ab5ca339390e5c99929a69d2b2c0297593592f53497eed7f191208f4c3bea1dc3fbd3c9d9c622349ecff86a653c64423c77874d5a4b801e49e7b1d930001
   languageName: node
   linkType: hard
 
