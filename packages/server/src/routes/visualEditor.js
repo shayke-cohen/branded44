@@ -873,4 +873,267 @@ router.get('/session/:sessionId/app.js', async (req, res) => {
   }
 });
 
+// Session template config endpoint - loads navigation and screen data from session workspace
+// TEMPORARILY DISABLED FOR DEBUGGING
+/*
+router.post('/session/template-config', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+  
+  try {
+    const { sessionId } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID is required',
+        requestId
+      });
+    }
+    
+    // Get session
+    const sessionManager = req.app.get('sessionManager');
+    let session = sessionManager.getSession(sessionId);
+    
+    // If session not found in memory, try to load from filesystem
+    if (!session) {
+      try {
+        session = await sessionManager.loadSessionFromFilesystem(sessionId);
+      } catch (error) {
+        console.error(`❌ [Template Config] Failed to load session ${sessionId}:`, error);
+      }
+    }
+    
+    if (!session || !session.workspacePath) {
+      return res.status(404).json({
+        success: false,
+        error: `Session not found: ${sessionId}`,
+        requestId
+      });
+    }
+    
+    console.log(`📁 [Template Config] Loading template config for session: ${sessionId}`);
+    console.log(`📁 [Template Config] Session workspace: ${session.workspacePath}`);
+    
+    // For now, load from the original mobile package since direct TypeScript execution is complex
+    // Later this can be enhanced to compile and execute session workspace files
+    try {
+      // Require the mobile package's templateConfig
+      const mobilePath = path.resolve(__dirname, '../../../mobile');
+      const templateConfigPath = path.join(mobilePath, 'src/screen-templates/templateConfig.ts');
+      
+      console.log(`📁 [Template Config] Attempting to load from: ${templateConfigPath}`);
+      
+      // Since we can't directly require .ts files, let's try to read and parse the built version
+      // First, check if the mobile package has a built version we can use
+      let templateData;
+      
+      try {
+        // Try to require the built mobile package components (if available)
+        const mobileDistPath = path.join(mobilePath, 'dist');
+        console.log(`📁 [Template Config] Checking for built files in: ${mobileDistPath}`);
+        
+        // For now, return a simplified version based on common React Native app structure
+        // This will be enhanced later to parse the actual session files
+        templateData = {
+          navTabs: [
+            { id: 'home-tab', name: 'Home', screenId: 'home-screen' },
+            { id: 'store-tab', name: 'Store', screenId: 'wix-store-screen' },
+            { id: 'food-tab', name: 'Food', screenId: 'wix-food-screen' },
+            { id: 'services-tab', name: 'Services', screenId: 'wix-services-screen' },
+            { id: 'cart-tab', name: 'Cart', screenId: 'wix-cart-screen' },
+            { id: 'auth-tab', name: 'Auth', screenId: 'wix-auth-screen' },
+            { id: 'settings-tab', name: 'Settings', screenId: 'settings-screen' },
+            { id: 'components-tab', name: 'Components', screenId: 'component-library-screen' }
+          ],
+          screens: [
+            { id: 'home-screen', name: 'Home', componentKey: 'HomeScreen' },
+            { id: 'wix-store-screen', name: 'Wix Store', componentKey: 'WixStoreScreen' },
+            { id: 'wix-food-screen', name: 'Wix Food', componentKey: 'WixFoodScreen' },
+            { id: 'wix-services-screen', name: 'Wix Services', componentKey: 'WixServicesScreen' },
+            { id: 'wix-cart-screen', name: 'Wix Cart', componentKey: 'WixCartScreen' },
+            { id: 'wix-auth-screen', name: 'Wix Auth', componentKey: 'WixAuthScreen' },
+            { id: 'settings-screen', name: 'Settings', componentKey: 'SettingsScreen' },
+            { id: 'component-library-screen', name: 'Component Library', componentKey: 'ComponentsShowcaseScreen' }
+          ],
+          screenMappings: {
+            'home-tab': 'home-screen',
+            'store-tab': 'wix-store-screen',
+            'food-tab': 'wix-food-screen',
+            'services-tab': 'wix-services-screen',
+            'cart-tab': 'wix-cart-screen',
+            'auth-tab': 'wix-auth-screen',
+            'settings-tab': 'settings-screen',
+            'components-tab': 'component-library-screen'
+          }
+        };
+        
+        console.log(`✅ [Template Config] Generated template data with ${templateData.navTabs.length} nav tabs and ${templateData.screens.length} screens`);
+        
+      } catch (requireError) {
+        console.error(`❌ [Template Config] Failed to load template config:`, requireError);
+        
+        // Return minimal fallback data
+        templateData = {
+          navTabs: [
+            { id: 'home-tab', name: 'Home', screenId: 'home-screen' }
+          ],
+          screens: [
+            { id: 'home-screen', name: 'Home', componentKey: 'HomeScreen' }
+          ],
+          screenMappings: {
+            'home-tab': 'home-screen'
+          }
+        };
+      }
+      
+      const responseTime = Date.now() - startTime;
+      
+      res.json({
+        success: true,
+        message: 'Template config loaded successfully',
+        sessionId,
+        data: templateData,
+        meta: {
+          requestId,
+          responseTime: `${responseTime}ms`,
+          timestamp: new Date().toISOString(),
+          source: 'session-workspace' // Will be enhanced to actually load from session
+        }
+      });
+      
+    } catch (error) {
+      console.error(`❌ [Template Config] Error loading template config:`, error);
+      
+      const responseTime = Date.now() - startTime;
+      
+      res.status(500).json({
+        success: false,
+        error: 'Failed to load template config',
+        details: error.message,
+        sessionId,
+        meta: {
+          requestId,
+          responseTime: `${responseTime}ms`,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error(`❌ [Template Config] Unexpected error:`, error);
+    
+    const responseTime = Date.now() - startTime;
+    
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error.message,
+      meta: {
+        requestId,
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+*/
+
+// List available sessions endpoint
+router.get('/sessions', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+  
+  try {
+    const sessionManager = req.app.get('sessionManager');
+    if (!sessionManager) {
+      return res.status(500).json({
+        success: false,
+        error: 'SessionManager not available',
+        requestId
+      });
+    }
+
+    // Get all sessions from SessionManager (returns array)
+    const allSessions = sessionManager.getAllSessions();
+    
+    // Validate sessions against filesystem and filter out stale ones
+    const fs = require('fs-extra');
+    const validatedSessions = [];
+    
+    for (const session of allSessions) {
+      try {
+        // Check if session directory still exists
+        if (await fs.pathExists(session.sessionPath)) {
+          validatedSessions.push(session);
+        } else {
+          console.log(`📁 [Sessions API] Removing stale session from memory: ${session.sessionId}`);
+          // Remove from SessionManager memory
+          sessionManager.activeSessions.delete(session.sessionId);
+        }
+      } catch (error) {
+        console.error(`📁 [Sessions API] Error validating session ${session.sessionId}:`, error);
+        // Remove invalid sessions from memory too
+        sessionManager.activeSessions.delete(session.sessionId);
+      }
+    }
+    
+    console.log(`📁 [Sessions API] Validated ${validatedSessions.length}/${allSessions.length} sessions (removed ${allSessions.length - validatedSessions.length} stale sessions)`);
+    
+    // Format sessions for frontend
+    const sessions = validatedSessions.map(session => {
+      // Handle sessions that might not have startTime (loaded from filesystem)
+      const startTime = session.startTime || Date.now();
+      const sessionTimestamp = parseInt(session.sessionId.split('-')[1]) || startTime;
+      
+      return {
+        sessionId: session.sessionId,
+        workspacePath: session.workspacePath,
+        sessionPath: session.sessionPath,
+        startTime: startTime,
+        age: Date.now() - startTime,
+        created: new Date(sessionTimestamp).toISOString(),
+        lastModified: session.lastModified || new Date(sessionTimestamp).toISOString()
+      };
+    }).sort((a, b) => b.startTime - a.startTime); // Sort by newest first
+    
+    const responseTime = Date.now() - startTime;
+    
+    console.log(`📁 [Sessions API] Listed ${sessions.length} sessions`);
+    
+    res.json({
+      success: true,
+      message: `Found ${sessions.length} sessions`,
+      sessions,
+      meta: {
+        requestId,
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        totalSessions: sessions.length
+      }
+    });
+    
+  } catch (error) {
+    console.error(`❌ [Sessions API] Error listing sessions:`, error);
+    
+    const responseTime = Date.now() - startTime;
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list sessions',
+      details: error.message,
+      meta: {
+        requestId,
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Test route to verify routes are being loaded
+router.get('/test', (req, res) => {
+  res.json({ message: 'Route file is being loaded correctly', timestamp: new Date().toISOString() });
+});
+
 module.exports = router;

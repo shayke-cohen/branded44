@@ -1,4 +1,4 @@
-import React, {useState, Suspense, useCallback} from 'react';
+import React, {useState, useEffect, Suspense, useCallback} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
@@ -68,7 +68,7 @@ const MobileAppRenderer: React.FC<MobileAppRendererProps> = ({
   console.log('📱 [MobileAppRenderer] Active tab:', activeTab);
   console.log('📱 [MobileAppRenderer] Selected screen:', selectedScreen);
   console.log('📱 [MobileAppRenderer] Navigation tabs count:', navTabs.length);
-  console.log('📱 [MobileAppRenderer] Bottom navigation will render with tabs:', navTabs.slice(0, 4).map(t => t.name));
+  console.log('📱 [MobileAppRenderer] Bottom navigation will render with tabs:', navTabs.slice(0, 4).map((t: any) => t.name));
 
   // Real tab press handler using your actual navigation system
   const handleTabPress = useCallback((tab: string) => {
@@ -150,7 +150,7 @@ const MobileAppRenderer: React.FC<MobileAppRendererProps> = ({
   };
 
   // navTabs already declared at component top
-  console.log('📱 [MobileAppRenderer] Available navigation tabs:', navTabs.map(tab => tab.name));
+  console.log('📱 [MobileAppRenderer] Available navigation tabs:', navTabs.map((tab: any) => tab.name));
 
   return (
     <SafeAreaProvider>
@@ -190,7 +190,7 @@ const MobileAppRenderer: React.FC<MobileAppRendererProps> = ({
                         <View style={styles.debugNavigation}>
                           <Text style={styles.debugTitle}>📱 Navigation Tabs ({navTabs.length}):</Text>
                           <View style={styles.tabsContainer}>
-                            {navTabs.slice(0, 4).map((tab, index) => (
+                            {navTabs.slice(0, 4).map((tab: any, index: number) => (
                               <TouchableOpacity 
                                 key={tab.id} 
                                 onPress={() => handleTabPress(tab.id)}

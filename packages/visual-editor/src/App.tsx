@@ -8,6 +8,7 @@ import { MultiBackend } from 'react-dnd-multi-backend';
 // Core services
 import { EditorProvider, useEditor } from './contexts/EditorContext';
 import { SocketProvider } from './contexts/SocketContext';
+import { SessionProvider } from './contexts/SessionContext';
 
 // Main components
 import Header from './components/Header/Header';
@@ -276,13 +277,15 @@ const AppContent: React.FC = () => {
 // Main App component that provides the context
 const App: React.FC = () => {
   return (
-    <DndProvider backend={MultiBackend} options={HTML5toTouch}>
-      <SocketProvider>
-        <EditorProvider>
-          <AppContent />
-        </EditorProvider>
-      </SocketProvider>
-    </DndProvider>
+    <SessionProvider>
+      <DndProvider backend={MultiBackend} options={HTML5toTouch}>
+        <SocketProvider>
+          <EditorProvider>
+            <AppContent />
+          </EditorProvider>
+        </SocketProvider>
+      </DndProvider>
+    </SessionProvider>
   );
 };
 

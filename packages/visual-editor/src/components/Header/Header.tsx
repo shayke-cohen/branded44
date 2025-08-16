@@ -2,6 +2,8 @@ import React from 'react';
 import styled from 'styled-components';
 import { useEditor } from '../../contexts/EditorContext';
 import { useSocket } from '../../contexts/SocketContext';
+import { useSession } from '../../contexts/SessionContext';
+import SessionSelector from '../SessionSelector';
 
 const HeaderContainer = styled.div`
   height: 60px;
@@ -155,6 +157,7 @@ const SCREEN_OPTIONS = [
 const Header: React.FC = () => {
   const { state, toggleInspection, setCurrentScreen } = useEditor();
   const { isConnected, connectionError } = useSocket();
+  const { currentSession, switchToSession } = useSession();
 
   const handleScreenChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setCurrentScreen(event.target.value);
@@ -185,6 +188,12 @@ const Header: React.FC = () => {
         <Logo>
           🎨 Branded44 Visual Editor
         </Logo>
+        
+        <SessionSelector
+          currentSession={currentSession}
+          onSessionChange={switchToSession}
+        />
+        
         <ScreenSelector 
           value={state.currentScreen || ''} 
           onChange={handleScreenChange}

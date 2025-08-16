@@ -1,6 +1,6 @@
 import {ComponentType} from 'react';
 
-// Import unified registry system
+// Import simplified registry system for screen registration only
 import {
   registerComponent,
   registerEntities,
@@ -25,7 +25,7 @@ import SearchScreen from './examples/SearchScreen';
 
 
 
-// Import all screens from dedicated file
+// Import all screens from dedicated file (actual app screens)
 import '../config/importScreens';
 
 export type TemplateComplexity = 'Simple' | 'Complex' | 'Apps';
@@ -43,25 +43,24 @@ export interface TemplateConfig {
   category?: string;
 }
 
-// Template component registry for dynamic loading
+// Template component registry - FOR SHOWCASE/DEMO ONLY
+// These templates are NOT used in the actual app flow, only in TemplateIndexScreen
 export const TEMPLATE_COMPONENTS: Record<string, ComponentType<any>> = {
-  // Basic Templates
+  // Basic Templates (showcase only)
   'auth-template': AuthScreenTemplate,
   'dashboard-template': DashboardScreenTemplate,
   'form-template': FormScreenTemplate,
   'list-template': ListScreenTemplate,
   
-  // Complex Examples
-  // 'product-list': ProductListScreen, // Removed - using actual Wix screen
+  // Complex Examples (showcase only)
   'product-detail': ProductDetailScreen,
   'cart': CartScreen,
   'checkout': CheckoutScreen,
   'search': SearchScreen,
-  
-
 };
 
-// Template configuration data
+// Template configuration data - FOR SHOWCASE/DEMO ONLY
+// These templates are displayed in TemplateIndexScreen but NOT used in actual app navigation
 export const TEMPLATE_CONFIG: TemplateConfig[] = [
   // Simple Templates
   {
@@ -336,31 +335,30 @@ export const createTemplateRenderer = (
   };
 };
 
-// Initialize unified registry with all entities
-function initializeUnifiedRegistry(): void {
-  // Register all components
+// Initialize simplified registry for showcase templates only
+// NOTE: Actual app screens self-register via importScreens.ts
+function initializeTemplateShowcase(): void {
+  // Register template components for showcase display
   registerComponent('AuthScreenTemplate', AuthScreenTemplate);
   registerComponent('DashboardScreenTemplate', DashboardScreenTemplate);
   registerComponent('FormScreenTemplate', FormScreenTemplate);
   registerComponent('ListScreenTemplate', ListScreenTemplate);
-  // ProductListScreen removed - using actual Wix screen instead
   registerComponent('ProductDetailScreen', ProductDetailScreen);
   registerComponent('CartScreen', CartScreen);
   registerComponent('CheckoutScreen', CheckoutScreen);
   registerComponent('SearchScreen', SearchScreen);
 
-  // HomeScreen and SettingsScreen now self-register
-
-  // Convert existing template configs to unified entities
-  const templateEntities: EntityConfig[] = TEMPLATE_CONFIG.map(template => ({
+  // Convert template configs to entities for showcase purposes
+  const showcaseTemplateEntities: EntityConfig[] = TEMPLATE_CONFIG.map(template => ({
     id: template.id,
     name: template.name,
-    type: template.complexity === 'Apps' ? 'sample-app' : 'template',
+    type: template.complexity === 'Apps' ? 'showcase-app' : 'showcase-template',
     componentKey: template.componentKey,
     icon: template.icon,
     description: template.description,
     category: template.category,
     tags: [
+      'showcase-only',
       ...(template.features || []),
       template.complexity.toLowerCase(),
       ...(template.customizable ? ['customizable'] : [])
@@ -369,85 +367,23 @@ function initializeUnifiedRegistry(): void {
       complexity: template.complexity,
       features: template.features,
       customizable: template.customizable,
-      defaultProps: template.defaultProps
+      defaultProps: template.defaultProps,
+      isShowcaseOnly: true
     }
   }));
 
-  // Add screen entities (HomeScreen and SettingsScreen now self-register)
-  const screenEntities: EntityConfig[] = [
-    // TemplateIndexScreen removed for clean fitness app
-  ];
-
-  // Add navigation tab entities (Home and Settings tabs now self-managed)
-  const navTabEntities: EntityConfig[] = [
-    // templates-tab removed for clean fitness app
-  ];
-
-  // Add template mapping entities
-  const templateMappingEntities: EntityConfig[] = [
-    {
-      id: 'AuthScreenTemplate-mapping',
-      name: 'Auth Screen Template Mapping',
-      type: 'template-mapping',
-      category: 'Template Mappings',
-      metadata: {
-        key: 'AuthScreenTemplate',
-        templateId: 'auth-template'
-      }
-    },
-    {
-      id: 'DashboardScreenTemplate-mapping',
-      name: 'Dashboard Screen Template Mapping',
-      type: 'template-mapping',
-      category: 'Template Mappings',
-      metadata: {
-        key: 'DashboardScreenTemplate',
-        templateId: 'dashboard-template'
-      }
-    },
-    {
-      id: 'FormScreenTemplate-mapping',
-      name: 'Form Screen Template Mapping',
-      type: 'template-mapping',
-      category: 'Template Mappings',
-      metadata: {
-        key: 'FormScreenTemplate',
-        templateId: 'form-template'
-      }
-    },
-    {
-      id: 'ListScreenTemplate-mapping',
-      name: 'List Screen Template Mapping',
-      type: 'template-mapping',
-      category: 'Template Mappings',
-      metadata: {
-        key: 'ListScreenTemplate',
-        templateId: 'list-template'
-      }
-    }
-  ];
-
-  // Register all entities
-  registerEntities([
-    ...templateEntities,
-    ...screenEntities,
-    ...navTabEntities,
-    ...templateMappingEntities
-  ]);
+  // Register only showcase entities
+  registerEntities(showcaseTemplateEntities);
 }
 
-// Initialize the unified registry
-initializeUnifiedRegistry();
+// Initialize the template showcase registry
+initializeTemplateShowcase();
 
-// Unified registry helper functions (backward compatible + new)
+// Registry helper functions for actual app navigation (simplified)
+// These work with the actual screens registered via importScreens.ts
 export const getScreenConfig = (screenId: string) => {
   const entity = getEntity(screenId);
   return entity?.type === 'screen' ? entity : undefined;
-};
-
-export const getSampleAppConfig = (appId: string) => {
-  const entity = getEntity(appId);
-  return entity?.type === 'sample-app' ? entity : undefined;
 };
 
 export const getNavTabConfig = (tabId: string) => {
@@ -455,20 +391,15 @@ export const getNavTabConfig = (tabId: string) => {
   return entity?.type === 'nav-tab' ? entity : undefined;
 };
 
-export const getTemplateIdFromKey = (templateKey: string): string | undefined => {
-  const mappings = getEntitiesByType('template-mapping');
-  const mapping = mappings.find(m => m.metadata?.key === templateKey);
-  return mapping?.metadata?.templateId;
-};
-
-export const getTabIdForScreen = (screenId: string): string | undefined => {
-  const screenConfig = getScreenConfig(screenId);
-  return screenConfig?.relationships?.tab as string;
-};
-
 export const getScreenIdForTab = (tabId: string): string | undefined => {
   const tabConfig = getNavTabConfig(tabId);
   return tabConfig?.relationships?.defaultScreen as string;
+};
+
+// Showcase-specific helpers
+export const getShowcaseTemplateConfig = (templateId: string) => {
+  const entity = getEntity(templateId);
+  return (entity?.type === 'showcase-template' || entity?.type === 'showcase-app') ? entity : undefined;
 };
 
 // New unified functions

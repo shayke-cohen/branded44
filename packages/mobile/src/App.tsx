@@ -19,7 +19,7 @@ import {
   getScreenIdForTab,
   getScreenComponent,
 } from './screen-templates/templateConfig';
-console.log('📱 [DEBUG] Template config imported successfully');
+console.log('📱 [DEBUG] Screen navigation config imported successfully');
 
 // Import screens to trigger registration
 import './config/importScreens';
@@ -34,7 +34,7 @@ const AppContent = () => {
 
   const renderScreen = () => {
     console.log('📱 [DEBUG] Rendering screen for tab:', activeTab);
-    // Generic screen rendering using registry - no special cases!
+    // Render actual app screens (NOT templates) - screens self-register via importScreens.ts
     const screenId = getScreenIdForTab(activeTab);
     if (!screenId) {
       // Fallback to first available screen
@@ -47,7 +47,7 @@ const AppContent = () => {
       return null;
     }
 
-    // Get and render the screen component from registry
+    // Get and render the actual screen component (e.g., HomeNavigation, ProductsNavigation, etc.)
     const ScreenComponent = getScreenComponent(screenId);
     return ScreenComponent ? <ScreenComponent /> : null;
   };

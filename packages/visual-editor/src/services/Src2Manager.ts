@@ -11,6 +11,53 @@ export class Src2Manager {
   async initializeEditingEnvironment(): Promise<void> {
     try {
       console.log('📁 [Src2Manager] Initializing editing environment...');
+      
+      // First, check if there's already an active session stored locally
+      const savedSessionId = localStorage.getItem('visual-editor-session-id');
+      if (savedSessionId) {
+        console.log('📁 [Src2Manager] Found saved session ID:', savedSessionId);
+        
+        try {
+          // Try to use the existing session
+          const existingSessionResponse = await axios.get(`${this.serverUrl}/api/editor/sessions`, {
+            timeout: 5000,
+          });
+          
+          if (existingSessionResponse.data.success && existingSessionResponse.data.sessions) {
+            const existingSession = existingSessionResponse.data.sessions.find(
+              (s: any) => s.sessionId === savedSessionId
+            );
+            
+            if (existingSession) {
+              console.log('✅ [Src2Manager] Using existing session:', savedSessionId);
+              this.sessionInfo = {
+                sessionId: existingSession.sessionId,
+                workspacePath: existingSession.workspacePath,
+                sessionPath: existingSession.sessionPath
+              };
+              
+              // Make session info globally available
+              (window as any).__VISUAL_EDITOR_SESSION__ = this.sessionInfo;
+              console.log('📁 [Src2Manager] Existing session loaded successfully:', this.sessionInfo);
+              
+              // Notify other components that session is ready
+              const event = new CustomEvent('visual-editor-session-ready', { 
+                detail: { sessionId: this.sessionInfo.sessionId, type: 'existing' } 
+              });
+              window.dispatchEvent(event);
+              
+              return; // Use existing session, don't create new one
+            } else {
+              console.log('⚠️ [Src2Manager] Saved session not found on server, will create new one');
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ [Src2Manager] Failed to check existing sessions:', error);
+        }
+      }
+      
+      // No existing session or failed to load existing, create a new one
+      console.log('📁 [Src2Manager] Creating new session...');
       console.log('📁 [Src2Manager] Making request to:', `${this.serverUrl}/api/editor/init`);
       
       // Make API call to server to initialize src2 with timeout
@@ -33,17 +80,26 @@ export class Src2Manager {
           sessionPath: response.data.data.sessionPath
         };
         
-        console.log('📁 [Src2Manager] Storing session info:', this.sessionInfo);
+        console.log('📁 [Src2Manager] Storing new session info:', this.sessionInfo);
+        
+        // Save session ID to localStorage for future use
+        localStorage.setItem('visual-editor-session-id', this.sessionInfo.sessionId);
         
         // Make session info globally available for webpack resolution
         (window as any).__VISUAL_EDITOR_SESSION__ = this.sessionInfo;
         
         console.log('📁 [Src2Manager] Session info stored on window:', (window as any).__VISUAL_EDITOR_SESSION__);
         
-        console.log('📁 [Src2Manager] Editing environment initialized successfully', {
+        console.log('✅ [Src2Manager] New editing session created successfully', {
           sessionId: this.sessionInfo.sessionId,
           workspacePath: this.sessionInfo.workspacePath
         });
+        
+        // Notify other components that session is ready
+        const event = new CustomEvent('visual-editor-session-ready', { 
+          detail: { sessionId: this.sessionInfo.sessionId, type: 'new' } 
+        });
+        window.dispatchEvent(event);
       } else {
         throw new Error(response.data.error || 'Failed to initialize src2');
       }
