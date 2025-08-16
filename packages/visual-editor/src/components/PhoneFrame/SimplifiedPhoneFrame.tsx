@@ -4,6 +4,7 @@ import { useEditor } from '../../contexts/EditorContext';
 import { SimpleRealAppRenderer } from '../../services/SimpleRealAppRenderer';
 import { componentInspector, InspectableComponent } from '../../services/ComponentInspector';
 import { dropZoneManager } from '../../services/DropZoneManager';
+import MobileAppRenderer from '../MobileAppRenderer';
 
 // Styled Components (simplified)
 const PhoneContainer = styled.div`
@@ -195,7 +196,7 @@ const SimplifiedPhoneFrame: React.FC<SimplifiedPhoneFrameProps> = ({ src2Status 
   const [zoom, setZoom] = useState(1);
   const [isInspecting, setIsInspecting] = useState(false);
   const [renderedComponent, setRenderedComponent] = useState<React.ComponentType | null>(null);
-  const [iframeData, setIframeData] = useState<{ sessionId: string; iframeUrl: string } | null>(null);
+  const [shouldRenderRealApp, setShouldRenderRealApp] = useState(false);
   const appContentRef = useRef<HTMLDivElement>(null);
   const simpleRenderer = useRef(new SimpleRealAppRenderer());
 
@@ -210,10 +211,10 @@ const SimplifiedPhoneFrame: React.FC<SimplifiedPhoneFrameProps> = ({ src2Status 
   // Listen for SimpleRenderer events (React-friendly approach)
   useEffect(() => {
     const handleRender = (event: CustomEvent) => {
-      const { type, sessionId, iframeUrl } = event.detail;
+      const { type, sessionId } = event.detail;
       if (type === 'iframe-app') {
-        console.log('📱 [SimplifiedPhoneFrame] Received iframe render event:', sessionId);
-        setIframeData({ sessionId, iframeUrl });
+        console.log('📱 [SimplifiedPhoneFrame] Session ready, enabling real app render:', sessionId);
+        setShouldRenderRealApp(true);
         setIsLoading(false);
         setError(null);
       }
@@ -224,7 +225,7 @@ const SimplifiedPhoneFrame: React.FC<SimplifiedPhoneFrameProps> = ({ src2Status 
       console.error('📱 [SimplifiedPhoneFrame] Received error event:', message);
       setError(message);
       setIsLoading(false);
-      setIframeData(null);
+      setShouldRenderRealApp(false);
     };
 
     window.addEventListener('simpleRenderer:render', handleRender as EventListener);
@@ -440,30 +441,20 @@ const SimplifiedPhoneFrame: React.FC<SimplifiedPhoneFrameProps> = ({ src2Status 
               </LoadingOverlay>
             )}
 
-            {/* Render the real app iframe using React (no DOM manipulation) */}
-            {iframeData && !isLoading && !error && src2Status === 'ready' && (
+            {/* Render the REAL mobile app using direct React components */}
+            {shouldRenderRealApp && !isLoading && !error && src2Status === 'ready' && (
               <div style={{ 
                 width: '100%', 
                 height: '100%', 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center' 
+                position: 'relative',
+                backgroundColor: '#ffffff'
               }}>
-                <iframe 
-                  src={iframeData.iframeUrl}
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    border: 'none',
-                    borderRadius: '0px'
-                  }}
-                  title={`Real Mobile App - ${iframeData.sessionId}`}
-                />
+                <MobileAppRenderer selectedScreen={state.selectedComponent || undefined} />
               </div>
             )}
             
-            {/* Fallback message when no iframe data */}
-            {!iframeData && !isLoading && !error && src2Status === 'ready' && (
+            {/* Fallback message when real app is not ready */}
+            {!shouldRenderRealApp && !isLoading && !error && src2Status === 'ready' && (
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -476,10 +467,10 @@ const SimplifiedPhoneFrame: React.FC<SimplifiedPhoneFrameProps> = ({ src2Status 
               }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>📱</div>
                 <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  Real App Preview
+                  Your Real Mobile App
                 </div>
                 <div style={{ fontSize: '14px', opacity: 0.7 }}>
-                  Loading your mobile app...
+                  Initializing your real mobile app components...
                 </div>
               </div>
             )}

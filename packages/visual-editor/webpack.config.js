@@ -29,6 +29,10 @@ module.exports = (env, argv) => {
       '@mobile-templates': path.resolve(__dirname, '../mobile/src/components/templates'),
       '@mobile-blocks': path.resolve(__dirname, '../mobile/src/components/blocks'),
       
+      // Context overrides - use web-compatible versions where needed
+      // For now, use the mobile context directly, but this may need web overrides later
+      '@mobile/context': path.resolve(__dirname, '../mobile/src/context'),
+      
       // React Native polyfills (same as web package)
       '@react-native-async-storage/async-storage': path.resolve(__dirname, 'src/polyfills/AsyncStorage.js'),
       'react-native-safe-area-context': path.resolve(__dirname, 'src/polyfills/ReactNativeSafeAreaContext.jsx'),
@@ -102,6 +106,10 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './public/index.html',
         title: 'Branded44 Visual Editor',
+      }),
+      new (require('webpack')).DefinePlugin({
+        __DEV__: JSON.stringify(isDevelopment),
+        'process.env.NODE_ENV': JSON.stringify(isDevelopment ? 'development' : 'production'),
       }),
     ],
     devServer: {

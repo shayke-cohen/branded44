@@ -37,7 +37,6 @@ const CookieManager = {
   }
 };
 
-// Export both default and named exports to handle different import styles
-module.exports = CookieManager;
-module.exports.default = CookieManager;
-module.exports.CookieManager = CookieManager;
+// Export both default and named exports to handle different import styles (ES modules)
+export default CookieManager;
+export { CookieManager };
