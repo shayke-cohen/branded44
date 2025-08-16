@@ -7,12 +7,12 @@
  */
 
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View as RNView, Text as RNText } from 'react-native';
 
 // Basic polyfill that returns a View component
 const createBasicComponent = (displayName) => {
   const Component = React.forwardRef((props, ref) => (
-    <View ref={ref} {...props} />
+    <RNView ref={ref} {...props} />
   ));
   Component.displayName = displayName;
   return Component;
@@ -21,18 +21,17 @@ const createBasicComponent = (displayName) => {
 // Basic text polyfill
 const createBasicTextComponent = (displayName) => {
   const Component = React.forwardRef((props, ref) => (
-    <Text ref={ref} {...props} />
+    <RNText ref={ref} {...props} />
   ));
   Component.displayName = displayName;
   return Component;
 };
 
-// Avatar components (these will be imported individually by modules)
-export const AvatarRoot = createBasicComponent('Avatar.Root');
-export const AvatarImage = createBasicComponent('Avatar.Image');
-export const AvatarFallback = createBasicTextComponent('Avatar.Fallback');
+// Create all primitive components
+const AvatarRoot = createBasicComponent('Avatar.Root');
+const AvatarImage = createBasicComponent('Avatar.Image');
+const AvatarFallback = createBasicTextComponent('Avatar.Fallback');
 
-// Select components - create individual exports AND grouped object
 const SelectRoot = createBasicComponent('Select.Root');
 const SelectGroup = createBasicComponent('Select.Group');
 const SelectValue = createBasicTextComponent('Select.Value');
@@ -50,11 +49,76 @@ const SelectItemText = createBasicTextComponent('Select.ItemText');
 const SelectSeparator = createBasicComponent('Select.Separator');
 const SelectUseRootContext = () => ({});
 
-// Note: Direct named exports removed to avoid conflicts
-// All exports are available through the default export object
-// This allows imports like: import * as AvatarPrimitive from '@rn-primitives/avatar'
+const CheckboxRoot = createBasicComponent('Checkbox.Root');
+const CheckboxIndicator = createBasicComponent('Checkbox.Indicator');
 
-// Export grouped Select object
+const ProgressRoot = createBasicComponent('Progress.Root');
+const ProgressIndicator = createBasicComponent('Progress.Indicator');
+
+const SwitchRoot = createBasicComponent('Switch.Root');
+const SwitchThumb = createBasicComponent('Switch.Thumb');
+
+const LabelRoot = createBasicComponent('Label.Root');
+const LabelText = createBasicTextComponent('Label.Text');
+
+const SeparatorRoot = createBasicComponent('Separator.Root');
+
+const SlotView = createBasicComponent('Slot.View');
+const SlotText = createBasicTextComponent('Slot.Text');
+
+// Export individual primitives to satisfy different import patterns
+// For Avatar: import * as AvatarPrimitive from '@rn-primitives/avatar'
+export const Root = AvatarRoot;
+export const Image = AvatarImage; 
+export const Fallback = AvatarFallback;
+
+// For Checkbox: import * as CheckboxPrimitive from '@rn-primitives/checkbox'  
+export const Indicator = CheckboxIndicator;
+
+// For Switch: import * as SwitchPrimitives from '@rn-primitives/switch'
+export const Thumb = SwitchThumb;
+
+// For Select: import * as SelectPrimitive from '@rn-primitives/select'
+export const Group = SelectGroup;
+export const Value = SelectValue;
+export const Trigger = SelectTrigger;
+export const ScrollUpButton = SelectScrollUpButton;
+export const ScrollDownButton = SelectScrollDownButton;
+export const Portal = SelectPortal;
+export const Overlay = SelectOverlay;
+export const Content = SelectContent;
+export const Viewport = SelectViewport;
+export const Label = SelectLabel;
+export const Item = SelectItem;
+export const ItemIndicator = SelectItemIndicator;
+export const ItemText = SelectItemText;
+export const Separator = SelectSeparator;
+export const useRootContext = SelectUseRootContext;
+
+// For Slot: import { View, Text } from '@rn-primitives/slot'
+export const View = SlotView;
+export const Text = SlotText;
+
+// Legacy exports for backwards compatibility
+export {
+  AvatarRoot,
+  AvatarImage,
+  AvatarFallback,
+  CheckboxRoot,
+  CheckboxIndicator,
+  ProgressRoot,
+  ProgressIndicator,
+  SwitchRoot,
+  SwitchThumb,
+  LabelRoot,
+  LabelText,
+  SeparatorRoot,
+  SlotView,
+  SlotText
+};
+
+// Grouped exports for structured access
+export const Avatar = { Root: AvatarRoot, Image: AvatarImage, Fallback: AvatarFallback };
 export const Select = {
   Root: SelectRoot,
   Group: SelectGroup,
@@ -73,43 +137,10 @@ export const Select = {
   Separator: SelectSeparator,
   useRootContext: SelectUseRootContext,
 };
-
-// Checkbox components
-export const CheckboxRoot = createBasicComponent('Checkbox.Root');
-export const CheckboxIndicator = createBasicComponent('Checkbox.Indicator');
-// Also export with expected names
-export { CheckboxIndicator as Indicator }; // For CheckboxPrimitive.Indicator
-
-// Progress components
-export const ProgressRoot = createBasicComponent('Progress.Root');
-export const ProgressIndicator = createBasicComponent('Progress.Indicator');
-
-// Switch components  
-export const SwitchRoot = createBasicComponent('Switch.Root');
-export const SwitchThumb = createBasicComponent('Switch.Thumb');
-// Also export with expected names
-export { SwitchThumb as Thumb }; // For SwitchPrimitives.Thumb
-
-// Label components
-export const LabelRoot = createBasicComponent('Label.Root');
-export const LabelText = createBasicTextComponent('Label.Text');
-
-// Separator components
-export const SeparatorRoot = createBasicComponent('Separator.Root');
-
-// Slot components - used for composition (avoid conflict with React Native View/Text)
-export const SlotView = createBasicComponent('Slot.View');
-export const SlotText = createBasicTextComponent('Slot.Text');
-
-// Default exports for each primitive module
-// Create namespace exports for each RN primitive package
-export const Avatar = { Root: AvatarRoot, Image: AvatarImage, Fallback: AvatarFallback };
-export const Slot = { View: SlotView, Text: SlotText };
 export const Checkbox = { Root: CheckboxRoot, Indicator: CheckboxIndicator };
 export const Progress = { Root: ProgressRoot, Indicator: ProgressIndicator };
 export const Switch = { Root: SwitchRoot, Thumb: SwitchThumb };
-export const Label = { Root: LabelRoot, Text: LabelText };
-export const Separator = { Root: SeparatorRoot };
+export const Slot = { View: SlotView, Text: SlotText };
 
 export default {
   // Avatar
