@@ -335,4 +335,15 @@ server.listen(PORT, () => {
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`📱 Mobile app preview: http://localhost:${PORT}/real-app/{sessionId}`);
   console.log(`🎯 API endpoints available at: http://localhost:${PORT}/api/editor`);
+
+  // Auto-start watching the most recent session on server startup
+  setTimeout(() => {
+    console.log('🔄 [Server] Starting auto-session watching...');
+    const mostRecentSession = sessionManager.startWatchingMostRecent(io);
+    if (mostRecentSession) {
+      console.log(`🎯 [Server] Auto-watching most recent session: ${mostRecentSession.sessionId}`);
+    } else {
+      console.log('📁 [Server] No existing sessions found - file watching will start when session is created');
+    }
+  }, 1000); // Small delay to ensure everything is initialized
 });

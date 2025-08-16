@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { useEditor } from '../../contexts/EditorContext';
 
@@ -96,9 +96,9 @@ const FileTree = styled.div`
   font-size: 12px;
 `;
 
-const FileItem = styled.div<{ level: number; selected: boolean }>`
+const FileItem = styled.div<{ $level: number; selected: boolean }>`
   padding: 8px 12px;
-  padding-left: ${props => 8 + props.level * 16}px;
+  padding-left: ${props => 8 + props.$level * 16}px;
   cursor: pointer;
   background: ${props => props.selected ? '#e3f2fd' : 'transparent'};
   border-radius: 4px;
@@ -110,8 +110,112 @@ const FileItem = styled.div<{ level: number; selected: boolean }>`
 `;
 
 const PropertyPanel: React.FC = () => {
-  const { state } = useEditor();
-  const [activeTab, setActiveTab] = useState<'properties' | 'files'>('properties');
+  const { state, updateFileTree } = useEditor();
+  const [activeTab, setActiveTab] = useState<'properties' | 'files' | 'code'>('properties');
+  const [componentCode, setComponentCode] = useState<string>('');
+  const [isLoadingCode, setIsLoadingCode] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['screens', 'screens/HomeScreen', 'screens/wix']));
+
+  // Directory toggle handler (moved to top level to follow Rules of Hooks)
+  const toggleDirectory = useCallback((path: string) => {
+    setExpandedDirs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(path)) {
+        newSet.delete(path);
+      } else {
+        newSet.add(path);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // File node renderer (moved to top level to follow Rules of Hooks)
+  const renderFileNode = useCallback((node: any, level = 0): React.ReactNode => {
+    const isExpanded = expandedDirs.has(node.path);
+    
+    return (
+      <div key={`${node.id}-${level}`}>
+        <FileItem
+          $level={level}
+          selected={node.path === state.activeFile}
+          onClick={() => {
+            if (node.type === 'directory') {
+              toggleDirectory(node.path);
+            } else {
+              // Handle file selection
+              console.log('📄 [PropertyPanel] File selected:', node.path);
+            }
+          }}
+        >
+          {node.type === 'directory' ? (isExpanded ? '📂' : '📁') : '📄'} {node.name}
+        </FileItem>
+        {node.children && node.type === 'directory' && isExpanded && (
+          <div>
+            {node.children.map((child: any) => renderFileNode(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  }, [expandedDirs, state.activeFile, toggleDirectory]);
+
+  // Load component source code
+  const loadComponentCode = async (componentId: string) => {
+    setIsLoadingCode(true);
+    setCodeError(null);
+    
+    try {
+      // Try to map component ID to actual file path
+      const possiblePaths = [
+        'screens/HomeScreen/HomeNavigation.tsx',
+        'screens/HomeScreen/HomeScreen.tsx',
+        'screens/SettingsScreen/SettingsScreen.tsx',
+        'screens/wix/ecommerce/CartScreen/CartScreen.tsx',
+        'screens/wix/navigation/ProductsNavigation.tsx',
+        'screen-templates/templateConfig.ts'
+      ];
+      
+      let foundCode = '';
+      let foundPath = '';
+      
+      // Get session info from localStorage or global
+      const sessionInfo = localStorage.getItem('visual-editor-session-id');
+      
+      if (sessionInfo) {
+        for (const path of possiblePaths) {
+          try {
+            const response = await fetch(`http://localhost:3001/api/editor/session-file/${sessionInfo}/${path}`);
+            if (response.ok) {
+              foundCode = await response.text();
+              foundPath = path;
+              break;
+            }
+          } catch (error) {
+            // Try next path
+          }
+        }
+      }
+      
+      if (foundCode) {
+        setComponentCode(foundCode);
+        console.log(`📄 [PropertyPanel] Loaded code from: ${foundPath}`);
+      } else {
+        setCodeError('Component source code not found');
+      }
+    } catch (error) {
+      console.error('❌ [PropertyPanel] Error loading component code:', error);
+      setCodeError(error instanceof Error ? error.message : 'Failed to load code');
+    } finally {
+      setIsLoadingCode(false);
+    }
+  };
+
+  // Load code when component changes
+  React.useEffect(() => {
+    if (state.selectedComponent && activeTab === 'code') {
+      loadComponentCode(state.selectedComponent);
+    }
+  }, [state.selectedComponent, activeTab]);
 
   const renderProperties = () => {
     if (!state.selectedComponent) {
@@ -172,31 +276,118 @@ const PropertyPanel: React.FC = () => {
       );
     }
 
-    const renderFileNode = (node: any, level = 0) => (
-      <div key={node.id}>
-        <FileItem
-          level={level}
-          selected={node.path === state.activeFile}
-          onClick={() => {
-            if (node.type === 'file') {
-              // Handle file selection
-            }
-          }}
-        >
-          {node.type === 'directory' ? '📁' : '📄'} {node.name}
-        </FileItem>
-        {node.children && node.isOpen && (
-          <div>
-            {node.children.map((child: any) => renderFileNode(child, level + 1))}
-          </div>
-        )}
-      </div>
-    );
+    // Functions are now defined at component level (above)
 
     return (
       <FileTree>
-        {state.fileTree.map(node => renderFileNode(node))}
+        {state.fileTree.map(node => renderFileNode(node, 0))}
       </FileTree>
+    );
+  };
+
+  const renderCode = () => {
+    if (!state.selectedComponent) {
+      return (
+        <EmptyState>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>💻</div>
+          <div style={{ fontSize: '16px', marginBottom: '8px' }}>No Component Selected</div>
+          <div style={{ fontSize: '14px' }}>
+            Select a component to view and edit its source code
+          </div>
+        </EmptyState>
+      );
+    }
+
+    if (isLoadingCode) {
+      return (
+        <EmptyState>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+          <div style={{ fontSize: '16px', marginBottom: '8px' }}>Loading Code...</div>
+          <div style={{ fontSize: '14px' }}>
+            Fetching component source code...
+          </div>
+        </EmptyState>
+      );
+    }
+
+    if (codeError) {
+      return (
+        <EmptyState>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+          <div style={{ fontSize: '16px', marginBottom: '8px' }}>Code Load Error</div>
+          <div style={{ fontSize: '14px', color: '#d32f2f' }}>
+            {codeError}
+          </div>
+        </EmptyState>
+      );
+    }
+
+    return (
+      <div style={{ padding: '16px' }}>
+        <div style={{ 
+          marginBottom: '16px',
+          padding: '12px',
+          background: '#f5f5f5',
+          borderRadius: '8px',
+          fontSize: '14px'
+        }}>
+          <strong>Component:</strong> {state.selectedComponent}
+          <br />
+          <strong>Status:</strong> Source code loaded
+        </div>
+        
+        <textarea
+          value={componentCode}
+          onChange={(e) => setComponentCode(e.target.value)}
+          style={{
+            width: '100%',
+            height: '400px',
+            fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+            fontSize: '12px',
+            padding: '12px',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            resize: 'vertical',
+            background: '#fafafa'
+          }}
+          placeholder="Component source code will appear here..."
+        />
+        
+        <div style={{ 
+          marginTop: '12px', 
+          display: 'flex', 
+          gap: '8px' 
+        }}>
+          <button
+            onClick={() => loadComponentCode(state.selectedComponent!)}
+            style={{
+              padding: '8px 16px',
+              background: '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔄 Reload
+          </button>
+          
+          <button
+            style={{
+              padding: '8px 16px',
+              background: '#388e3c',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            💾 Save Changes
+          </button>
+        </div>
+      </div>
     );
   };
 
@@ -219,10 +410,18 @@ const PropertyPanel: React.FC = () => {
         >
           Files
         </Tab>
+        <Tab
+          $active={activeTab === 'code'}
+          onClick={() => setActiveTab('code')}
+        >
+          Code
+        </Tab>
       </TabContainer>
 
       <PanelContent>
-        {activeTab === 'properties' ? renderProperties() : renderFiles()}
+        {activeTab === 'properties' && renderProperties()}
+        {activeTab === 'files' && renderFiles()}
+        {activeTab === 'code' && renderCode()}
       </PanelContent>
     </PanelContainer>
   );

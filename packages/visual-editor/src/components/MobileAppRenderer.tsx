@@ -14,11 +14,14 @@ declare module 'react' {
 // Type assertion helper for React components
 const asReactFC = <T extends any>(Component: T) => Component as React.FC<any>;
 
-// Import the real mobile template system (same as web package)
+// Import session workspace loader for real-time editing
+import { useSessionWorkspace } from '../services/SessionWorkspaceLoader';
+
+// Fallback imports from original package (used when session workspace fails)
 import {
-  getScreenComponent,
-  getNavTabs,
-  getScreenIdForTab,
+  getScreenComponent as originalGetScreenComponent,
+  getNavTabs as originalGetNavTabs,
+  getScreenIdForTab as originalGetScreenIdForTab,
   type ScreenConfig,
   type NavTabConfig
 } from '@mobile/screen-templates/templateConfig';
@@ -51,12 +54,22 @@ const LoadingSpinner = () => (
 
 /**
  * MobileAppRenderer - Renders the REAL mobile app using the same approach as the web package
- * This directly imports and renders the actual mobile screen components
+ * Now supports real-time editing by loading from session workspace
  */
 const MobileAppRenderer: React.FC<MobileAppRendererProps> = ({
   selectedScreen
 }) => {
-  // Get real navigation tabs from your mobile app
+  // ALL HOOKS MUST BE CALLED FIRST (Rules of Hooks)
+  
+  // Load session workspace for real-time editing
+  const { isLoaded, templateConfig, error, isLoading } = useSessionWorkspace();
+  
+  // Determine which template config to use (session or original)
+  const getScreenComponent = templateConfig?.getScreenComponent || originalGetScreenComponent;
+  const getNavTabs = templateConfig?.getNavTabs || originalGetNavTabs;
+  const getScreenIdForTab = templateConfig?.getScreenIdForTab || originalGetScreenIdForTab;
+  
+  // Get navigation tabs (session or original)
   const navTabs = getNavTabs();
   
   // Initialize with real navigation tabs from your mobile app
@@ -64,17 +77,39 @@ const MobileAppRenderer: React.FC<MobileAppRendererProps> = ({
     return navTabs[0]?.id || 'home';
   });
 
-  console.log('📱 [MobileAppRenderer] Rendering real mobile app');
-  console.log('📱 [MobileAppRenderer] Active tab:', activeTab);
-  console.log('📱 [MobileAppRenderer] Selected screen:', selectedScreen);
-  console.log('📱 [MobileAppRenderer] Navigation tabs count:', navTabs.length);
-  console.log('📱 [MobileAppRenderer] Bottom navigation will render with tabs:', navTabs.slice(0, 4).map((t: any) => t.name));
-
   // Real tab press handler using your actual navigation system
   const handleTabPress = useCallback((tab: string) => {
     console.log('📱 [MobileAppRenderer] Tab pressed:', tab);
     setActiveTab(tab);
   }, []);
+
+  // CONDITIONAL LOGIC AND RETURNS AFTER ALL HOOKS
+  
+  console.log('📱 [MobileAppRenderer] Rendering real mobile app');
+  console.log('📱 [MobileAppRenderer] Session workspace status:', { isLoaded, isLoading, hasError: !!error });
+  console.log('📱 [MobileAppRenderer] Using config from:', templateConfig ? 'session workspace' : 'original package');
+  console.log('📱 [MobileAppRenderer] Active tab:', activeTab);
+  console.log('📱 [MobileAppRenderer] Selected screen:', selectedScreen);
+  console.log('📱 [MobileAppRenderer] Navigation tabs count:', navTabs.length);
+  console.log('📱 [MobileAppRenderer] Bottom navigation will render with tabs:', navTabs.slice(0, 4).map((t: any) => t.name));
+
+  // Show loading while session workspace is initializing
+  if (isLoading && !isLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading Session Workspace...</Text>
+        <Text style={[styles.loadingText, { fontSize: 12, opacity: 0.7 }]}>
+          Preparing real-time editing
+        </Text>
+      </View>
+    );
+  }
+
+  // Show error if session workspace failed to load (but continue with fallback)
+  if (error && !templateConfig) {
+    console.warn('⚠️ [MobileAppRenderer] Session workspace error, using original package:', error);
+  }
 
   // Real screen renderer using your actual mobile template system
   const renderScreenComponent = (screenId: string) => {

@@ -108,6 +108,30 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     };
   }, []);
 
+  // Subscribe to watch a session on the backend
+  const subscribeToSessionWatching = async (sessionId: string): Promise<void> => {
+    try {
+      console.log('🔔 [SessionContext] Subscribing to watch session:', sessionId);
+      
+      const response = await fetch('/api/editor/session/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ [SessionContext] Backend is now watching session:', result.sessionId);
+      } else {
+        console.error('❌ [SessionContext] Failed to subscribe to session watching:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ [SessionContext] Error subscribing to session watching:', error);
+    }
+  };
+
   // Fetch session details by ID
   const fetchSessionDetails = async (sessionId: string) => {
     try {
@@ -131,6 +155,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
         };
         setCurrentSession(session);
         console.log('📁 [SessionContext] Loaded session details:', session.sessionId);
+        
+        // Subscribe to watch this session on the backend
+        await subscribeToSessionWatching(sessionId);
       }
     } catch (error) {
       console.error('📁 [SessionContext] Error fetching session details:', error);
@@ -161,6 +188,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
 
       // Update state
       setCurrentSession(session);
+
+      // Subscribe to watch the new session on the backend
+      await subscribeToSessionWatching(session.sessionId);
 
       // Trigger a page reload to reinitialize with the new session
       // This ensures all components get the new session context

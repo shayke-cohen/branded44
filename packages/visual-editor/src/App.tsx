@@ -109,7 +109,7 @@ const HTML5toTouch = {
 
 // Inner component that uses the editor context
 const AppContent: React.FC = () => {
-  const { state, setSrc2Status } = useEditor();
+  const { state, setSrc2Status, updateFileTree } = useEditor();
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [src2Manager] = useState(() => new Src2Manager());
@@ -160,6 +160,18 @@ const AppContent: React.FC = () => {
         
         setSrc2Status('ready'); // Mark session as ready
         setIsInitializing(false);
+        
+        // Load file tree when session is ready
+        try {
+          console.log('📁 [Visual Editor] Loading file tree...');
+          const src2Manager = new Src2Manager();
+          const fileTree = await src2Manager.getFileTree();
+          updateFileTree(fileTree);
+          console.log('✅ [Visual Editor] File tree loaded:', fileTree.length, 'items');
+        } catch (treeError) {
+          console.warn('⚠️ [Visual Editor] Failed to load file tree:', treeError);
+          // Don't fail the entire initialization just because file tree failed
+        }
       } catch (err) {
         console.error('🎨 [Visual Editor] Failed to initialize editor:', err);
         
@@ -189,6 +201,17 @@ const AppContent: React.FC = () => {
           console.log('🎨 [Visual Editor] Setting src2Status to ready and isInitializing to false (fallback mode)');
           setSrc2Status('ready'); // Continue as if initialization succeeded
           setIsInitializing(false);
+          
+          // Try to load file tree even in fallback mode
+          try {
+            console.log('📁 [Visual Editor] Loading file tree in fallback mode...');
+            const src2Manager = new Src2Manager();
+            const fileTree = await src2Manager.getFileTree();
+            updateFileTree(fileTree);
+            console.log('✅ [Visual Editor] File tree loaded in fallback mode:', fileTree.length, 'items');
+          } catch (treeError) {
+            console.warn('⚠️ [Visual Editor] Failed to load file tree in fallback mode:', treeError);
+          }
           // Don't set error state for timeout - let fallback session handle it
         } else {
           console.log('🎨 [Visual Editor] Setting src2Status to error and isInitializing to false due to non-timeout error');

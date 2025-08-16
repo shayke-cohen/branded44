@@ -1131,6 +1131,423 @@ router.get('/sessions', async (req, res) => {
   }
 });
 
+// Serve session modules dynamically for real-time editing
+router.get('/session-module/:sessionId/*', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+  
+  try {
+    const { sessionId } = req.params;
+    const modulePath = req.params[0]; // Get the wildcard path
+    
+    if (!sessionId || !modulePath) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID and module path are required',
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    const sessionManager = req.app.get('sessionManager');
+    if (!sessionManager) {
+      return res.status(500).json({
+        success: false,
+        error: 'SessionManager not available',
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Get session info
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: `Session not found: ${sessionId}`,
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Construct the full file path in session workspace
+    const path = require('path');
+    const fs = require('fs-extra');
+    
+    let filePath = path.join(session.sessionPath, 'workspace', modulePath);
+    
+    // Handle different file extensions
+    if (!path.extname(filePath)) {
+      // Try different extensions
+      const extensions = ['.ts', '.tsx', '.js', '.jsx'];
+      let found = false;
+      
+      for (const ext of extensions) {
+        const testPath = filePath + ext;
+        if (await fs.pathExists(testPath)) {
+          filePath = testPath;
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) {
+        return res.status(404).json({
+          success: false,
+          error: `Module file not found: ${modulePath}`,
+          requestId,
+          responseTime: `${Date.now() - startTime}ms`
+        });
+      }
+    }
+
+    // Check if file exists
+    if (!(await fs.pathExists(filePath))) {
+      return res.status(404).json({
+        success: false,
+        error: `Module file not found: ${modulePath}`,
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Read the file content
+    const fileContent = await fs.readFile(filePath, 'utf8');
+    
+    // Transform TypeScript to JavaScript if needed
+    let jsContent = fileContent;
+    
+    if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
+      // Improved TypeScript to JavaScript transformation
+      // Handle multiline constructs properly
+      jsContent = fileContent
+        // Remove import type statements
+        .replace(/import\s+type\s+.*?from\s+.*?;/g, '')
+        // Remove export type statements (including multiline ones)
+        .replace(/export\s+type\s+[\s\S]*?;/g, '')
+        // Remove standalone type statements (including multiline ones)
+        .replace(/type\s+\w+\s*=\s*[\s\S]*?;/g, '')
+        // Remove 'type' keywords from import statements (e.g., "type EntityConfig")
+        .replace(/(\{\s*[^}]*?)type\s+(\w+)([^}]*?\})/g, '$1$2$3')
+        // Remove interface declarations (including multiline ones)
+        .replace(/interface\s+\w+[\s\S]*?}/g, '')
+        // Remove type annotations from function parameters
+        .replace(/(\w+):\s*[\w\[\]|<>&\s]+(?=[\s,)])/g, '$1')
+        // Remove return type annotations (including complex ones)
+        .replace(/\):\s*[\w\[\]|<>&\s]+(\s*=>|\s*{)/g, ')$1')
+        // Remove generic type parameters (improved)
+        .replace(/<[^<>]*(?:<[^<>]*>[^<>]*)*>/g, '')
+        // Remove as type assertions
+        .replace(/\s+as\s+[\w\[\]|<>&\s]+/g, '')
+        // Remove React.FC type annotations
+        .replace(/:\s*React\.FC[^=]*/g, '');
+    }
+
+    // Set appropriate content type
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    console.log(`📡 [Session Module] Served ${modulePath} for session ${sessionId}`);
+    res.send(jsContent);
+    
+  } catch (error) {
+    console.error(`❌ [Session Module] Error serving module:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+  }
+});
+
+// Session synchronization endpoint for file watching
+router.post('/session/sync', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId is required',
+        requestId
+      });
+    }
+
+    console.log(`🔄 [Session Sync] Syncing to session: ${sessionId}`);
+
+    // Get SessionManager
+    const sessionManager = req.app.get('sessionManager');
+    if (!sessionManager) {
+      return res.status(500).json({
+        success: false,
+        error: 'SessionManager not found',
+        requestId
+      });
+    }
+
+    // Get session details
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: `Session not found: ${sessionId}`,
+        requestId
+      });
+    }
+
+    // Stop current file watcher if it exists
+    if (global.workspaceWatcher) {
+      console.log('🔄 [Session Sync] Stopping current file watcher');
+      global.workspaceWatcher.close();
+      global.workspaceWatcher = null;
+    }
+
+    // Create new file watcher for this session
+    console.log(`🔄 [Session Sync] Starting file watcher for: ${session.workspacePath}`);
+    global.workspaceWatcher = chokidar.watch(session.workspacePath, {
+      ignored: /(^|[\/\\])\../, // ignore dotfiles
+      persistent: true
+    });
+
+    global.workspaceWatcher
+      .on('change', (filePath) => {
+        console.log(`👁️ [FileWatcher] File changed in ${sessionId}: ${path.relative(session.workspacePath, filePath)}`);
+        
+        // Emit Socket.IO event for file change
+        if (global.io) {
+          global.io.emit('file-changed', {
+            filePath: path.relative(session.workspacePath, filePath),
+            sessionId: sessionId,
+            timestamp: Date.now()
+          });
+        }
+      });
+
+    // Update global session info
+    global.currentEditorSession = {
+      sessionId: session.sessionId,
+      sessionPath: session.sessionPath,
+      workspacePath: session.workspacePath,
+      startTime: Date.now()
+    };
+
+    console.log(`✅ [Session Sync] Successfully synced to session: ${sessionId}`);
+
+    res.json({
+      success: true,
+      message: `File watcher synced to session: ${sessionId}`,
+      sessionId: sessionId,
+      workspacePath: session.workspacePath,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+
+  } catch (error) {
+    console.error(`❌ [Session Sync] Error syncing session:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+  }
+});
+
+// File tree endpoint
+router.get('/files/tree', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+
+  try {
+    console.log('📁 [Files API] Getting file tree...');
+
+    // Get current session
+    const currentSession = global.currentEditorSession;
+    if (!currentSession) {
+      return res.status(404).json({
+        success: false,
+        error: 'No active session found',
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    const fs = require('fs-extra');
+    const path = require('path');
+
+    // Build file tree from session workspace
+    const buildFileTree = async (dirPath, relativePath = '') => {
+      const items = await fs.readdir(dirPath);
+      const tree = [];
+
+      for (const item of items) {
+        const itemPath = path.join(dirPath, item);
+        const stats = await fs.stat(itemPath);
+        const relativeItemPath = path.join(relativePath, item).replace(/\\/g, '/');
+
+        if (stats.isDirectory()) {
+          // Skip node_modules and other common ignored directories
+          if (['node_modules', '.git', 'dist', 'build', '.DS_Store'].includes(item)) {
+            continue;
+          }
+
+          const children = await buildFileTree(itemPath, relativeItemPath);
+          
+          // Auto-expand commonly accessed directories
+          const autoExpandDirs = ['screens', 'contexts', 'components', 'services', 'types', 'utils'];
+          const shouldAutoExpand = autoExpandDirs.includes(item) || 
+                                  relativeItemPath.includes('screens/') ||
+                                  relativeItemPath.includes('wix/');
+          
+          tree.push({
+            id: relativeItemPath,
+            name: item,
+            path: relativeItemPath,
+            type: 'directory',
+            children: children,
+            isOpen: shouldAutoExpand
+          });
+        } else {
+          // Only include common source files
+          const ext = path.extname(item).toLowerCase();
+          if (['.ts', '.tsx', '.js', '.jsx', '.json', '.md'].includes(ext)) {
+            tree.push({
+              id: relativeItemPath,
+              name: item,
+              path: relativeItemPath,
+              type: 'file'
+            });
+          }
+        }
+      }
+
+      return tree.sort((a, b) => {
+        // Directories first, then files, both alphabetically
+        if (a.type !== b.type) {
+          return a.type === 'directory' ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    };
+
+    const tree = await buildFileTree(currentSession.workspacePath);
+
+    console.log(`📁 [Files API] Built file tree with ${tree.length} top-level items`);
+    
+    res.json({
+      success: true,
+      fileTree: tree, // Changed from 'tree' to 'fileTree' to match frontend expectations
+      sessionId: currentSession.sessionId,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('📁 [Files API] Error getting file tree:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+  }
+});
+
+// Serve raw session files for component inspection
+router.get('/session-file/:sessionId/*', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+  
+  try {
+    const { sessionId } = req.params;
+    const filePath = req.params[0]; // Get the wildcard path
+    
+    if (!sessionId || !filePath) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID and file path are required',
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    const sessionManager = req.app.get('sessionManager');
+    if (!sessionManager) {
+      return res.status(500).json({
+        success: false,
+        error: 'SessionManager not available',
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Get session info
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: `Session not found: ${sessionId}`,
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Construct the full file path in session workspace
+    const path = require('path');
+    const fs = require('fs-extra');
+    
+    const fullFilePath = path.join(session.sessionPath, 'workspace', filePath);
+    
+    // Check if file exists
+    if (!(await fs.pathExists(fullFilePath))) {
+      return res.status(404).json({
+        success: false,
+        error: `File not found: ${filePath}`,
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Read and return the raw file content
+    const fileContent = await fs.readFile(fullFilePath, 'utf8');
+    
+    // Set appropriate content type based on file extension
+    const ext = path.extname(filePath).toLowerCase();
+    let contentType = 'text/plain';
+    if (ext === '.ts' || ext === '.tsx') {
+      contentType = 'text/typescript';
+    } else if (ext === '.js' || ext === '.jsx') {
+      contentType = 'text/javascript';
+    } else if (ext === '.json') {
+      contentType = 'application/json';
+    }
+    
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    console.log(`📄 [Session File] Served ${filePath} for session ${sessionId}`);
+    res.send(fileContent);
+    
+  } catch (error) {
+    console.error(`❌ [Session File] Error serving file:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+  }
+});
+
 // Test route to verify routes are being loaded
 router.get('/test', (req, res) => {
   res.json({ message: 'Route file is being loaded correctly', timestamp: new Date().toISOString() });

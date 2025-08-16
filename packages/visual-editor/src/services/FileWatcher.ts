@@ -179,9 +179,16 @@ export class FileWatcher {
       }
     });
 
-    // File change events
-    this.socket.on('file:changed', (event: FileChangeEvent) => {
-      this.handleFileChange(event);
+    // File change events (backend sends 'file-changed')
+    this.socket.on('file-changed', (event: any) => {
+      console.log('📁 [Socket] File changed:', event.filePath);
+      // Transform backend event format to FileChangeEvent format
+      const fileEvent: FileChangeEvent = {
+        type: 'change', // Default to 'change' since backend doesn't specify type
+        path: event.filePath,
+        stats: event.stats
+      };
+      this.handleFileChange(fileEvent);
     });
 
     // Bulk file changes (for initial sync)
@@ -210,6 +217,19 @@ export class FileWatcher {
         console.error(`❌ [FileWatcher] Error in handler ${id}:`, error);
       }
     });
+
+    // Dispatch custom browser event for session workspace loader
+    if (typeof window !== 'undefined') {
+      const customEvent = new CustomEvent('file-change', {
+        detail: {
+          filePath: event.path,
+          type: event.type,
+          timestamp: Date.now()
+        }
+      });
+      window.dispatchEvent(customEvent);
+      console.log(`📡 [FileWatcher] Dispatched file-change event for: ${event.path}`);
+    }
 
     // Handle hot reload if enabled
     if (this.options.enableHotReload) {

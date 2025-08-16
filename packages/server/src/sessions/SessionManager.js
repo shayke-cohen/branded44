@@ -233,6 +233,88 @@ class SessionManager {
   }
 
   /**
+   * Get the most recent session (by creation time)
+   * @returns {Object|null} Most recent session or null if none exist
+   */
+  getMostRecentSession() {
+    if (this.activeSessions.size === 0) {
+      return null;
+    }
+
+    let mostRecent = null;
+    let latestTime = 0;
+
+    for (const [sessionId, session] of this.activeSessions) {
+      // Extract timestamp from session ID (session-{timestamp}-{random})
+      const timestamp = parseInt(sessionId.split('-')[1]) || 0;
+      if (timestamp > latestTime) {
+        latestTime = timestamp;
+        mostRecent = session;
+      }
+    }
+
+    return mostRecent;
+  }
+
+  /**
+   * Start watching the most recent session automatically
+   * Called on server startup to resume watching after restart
+   * @param {Object} io - Socket.IO instance for emitting events
+   */
+  startWatchingMostRecent(io) {
+    const mostRecentSession = this.getMostRecentSession();
+    
+    if (!mostRecentSession) {
+      console.log('📁 [SessionManager] No sessions found to watch');
+      return null;
+    }
+
+    const { sessionId, workspacePath } = mostRecentSession;
+    
+    console.log(`🔄 [SessionManager] Auto-starting file watcher for most recent session: ${sessionId}`);
+    console.log(`🔄 [SessionManager] Watching: ${workspacePath}`);
+
+    // Stop any existing global watcher
+    if (global.workspaceWatcher) {
+      global.workspaceWatcher.close();
+      global.workspaceWatcher = null;
+    }
+
+    // Create new file watcher for this session
+    const chokidar = require('chokidar');
+    global.workspaceWatcher = chokidar.watch(workspacePath, {
+      ignored: /(^|[\/\\])\../, // ignore dotfiles
+      persistent: true
+    });
+
+    global.workspaceWatcher
+      .on('change', (filePath) => {
+        const relativePath = require('path').relative(workspacePath, filePath);
+        console.log(`👁️ [FileWatcher] File changed in ${sessionId}: ${relativePath}`);
+        
+        // Emit Socket.IO event for file change
+        if (io) {
+          io.emit('file-changed', {
+            filePath: relativePath,
+            sessionId: sessionId,
+            timestamp: Date.now()
+          });
+        }
+      });
+
+    // Set global session info
+    global.currentEditorSession = {
+      sessionId: mostRecentSession.sessionId,
+      sessionPath: mostRecentSession.sessionPath,
+      workspacePath: mostRecentSession.workspacePath,
+      startTime: Date.now()
+    };
+
+    console.log(`✅ [SessionManager] Auto-watching session: ${sessionId}`);
+    return mostRecentSession;
+  }
+
+  /**
    * Get session information
    * @param {string} sessionId - Session ID
    * @returns {Object|null} Session object or null if not found
