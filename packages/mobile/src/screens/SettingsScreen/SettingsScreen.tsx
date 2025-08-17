@@ -15,6 +15,7 @@ import {useMember} from '../../context';
 import {wixApiClient} from '../../utils/wixApiClient';
 import {THEME_OPTIONS} from '../../constants';
 import SessionBundleSection from '../../components/SessionBundleSection';
+import { DynamicComponentDemo } from '../../components/DynamicComponentDemo';
 
 
 interface SettingsScreenProps {
@@ -495,6 +496,13 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
                 console.log('📱 [SETTINGS] Session changed:', sessionId);
               }}
             />
+          </View>
+        )}
+
+        {/* Development Section - OTA Component Demo */}
+        {__DEV__ && (
+          <View style={styles.section}>
+            <DynamicComponentDemo />
           </View>
         )}
 

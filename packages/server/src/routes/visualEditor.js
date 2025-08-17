@@ -170,11 +170,20 @@ router.post('/init', async (req, res) => {
     workspaceWatcher
       .on('change', (filePath) => {
         req.log('info', 'File changed in workspace', { filePath, sessionId });
-        req.io.emit('file-changed', {
-          filePath: path.relative(workspacePath, filePath),
-          sessionId: sessionId,
-          timestamp: Date.now()
-        });
+        
+        // Safely emit file-changed event
+        try {
+          const io = req.io || getIO();
+          if (io) {
+            io.emit('file-changed', {
+              filePath: path.relative(workspacePath, filePath),
+              sessionId: sessionId,
+              timestamp: Date.now()
+            });
+          }
+        } catch (error) {
+          console.warn('⚠️ [FileWatcher] Could not emit file-changed event:', error.message);
+        }
       });
 
     // Store session info for cleanup

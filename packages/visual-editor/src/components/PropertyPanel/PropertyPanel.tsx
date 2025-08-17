@@ -245,8 +245,13 @@ const PropertyPanel: React.FC = () => {
         throw new Error(`Failed to load file: ${response.status} ${response.statusText}`);
       }
       
-      const content = await response.text();
-      setFileContent(content);
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load file');
+      }
+      
+      setFileContent(data.content);
       setSelectedFilePath(filePath);
       setHasUnsavedChanges(false);
       

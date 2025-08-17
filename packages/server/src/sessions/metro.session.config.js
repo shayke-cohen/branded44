@@ -31,10 +31,8 @@ function createSessionMetroConfig(workspacePath, options = {}) {
         path.resolve(__dirname, '../../../../node_modules'),
       ],
       
-      // Add crypto polyfill aliases for better compatibility (like original)
+      // Direct mapping for tilde path only - no Node.js polyfills
       alias: {
-        crypto: 'react-native-get-random-values',
-        // Direct mapping for tilde path (like original)
         '~': path.join(workspacePath, '~'),
       },
       
@@ -42,8 +40,9 @@ function createSessionMetroConfig(workspacePath, options = {}) {
       unstable_enablePackageExports: true,
       platforms: ['ios', 'android', 'native', 'web'],
       
-      // Block problematic packages that cause issues in session builds
+      // Block problematic packages and Node.js core modules
       blockList: [
+        // Wix-specific blocking
         /.*\/node_modules\/jose\/.*/,
         /.*\/node_modules\/@wix\/sdk\/.*/,
         /.*\/utils\/wixApiClient\.ts$/,
@@ -54,6 +53,19 @@ function createSessionMetroConfig(workspacePath, options = {}) {
         /.*\/context\/WixCartContext\.tsx$/,
         /.*\/context\/WixBookingContext\.tsx$/,
         /.*\/context\/.*Wix.*\.tsx$/,
+        // Block Node.js core modules that should not be in React Native bundles
+        /.*\/node_modules\/buffer\/.*/,
+        /.*\/node_modules\/stream\/.*/,
+        /.*\/node_modules\/stream-browserify\/.*/,
+        /.*\/node_modules\/util\/.*/,
+        /.*\/node_modules\/crypto\/.*/,
+        /.*\/node_modules\/crypto-browserify\/.*/,
+        /.*\/node_modules\/text-encoding\/.*/,
+        /.*\/node_modules\/text-encoding-polyfill\/.*/,
+        /.*\/node_modules\/url\/.*/,
+        /.*\/node_modules\/base64-js\/.*/,
+        /.*\/node_modules\/ieee754\/.*/,
+        /.*\/node_modules\/process\/.*/,
       ],
     },
     
@@ -69,25 +81,9 @@ function createSessionMetroConfig(workspacePath, options = {}) {
       }),
     },
     
-    // Add polyfills for session bundles (try to include what mobile package has)
+    // Use minimal serializer - no Node.js polyfills for pure React Native bundles
     serializer: {
-      getPolyfills: () => {
-        // Try to include essential polyfills, but gracefully handle missing ones
-        const polyfills = [];
-        try {
-          // Only add polyfills that actually exist in node_modules
-          const mobileNodeModules = path.resolve(__dirname, '../../../mobile/node_modules');
-          
-          // Check for react-native-get-random-values (crypto)
-          if (require.resolve('react-native-get-random-values', { paths: [mobileNodeModules] })) {
-            polyfills.push(require.resolve('react-native-get-random-values', { paths: [mobileNodeModules] }));
-          }
-          
-        } catch (error) {
-          console.log('📦 [Metro] Some polyfills not available, using defaults');
-        }
-        return polyfills;
-      },
+      // Let Metro use its default polyfills for React Native only
     },
   };
   

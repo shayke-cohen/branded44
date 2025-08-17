@@ -32,4 +32,8 @@ if (Platform.OS !== 'web') {
 // Export CheckoutWebView (will be null on web)
 export { CheckoutWebView };
 
+console.log('🧩 [DEBUG] About to export DynamicComponentDemo...');
+export { DynamicComponentDemo } from './DynamicComponentDemo';
+console.log('🧩 [DEBUG] DynamicComponentDemo export successful');
+
 console.log('✅ [DEBUG] All component exports completed successfully!');

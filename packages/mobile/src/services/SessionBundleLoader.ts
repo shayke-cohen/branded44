@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { componentRegistry, ComponentRegistry } from './ComponentRegistry';
 
 interface BundleInfo {
   sessionId: string;
@@ -24,6 +25,7 @@ interface SessionBundleConfig {
   enableAutoReload: boolean;
   enabled: boolean;
   platform: string;
+  executeBundle?: boolean; // Whether to execute downloaded bundles
 }
 
 /**
@@ -44,8 +46,37 @@ export class SessionBundleLoader {
       enableAutoReload: true,
       enabled: false,
       platform: Platform.OS,
+      executeBundle: true, // Default to executing bundles
       ...config
     };
+    
+    // Set up component registry event listeners
+    this.setupComponentRegistryListeners();
+  }
+
+  /**
+   * Set up component registry event listeners
+   */
+  private setupComponentRegistryListeners(): void {
+    componentRegistry.on('bundle-executed', (data) => {
+      console.log(`✅ [SessionBundleLoader] Bundle executed successfully: ${data.sessionId}`);
+      this.emit('bundle-executed', data);
+    });
+
+    componentRegistry.on('bundle-execution-error', (data) => {
+      console.error(`❌ [SessionBundleLoader] Bundle execution failed: ${data.error}`);
+      this.emit('bundle-execution-error', data);
+    });
+
+    componentRegistry.on('components-updated', (data) => {
+      console.log(`🔄 [SessionBundleLoader] Components updated: ${data.componentsCount} components`);
+      this.emit('components-updated', data);
+    });
+
+    componentRegistry.on('session-cleared', () => {
+      console.log(`🧹 [SessionBundleLoader] Session components cleared`);
+      this.emit('session-cleared');
+    });
   }
 
   /**
@@ -53,6 +84,9 @@ export class SessionBundleLoader {
    */
   async initialize(): Promise<void> {
     console.log('📱 [SessionBundleLoader] Initializing session bundle loader (HTTP-only)...');
+    console.log(`📱 [SessionBundleLoader] Server: ${this.config.serverUrl}`);
+    console.log(`📱 [SessionBundleLoader] Platform: ${this.config.platform}`);
+    console.log(`📱 [SessionBundleLoader] Execute bundles: ${this.config.executeBundle}`);
     
     try {
       // Load saved session info
@@ -332,10 +366,26 @@ export class SessionBundleLoader {
       console.log(`   🔢 Hash: ${enhancedBundleInfo.bundleHash}`);
       console.log(`   🏷️ Version: ${enhancedBundleInfo.version || 'unknown'}`);
       
-      // For React Native, we would typically save the bundle and reload
-      // In a production app, you'd use tools like CodePush or implement custom bundle loading
+      // Execute bundle if enabled
+      if (this.config.executeBundle) {
+        try {
+          console.log(`🚀 [SessionBundleLoader] Executing bundle for session: ${bundleInfo.sessionId}`);
+          await componentRegistry.loadSessionBundle(bundleCode, bundleInfo.sessionId);
+          console.log(`✅ [SessionBundleLoader] Bundle executed successfully`);
+        } catch (executionError) {
+          console.error(`❌ [SessionBundleLoader] Bundle execution failed:`, executionError);
+          // Don't throw here - we still want to emit the bundle-loaded event
+          const errorMessage = executionError instanceof Error ? executionError.message : 'Bundle execution failed';
+          this.emit('bundle-execution-error', { 
+            bundleInfo: enhancedBundleInfo, 
+            error: errorMessage 
+          });
+        }
+      } else {
+        console.log(`📦 [SessionBundleLoader] Bundle execution disabled - only downloading`);
+      }
       
-      // For now, we'll emit the bundle loaded event with enhanced info
+      // Emit the bundle loaded event with enhanced info
       this.emit('bundle-loaded', { 
         bundleInfo: enhancedBundleInfo, 
         bundleCode,
@@ -636,11 +686,79 @@ export class SessionBundleLoader {
   }
 
   /**
+   * Enable or disable bundle execution
+   */
+  setExecuteBundle(execute: boolean): void {
+    console.log(`📱 [SessionBundleLoader] Setting execute bundle: ${execute}`);
+    this.config.executeBundle = execute;
+  }
+
+  /**
+   * Get current bundle execution setting
+   */
+  getExecuteBundle(): boolean {
+    return this.config.executeBundle || false;
+  }
+
+  /**
+   * Get the component registry instance
+   */
+  getComponentRegistry(): ComponentRegistry {
+    return componentRegistry;
+  }
+
+  /**
+   * Clear all session components from the registry
+   */
+  clearSessionComponents(): void {
+    console.log(`📱 [SessionBundleLoader] Clearing session components`);
+    componentRegistry.clearSessionComponents();
+  }
+
+  /**
+   * Get registry statistics
+   */
+  getRegistryStats() {
+    return componentRegistry.getStats();
+  }
+
+  /**
+   * List all available components
+   */
+  listComponents() {
+    return componentRegistry.listComponents();
+  }
+
+  /**
+   * Force reload and execute current bundle
+   */
+  async forceReloadAndExecute(): Promise<void> {
+    if (!this.currentBundle) {
+      throw new Error('No current bundle to reload');
+    }
+
+    console.log(`🔄 [SessionBundleLoader] Force reloading and executing bundle: ${this.currentBundle.sessionId}`);
+    
+    // Clear existing session components first
+    this.clearSessionComponents();
+    
+    // Reload the bundle
+    await this.loadBundle(this.currentBundle);
+  }
+
+  /**
    * Clean up resources
    */
   async destroy(): Promise<void> {
     this.stopPolling();
     this.listeners.clear();
+    
+    // Clear session components
+    this.clearSessionComponents();
+    
+    // Remove component registry listeners
+    componentRegistry.removeAllListeners();
+    
     console.log('📱 [SessionBundleLoader] Session bundle loader destroyed');
   }
 }
