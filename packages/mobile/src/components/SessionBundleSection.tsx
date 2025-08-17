@@ -49,13 +49,13 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
   const { theme } = useTheme();
   
   // State
-  const [isEnabled, setIsEnabled] = useState(false);
+  const [isEnabled, setIsEnabled] = useState<boolean | undefined>(undefined);
   const [connected, setConnected] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [currentBundle, setCurrentBundle] = useState<BundleInfo | null>(null);
   const [bundleHistory, setBundleHistory] = useState<BundleInfo[]>([]);
   const [status, setStatus] = useState<string>('Disabled');
-  const [autoReload, setAutoReload] = useState(true);
+  const [autoReload, setAutoReload] = useState<boolean | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [showBundleDetails, setShowBundleDetails] = useState(false);
   const [lastDownloadStats, setLastDownloadStats] = useState<any>(null);
@@ -70,17 +70,62 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
   const [serverUrl, setServerUrl] = useState('http://localhost:3001');
   const [showServerConfig, setShowServerConfig] = useState(false);
 
+  // Load saved settings immediately on mount
   useEffect(() => {
-    if (isEnabled) {
-      initializeBundleLoader();
-    } else {
-      cleanupBundleLoader();
+    const loadSavedSettings = async () => {
+      try {
+        console.log('📱 [SessionBundleSection] Loading saved settings on component mount...');
+        
+        // First, load settings from storage into the bundle loader
+        await sessionBundleLoader.loadSessionInfo();
+        
+        // Now get the loaded settings
+        // Load saved settings
+        const savedAutoReload = sessionBundleLoader.getAutoReload();
+        const savedEnabled = sessionBundleLoader.getEnabled();
+        
+        setAutoReload(savedAutoReload);
+        setIsEnabled(savedEnabled);
+        console.log(`📱 [SessionBundleSection] Restored auto-reload setting: ${savedAutoReload}`);
+        console.log(`📱 [SessionBundleSection] Restored enabled setting: ${savedEnabled}`);
+        
+        // Load saved server URL and session ID
+        const settings = sessionBundleLoader.getSettings();
+        if (settings.serverUrl && settings.serverUrl !== 'http://localhost:3001') {
+          setServerUrl(settings.serverUrl);
+          console.log(`📱 [SessionBundleSection] Restored server URL: ${settings.serverUrl}`);
+        }
+        
+        if (settings.sessionId) {
+          setCurrentSessionId(settings.sessionId);
+          console.log(`📱 [SessionBundleSection] Restored session ID: ${settings.sessionId}`);
+        }
+        
+      } catch (error) {
+        console.error('❌ [SessionBundleSection] Failed to load saved settings:', error);
+        // Fall back to defaults
+        setAutoReload(true);
+        setIsEnabled(false);
+      }
+    };
+    
+    loadSavedSettings();
+  }, []); // Run only once on mount
+
+  useEffect(() => {
+    // Only initialize after both settings have been loaded
+    if (autoReload !== undefined && isEnabled !== undefined) {
+      if (isEnabled) {
+        initializeBundleLoader();
+      } else {
+        cleanupBundleLoader();
+      }
     }
     
     return () => {
       cleanupBundleLoader();
     };
-  }, [isEnabled]);
+  }, [isEnabled, autoReload]); // Depends on both settings
 
   const initializeBundleLoader = async () => {
     try {
@@ -98,9 +143,10 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
       sessionBundleLoader.on('bundle-available', handleBundleAvailable);
       sessionBundleLoader.on('max-reconnect-attempts', handleMaxReconnectAttempts);
 
-      // Initialize with current settings
+      // Initialize with saved settings (settings already loaded in mount useEffect)
       await sessionBundleLoader.initialize();
-      sessionBundleLoader.setAutoReload(autoReload);
+      
+      console.log(`📱 [SessionBundleLoader] Using auto-reload setting: ${autoReload}`);
 
       // Get current state
       const bundle = sessionBundleLoader.getCurrentBundle();
@@ -217,16 +263,24 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
   };
 
   // Actions
-  const handleToggleEnabled = () => {
-    setIsEnabled(!isEnabled);
+  const handleToggleEnabled = async () => {
+    // Handle undefined case by defaulting to false, then toggling
+    const currentValue = isEnabled === true;
+    const newEnabled = !currentValue;
+    setIsEnabled(newEnabled);
+    // Always save the setting
+    await sessionBundleLoader.setEnabled(newEnabled);
+    console.log(`📱 [SessionBundleSection] Enabled toggled from ${currentValue} to: ${newEnabled}`);
   };
 
   const handleToggleAutoReload = () => {
-    const newAutoReload = !autoReload;
+    // Handle undefined case by defaulting to false, then toggling
+    const currentValue = autoReload === true;
+    const newAutoReload = !currentValue;
     setAutoReload(newAutoReload);
-    if (isEnabled) {
-      sessionBundleLoader.setAutoReload(newAutoReload);
-    }
+    // Always save the setting, regardless of whether bundle loader is currently enabled
+    sessionBundleLoader.setAutoReload(newAutoReload);
+    console.log(`📱 [SessionBundleSection] Auto-reload toggled from ${currentValue} to: ${newAutoReload}`);
   };
 
   const handleSelectSession = async (sessionId: string) => {
@@ -236,7 +290,7 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
       setCurrentSessionId(sessionId);
       onSessionChange?.(sessionId);
       setShowSessionSelector(false);
-      setStatus(`Connected to session: ${sessionId.substring(0, 8)}...`);
+      setStatus(`Connected to session: ${sessionId}`);
     } catch (error) {
       Alert.alert('Error', `Failed to select session: ${error.message}`);
     } finally {
@@ -342,6 +396,13 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
       backgroundColor: isEnabled ? theme.colors.primary : theme.colors.border,
       justifyContent: 'center',
       alignItems: isEnabled ? 'flex-end' : 'flex-start',
+      paddingHorizontal: 3,
+    },
+    switchBase: {
+      width: 50,
+      height: 30,
+      borderRadius: 15,
+      justifyContent: 'center',
       paddingHorizontal: 3,
     },
     switchThumb: {
@@ -532,7 +593,17 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
               Load code from visual editor sessions
             </Text>
           </View>
-          <TouchableOpacity style={styles.switch} onPress={handleToggleEnabled}>
+          <TouchableOpacity 
+            style={[
+              styles.switchBase,
+              {
+                backgroundColor: (isEnabled === true) ? theme.colors.primary : theme.colors.border,
+                alignItems: (isEnabled === true) ? 'flex-end' : 'flex-start',
+              }
+            ]} 
+            onPress={handleToggleEnabled}
+            disabled={isEnabled === undefined}
+          >
             <View style={styles.switchThumb} />
           </TouchableOpacity>
         </TouchableOpacity>
@@ -602,7 +673,17 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
                   Automatically load new bundles when ready
                 </Text>
               </View>
-              <TouchableOpacity style={styles.switch} onPress={handleToggleAutoReload}>
+              <TouchableOpacity 
+                style={[
+                  styles.switchBase,
+                  {
+                    backgroundColor: (autoReload === true) ? theme.colors.primary : theme.colors.border,
+                    alignItems: (autoReload === true) ? 'flex-end' : 'flex-start',
+                  }
+                ]} 
+                onPress={handleToggleAutoReload}
+                disabled={autoReload === undefined}
+              >
                 <View style={styles.switchThumb} />
               </TouchableOpacity>
             </View>
@@ -690,7 +771,7 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
               <Text style={styles.optionDescription}>Recent bundle downloads for this device</Text>
               
               {bundleHistory.slice(0, 3).map((bundle, index) => (
-                <View key={`${bundle.sessionId}-${bundle.timestamp}`} style={styles.historyItem}>
+                <View key={`${bundle.sessionId}-${bundle.timestamp}-${bundle.downloadedAt || index}`} style={styles.historyItem}>
                   <View style={styles.historyHeader}>
                     <Text style={styles.historyPlatform}>{bundle.platform}</Text>
                     <Text style={styles.historyTime}>
@@ -698,7 +779,7 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
                     </Text>
                   </View>
                   <Text style={styles.historySessionId}>
-                    {bundle.sessionId.substring(0, 16)}...
+                    {bundle.sessionId}
                   </Text>
                   {bundle.fileSize && (
                     <Text style={styles.historySize}>
@@ -768,7 +849,7 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
                     onPress={() => handleSelectSession(item.sessionId)}
                   >
                     <Text style={styles.sessionId}>
-                      {item.sessionId.substring(0, 24)}...
+                      {item.sessionId}
                     </Text>
                     <Text style={styles.sessionAge}>
                       Created {formatAge(item.age)}

@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
-const WebSocket = require('ws');
+
 const path = require('path');
 
 const visualEditorRoutes = require('./routes/visualEditor');
@@ -438,6 +438,83 @@ app.post('/execute-claude-code', async (req, res) => {
 // Visual editor routes
 app.use('/api/editor', visualEditorRoutes);
 
+// Mobile bundle polling endpoint
+app.get('/api/sessions/:sessionId/bundle', (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { platform } = req.query;
+    
+    console.log(`📱 [Mobile Bundle API] Bundle request for session: ${sessionId}, platform: ${platform}`);
+    
+    // Get session from SessionManager
+    const sessionManager = app.get('sessionManager');
+    const session = sessionManager.getSession(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: `Session not found: ${sessionId}`
+      });
+    }
+    
+    // Check if actual bundle exists and get its metadata
+    const sessionMobileBundleAPI = app.get('sessionMobileBundleAPI');
+    const bundlePath = sessionMobileBundleAPI.bundleBuilder.getMobileBundlePath(
+      session.sessionPath, 
+      sessionId, 
+      platform || 'ios'
+    );
+    
+    let bundleInfo;
+    if (bundlePath && require('fs-extra').existsSync(bundlePath)) {
+      // Use actual bundle file metadata
+      const fs = require('fs-extra');
+      const stats = fs.statSync(bundlePath);
+      const bundleContent = fs.readFileSync(bundlePath, 'utf8');
+      const crypto = require('crypto');
+      const actualHash = crypto.createHash('md5').update(bundleContent).digest('hex');
+      
+      bundleInfo = {
+        sessionId,
+        platform: platform || 'ios',
+        bundleUrl: `/api/editor/session/${sessionId}/mobile-bundle/${platform || 'ios'}`,
+        bundleSize: stats.size,
+        timestamp: Math.floor(stats.mtime.getTime()),
+        bundleHash: actualHash,
+        version: '1.0.0'
+      };
+    } else {
+      // Use consistent mock data (same values each time for same session/platform)
+      const crypto = require('crypto');
+      const mockSeed = `${sessionId}-${platform || 'ios'}`;
+      const mockHash = crypto.createHash('md5').update(mockSeed).digest('hex');
+      
+      bundleInfo = {
+        sessionId,
+        platform: platform || 'ios',
+        bundleUrl: `/api/editor/session/${sessionId}/mobile-bundle/${platform || 'ios'}`,
+        bundleSize: 1024 * 50, // 50KB mock size
+        timestamp: 1234567890000, // Fixed timestamp for consistent mock data
+        bundleHash: mockHash,
+        version: '1.0.0'
+      };
+    }
+    
+    res.json({
+      success: true,
+      bundle: bundleInfo,
+      message: 'Bundle available'
+    });
+    
+  } catch (error) {
+    console.error('❌ [Mobile Bundle API] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Add Wix proxy routes for CORS handling
 if (visualEditorRoutes.addWixProxyRoutes) {
   visualEditorRoutes.addWixProxyRoutes(app);
@@ -727,99 +804,18 @@ io.on('connection', (socket) => {
 // Store socket.io instance for other modules
 global.io = io;
 
-// Create separate WebSocket server for mobile bundle communication
-const wss = new WebSocket.Server({ 
-  port: 3002, // Different port to avoid conflicts with Socket.IO
-  cors: {
-    origin: "*",
-    credentials: true
-  }
-});
 
-// Handle mobile WebSocket connections
-wss.on('connection', (ws, req) => {
-  console.log('📱 [Mobile WebSocket] Client connected');
-  
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      console.log('📱 [Mobile WebSocket] Received message:', data.type);
-      
-      // Handle mobile bundle requests
-      if (data.type === 'request-mobile-bundle') {
-        handleMobileBundleRequest(ws, data);
-      }
-    } catch (error) {
-      console.error('❌ [Mobile WebSocket] Failed to parse message:', error);
-      ws.send(JSON.stringify({
-        type: 'error',
-        error: 'Invalid message format'
-      }));
-    }
-  });
-  
-  ws.on('close', () => {
-    console.log('📱 [Mobile WebSocket] Client disconnected');
-  });
-  
-  ws.on('error', (error) => {
-    console.error('❌ [Mobile WebSocket] Connection error:', error);
-  });
-  
-  // Send connection confirmation
-  ws.send(JSON.stringify({
-    type: 'connected',
-    message: 'Mobile WebSocket connected'
-  }));
-});
 
-// Handle mobile bundle requests
-function handleMobileBundleRequest(ws, data) {
-  const { sessionId, platform } = data;
-  
-  if (!sessionId) {
-    ws.send(JSON.stringify({
-      type: 'mobile-bundle-error',
-      error: 'Session ID is required'
-    }));
-    return;
-  }
-  
-  console.log(`📱 [Mobile WebSocket] Bundle request for session: ${sessionId}, platform: ${platform}`);
-  
-  // Get session from SessionManager
-  const sessionManager = app.get('sessionManager');
-  const session = sessionManager.getSession(sessionId);
-  
-  if (!session) {
-    ws.send(JSON.stringify({
-      type: 'mobile-bundle-error',
-      error: `Session not found: ${sessionId}`
-    }));
-    return;
-  }
-  
-  // For now, send a mock bundle response
-  // In a real implementation, this would trigger bundle building
-  ws.send(JSON.stringify({
-    type: 'mobile-bundle-available',
-    sessionId,
-    platform,
-    bundleUrl: `/api/mobile-bundle/${sessionId}/${platform}`,
-    bundleSize: 1024 * 50, // 50KB mock size
-    timestamp: Date.now()
-  }));
-}
+
+
 
 const PORT = process.env.PORT || 3001;
-const WS_PORT = 3002;
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`📱 Mobile app preview: http://localhost:${PORT}/real-app/{sessionId}`);
   console.log(`🎯 API endpoints available at: http://localhost:${PORT}/api/editor`);
-  console.log(`📱 Mobile WebSocket server running on port ${WS_PORT}`);
 
   // Initialize AutoRebuildManager
   autoRebuildManager.initialize(io);

@@ -13,12 +13,16 @@ interface BundleInfo {
   bundleHash?: string;
   version?: string;
   workspacePath?: string;
+  // Server comparison data (to prevent bundle reload loops)
+  serverTimestamp?: number;
+  serverBundleHash?: string;
 }
 
 interface SessionBundleConfig {
   serverUrl: string;
   sessionId: string | null;
   enableAutoReload: boolean;
+  enabled: boolean;
   platform: string;
 }
 
@@ -38,6 +42,7 @@ export class SessionBundleLoader {
       serverUrl: 'http://localhost:3001',
       sessionId: null,
       enableAutoReload: true,
+      enabled: false,
       platform: Platform.OS,
       ...config
     };
@@ -73,7 +78,7 @@ export class SessionBundleLoader {
     console.log(`📱 [SessionBundleLoader] Setting session ID: ${sessionId}`);
     
     this.config.sessionId = sessionId;
-    await AsyncStorage.setItem('session_bundle_session_id', sessionId);
+    await this.saveSessionId(sessionId);
     
     // Restart polling with new session
     this.stopPolling();
@@ -86,106 +91,134 @@ export class SessionBundleLoader {
   }
 
   /**
-   * Connect to server WebSocket for real-time bundle updates
+   * Set auto-reload enabled state and save to storage
    */
-  private async connectToServer(): Promise<void> {
-    if (!this.config.sessionId) {
-      console.log('📱 [SessionBundleLoader] No session ID set, skipping server connection');
-      return;
-    }
-
-    if (this.connectionState === 'connecting' || this.connectionState === 'connected') {
-      console.log('📱 [SessionBundleLoader] Connection already in progress or established');
-      return;
-    }
-
-    try {
-      this.connectionState = 'connecting';
-      // Use dedicated mobile WebSocket port (3002) instead of Socket.IO
-      const wsUrl = this.config.serverUrl.replace('http', 'ws').replace('3001', '3002');
-      console.log(`📱 [SessionBundleLoader] Connecting to mobile WebSocket server: ${wsUrl} (attempt ${this.reconnectAttempts + 1})`);
-      
-      this.ws = new WebSocket(wsUrl);
-      
-      this.ws.onopen = () => {
-        console.log('✅ [SessionBundleLoader] Connected to server');
-        this.connectionState = 'connected';
-        this.reconnectAttempts = 0; // Reset on successful connection
-        this.emit('connected');
-        
-        // Request current bundle after a small delay to ensure connection is stable
-        setTimeout(() => {
-          this.requestSessionBundle();
-        }, 100);
-      };
-      
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleServerMessage(data);
-        } catch (error) {
-          console.error('❌ [SessionBundleLoader] Failed to parse server message:', error);
-        }
-      };
-      
-      this.ws.onerror = (error) => {
-        console.error('❌ [SessionBundleLoader] WebSocket error:', error);
-        this.connectionState = 'error';
-        this.emit('error', error);
-      };
-      
-      this.ws.onclose = (event) => {
-        console.log(`📱 [SessionBundleLoader] Disconnected from server (code: ${event.code}, reason: ${event.reason})`);
-        this.connectionState = 'disconnected';
-        this.ws = null;
-        this.emit('disconnected');
-        
-        // Attempt to reconnect with exponential backoff
-        if (this.config.enableAutoReload && this.reconnectAttempts < this.maxReconnectAttempts) {
-          const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
-          this.reconnectAttempts++;
-          
-          console.log(`📱 [SessionBundleLoader] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-          
-          setTimeout(() => {
-            this.connectToServer();
-          }, delay);
-        } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-          console.error('❌ [SessionBundleLoader] Max reconnection attempts reached');
-          this.emit('max-reconnect-attempts');
-        }
-      };
-      
-    } catch (error) {
-      console.error('❌ [SessionBundleLoader] Failed to connect to server:', error);
-      this.connectionState = 'error';
-      throw error;
+  async setAutoReload(enabled: boolean): Promise<void> {
+    console.log(`📱 [SessionBundleLoader] Setting auto-reload: ${enabled}`);
+    
+    this.config.enableAutoReload = enabled;
+    await this.saveAutoReloadSetting(enabled);
+    
+    // Start or stop polling based on enabled state
+    if (enabled && this.config.sessionId && this.config.enabled) {
+      this.startPolling();
+    } else if (!enabled) {
+      this.stopPolling();
     }
   }
 
   /**
-   * Handle messages from the server
+   * Set main enabled state and save to storage
    */
-  private handleServerMessage(data: any): void {
-    switch (data.type) {
-      case 'mobile-bundle-ready':
-        this.handleBundleReady(data);
-        break;
+  async setEnabled(enabled: boolean): Promise<void> {
+    console.log(`📱 [SessionBundleLoader] Setting enabled: ${enabled}`);
+    
+    this.config.enabled = enabled;
+    await this.saveEnabledSetting(enabled);
+    
+    // Start or stop polling based on enabled state
+    if (enabled && this.config.enableAutoReload && this.config.sessionId) {
+      this.startPolling();
+    } else if (!enabled) {
+      this.stopPolling();
+    }
+  }
+
+  /**
+   * Start HTTP polling for bundle updates
+   */
+  private startPolling(): void {
+    if (!this.config.sessionId) {
+      console.log('📱 [SessionBundleLoader] No session ID set, skipping polling');
+      return;
+    }
+
+    if (this.pollingInterval) {
+      console.log('📱 [SessionBundleLoader] Polling already started');
+      return;
+    }
+
+    console.log('📱 [SessionBundleLoader] Starting HTTP polling for bundle updates...');
+    this.pollingEnabled = true;
+    this.emit('connected'); // Simulate connection for UI
+    
+    // Poll every 5 seconds
+    this.pollingInterval = setInterval(() => {
+      if (this.pollingEnabled) {
+        this.checkForBundles();
+      }
+    }, 5000);
+    
+    // Check immediately
+    this.checkForBundles();
+  }
+
+  /**
+   * Stop HTTP polling
+   */
+  private stopPolling(): void {
+    if (this.pollingInterval) {
+      console.log('📱 [SessionBundleLoader] Stopping HTTP polling');
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+    this.pollingEnabled = false;
+    this.emit('disconnected');
+  }
+
+  /**
+   * Check for new bundles via HTTP
+   */
+  private async checkForBundles(): Promise<void> {
+    if (!this.config.sessionId) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${this.config.serverUrl}/api/sessions/${this.config.sessionId}/bundle?platform=${this.config.platform}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Session not found, stop polling
+          console.log('📱 [SessionBundleLoader] Session not found, stopping polling');
+          this.stopPolling();
+          this.emit('bundle-error', { error: 'Session not found' });
+        }
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.bundle) {
+        const bundleInfo = data.bundle;
         
-      case 'mobile-bundle-building':
-        this.handleBundleBuilding(data);
-        break;
-        
-      case 'mobile-bundle-available':
-        this.handleBundleAvailable(data);
-        break;
-        
-      case 'mobile-bundle-error':
-        this.handleBundleError(data);
-        break;
-        
-      default:
-        console.log(`📱 [SessionBundleLoader] Unknown message type: ${data.type}`);
+        // Check if this is a new bundle (compare with server data, not local enhanced data)
+        const shouldLoadBundle = !this.currentBundle || 
+            bundleInfo.timestamp > (this.currentBundle.serverTimestamp || this.currentBundle.timestamp) ||
+            bundleInfo.bundleHash !== (this.currentBundle.serverBundleHash || this.currentBundle.bundleHash);
+            
+        if (shouldLoadBundle) {
+          console.log('📦 [SessionBundleLoader] New bundle detected:', bundleInfo);
+          this.handleBundleAvailable(bundleInfo);
+          
+          // Auto-load if enabled
+          if (this.config.enableAutoReload) {
+            await this.loadBundle(bundleInfo);
+          }
+        } else {
+          // Bundle is the same, no need to reload
+          console.log('📦 [SessionBundleLoader] Bundle is up to date, no reload needed');
+        }
+      }
+    } catch (error) {
+      console.error('❌ [SessionBundleLoader] Error checking for bundles:', error);
+      // Don't emit error for network issues - mobile apps lose connection frequently
     }
   }
 
@@ -239,31 +272,11 @@ export class SessionBundleLoader {
   }
 
   /**
-   * Request session bundle from server
+   * Manually check for bundle updates
    */
-  private requestSessionBundle(): void {
-    if (!this.ws || !this.config.sessionId) {
-      console.log('📱 [SessionBundleLoader] Cannot request bundle: no WebSocket or session ID');
-      return;
-    }
-
-    if (this.connectionState !== 'connected' || this.ws.readyState !== WebSocket.OPEN) {
-      console.log(`📱 [SessionBundleLoader] Cannot request bundle: WebSocket not ready (state: ${this.connectionState}, readyState: ${this.ws.readyState})`);
-      return;
-    }
-    
-    try {
-      console.log(`📱 [SessionBundleLoader] Requesting bundle for session: ${this.config.sessionId}`);
-      
-      this.ws.send(JSON.stringify({
-        type: 'request-mobile-bundle',
-        sessionId: this.config.sessionId,
-        platform: this.config.platform
-      }));
-    } catch (error) {
-      console.error('❌ [SessionBundleLoader] Failed to send bundle request:', error);
-      this.emit('error', { error: `Failed to request bundle: ${error.message}` });
-    }
+  async checkForUpdates(): Promise<void> {
+    console.log(`📱 [SessionBundleLoader] Manually checking for updates...`);
+    await this.checkForBundles();
   }
 
   /**
@@ -297,12 +310,14 @@ export class SessionBundleLoader {
       const downloadTime = Date.now() - startTime;
       const fileSize = new Blob([bundleCode]).size;
       
-      // Enhanced bundle info with download metadata
+      // Enhanced bundle info with download metadata (preserve server data for comparison)
       const enhancedBundleInfo: BundleInfo = {
         ...bundleInfo,
         downloadedAt: Date.now(),
         fileSize,
-        bundleHash: this.generateSimpleHash(bundleCode),
+        serverTimestamp: bundleInfo.timestamp, // Preserve server timestamp for comparison
+        serverBundleHash: bundleInfo.bundleHash, // Preserve server hash for comparison
+        bundleHash: this.generateSimpleHash(bundleCode), // Local hash for verification
         version: this.extractVersionFromBundle(bundleCode),
       };
       
@@ -335,7 +350,8 @@ export class SessionBundleLoader {
       
     } catch (error) {
       console.error(`❌ [SessionBundleLoader] Failed to load ${bundleInfo.platform} bundle:`, error);
-      this.emit('bundle-load-error', { bundleInfo, error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load bundle';
+      this.emit('bundle-load-error', { bundleInfo, error: errorMessage });
       throw error;
     }
   }
@@ -360,12 +376,48 @@ export class SessionBundleLoader {
   }
 
   /**
-   * Enable or disable auto reload
+   * Get current auto-reload setting
    */
-  setAutoReload(enabled: boolean): void {
-    this.config.enableAutoReload = enabled;
-    console.log(`📱 [SessionBundleLoader] Auto reload ${enabled ? 'enabled' : 'disabled'}`);
+  getAutoReload(): boolean {
+    return this.config.enableAutoReload;
   }
+
+  /**
+   * Get current enabled setting
+   */
+  getEnabled(): boolean {
+    return this.config.enabled;
+  }
+
+  /**
+   * Get all current settings
+   */
+  getSettings(): {
+    sessionId: string | null;
+    serverUrl: string;
+    platform: string;
+    enableAutoReload: boolean;
+    enabled: boolean;
+  } {
+    return {
+      sessionId: this.config.sessionId,
+      serverUrl: this.config.serverUrl,
+      platform: this.config.platform,
+      enableAutoReload: this.config.enableAutoReload,
+      enabled: this.config.enabled
+    };
+  }
+
+  /**
+   * Set server URL and save to storage
+   */
+  async setServerUrl(serverUrl: string): Promise<void> {
+    console.log(`📱 [SessionBundleLoader] Setting server URL: ${serverUrl}`);
+    this.config.serverUrl = serverUrl;
+    await this.saveServerUrl(serverUrl);
+  }
+
+
 
   /**
    * Event listener management
@@ -395,9 +447,9 @@ export class SessionBundleLoader {
   }
 
   /**
-   * Load session info from storage
+   * Load session info and settings from storage
    */
-  private async loadSessionInfo(): Promise<void> {
+  async loadSessionInfo(): Promise<void> {
     try {
       const sessionId = await AsyncStorage.getItem('session_bundle_session_id');
       if (sessionId) {
@@ -409,6 +461,25 @@ export class SessionBundleLoader {
       if (bundleInfo) {
         this.currentBundle = JSON.parse(bundleInfo);
         console.log(`📱 [SessionBundleLoader] Loaded bundle info from storage`);
+      }
+
+      // Load settings
+      const autoReloadSetting = await AsyncStorage.getItem('session_bundle_auto_reload');
+      if (autoReloadSetting !== null) {
+        this.config.enableAutoReload = JSON.parse(autoReloadSetting);
+        console.log(`📱 [SessionBundleLoader] Loaded auto-reload setting: ${this.config.enableAutoReload}`);
+      }
+
+      const enabledSetting = await AsyncStorage.getItem('session_bundle_enabled');
+      if (enabledSetting !== null) {
+        this.config.enabled = JSON.parse(enabledSetting);
+        console.log(`📱 [SessionBundleLoader] Loaded enabled setting: ${this.config.enabled}`);
+      }
+
+      const serverUrl = await AsyncStorage.getItem('session_bundle_server_url');
+      if (serverUrl) {
+        this.config.serverUrl = serverUrl;
+        console.log(`📱 [SessionBundleLoader] Loaded server URL: ${serverUrl}`);
       }
       
     } catch (error) {
@@ -428,16 +499,54 @@ export class SessionBundleLoader {
   }
 
   /**
-   * Disconnect from server
+   * Save auto-reload setting to storage
    */
-  private async disconnectFromServer(): Promise<void> {
-    if (this.ws) {
-      console.log('📱 [SessionBundleLoader] Manually disconnecting from server');
-      this.connectionState = 'disconnected';
-      this.ws.close(1000, 'Manual disconnect'); // Normal closure
-      this.ws = null;
+  private async saveAutoReloadSetting(enabled: boolean): Promise<void> {
+    try {
+      await AsyncStorage.setItem('session_bundle_auto_reload', JSON.stringify(enabled));
+      console.log(`💾 [SessionBundleLoader] Saved auto-reload setting: ${enabled}`);
+    } catch (error) {
+      console.error('❌ [SessionBundleLoader] Failed to save auto-reload setting:', error);
     }
   }
+
+  /**
+   * Save enabled setting to storage
+   */
+  private async saveEnabledSetting(enabled: boolean): Promise<void> {
+    try {
+      await AsyncStorage.setItem('session_bundle_enabled', JSON.stringify(enabled));
+      console.log(`💾 [SessionBundleLoader] Saved enabled setting: ${enabled}`);
+    } catch (error) {
+      console.error('❌ [SessionBundleLoader] Failed to save enabled setting:', error);
+    }
+  }
+
+  /**
+   * Save session ID to storage
+   */
+  private async saveSessionId(sessionId: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem('session_bundle_session_id', sessionId);
+      console.log(`💾 [SessionBundleLoader] Saved session ID: ${sessionId}`);
+    } catch (error) {
+      console.error('❌ [SessionBundleLoader] Failed to save session ID:', error);
+    }
+  }
+
+  /**
+   * Save server URL to storage
+   */
+  private async saveServerUrl(serverUrl: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem('session_bundle_server_url', serverUrl);
+      console.log(`💾 [SessionBundleLoader] Saved server URL: ${serverUrl}`);
+    } catch (error) {
+      console.error('❌ [SessionBundleLoader] Failed to save server URL:', error);
+    }
+  }
+
+
 
   /**
    * Generate a simple hash for bundle content
@@ -492,17 +601,35 @@ export class SessionBundleLoader {
   }
 
   /**
-   * Add bundle to download history
+   * Add bundle to download history (prevents duplicates)
    */
   private async addToHistory(bundleInfo: BundleInfo): Promise<void> {
     try {
       const history = await this.getBundleHistory();
       
-      // Add new bundle to history (limit to 10 recent bundles)
-      history.unshift(bundleInfo);
-      const limitedHistory = history.slice(0, 10);
+      // Check if this bundle already exists in history (compare server hash and timestamp)
+      const serverHash = bundleInfo.serverBundleHash || bundleInfo.bundleHash;
+      const serverTimestamp = bundleInfo.serverTimestamp || bundleInfo.timestamp;
       
-      await AsyncStorage.setItem('session_bundle_history', JSON.stringify(limitedHistory));
+      const exists = history.some(item => {
+        const itemServerHash = item.serverBundleHash || item.bundleHash;
+        const itemServerTimestamp = item.serverTimestamp || item.timestamp;
+        return itemServerHash === serverHash && 
+               itemServerTimestamp === serverTimestamp &&
+               item.sessionId === bundleInfo.sessionId &&
+               item.platform === bundleInfo.platform;
+      });
+      
+      if (!exists) {
+        // Add new bundle to history (limit to 10 recent bundles)
+        history.unshift(bundleInfo);
+        const limitedHistory = history.slice(0, 10);
+        
+        await AsyncStorage.setItem('session_bundle_history', JSON.stringify(limitedHistory));
+        console.log(`💾 [SessionBundleLoader] Added bundle to history (${limitedHistory.length} total)`);
+      } else {
+        console.log(`📦 [SessionBundleLoader] Bundle already in history, skipping duplicate`);
+      }
     } catch (error) {
       console.error('❌ [SessionBundleLoader] Failed to save bundle history:', error);
     }
@@ -512,7 +639,7 @@ export class SessionBundleLoader {
    * Clean up resources
    */
   async destroy(): Promise<void> {
-    await this.disconnectFromServer();
+    this.stopPolling();
     this.listeners.clear();
     console.log('📱 [SessionBundleLoader] Session bundle loader destroyed');
   }
