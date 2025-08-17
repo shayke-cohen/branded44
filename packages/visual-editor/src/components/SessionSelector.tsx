@@ -4,8 +4,10 @@ interface Session {
   sessionId: string;
   workspacePath: string;
   sessionPath: string;
-  created?: string;
-  lastModified?: string;
+  startTime?: number;
+  age?: number;
+  created: string;
+  lastModified: string;
 }
 
 interface SessionSelectorProps {

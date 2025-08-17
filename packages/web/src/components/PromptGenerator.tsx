@@ -27,7 +27,7 @@ const PromptGenerator: React.FC = () => {
 
   // Additional security/proxy options 
   const [dangerouslySkipPermissions, setDangerouslySkipPermissions] = useState(true);
-  const [anthropicBaseUrl, setAnthropicBaseUrl] = useState('http://localhost:3002/api/anthropic-proxy');
+  const [anthropicBaseUrl, setAnthropicBaseUrl] = useState('http://localhost:3003/api/anthropic-proxy');
   const [anthropicAuthToken, setAnthropicAuthToken] = useState('fake-key-for-proxy');
 
   // Claude Code conversation display
@@ -723,7 +723,7 @@ const PromptGenerator: React.FC = () => {
                   type="text"
                   value={anthropicBaseUrl}
                   onChange={(e) => setAnthropicBaseUrl(e.target.value)}
-                  placeholder="http://localhost:3002/api/anthropic-proxy"
+                  placeholder="http://localhost:3003/api/anthropic-proxy"
                   style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
                 />
               </div>

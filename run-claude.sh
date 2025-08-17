@@ -23,7 +23,7 @@ echo ""
 
 if [ "$MODE" = "multi-agent" ]; then
     echo "🤖 Running Multi-Agent Orchestration Mode..."
-    ANTHROPIC_BASE_URL="http://localhost:3002/api/anthropic-proxy" \
+    ANTHROPIC_BASE_URL="http://localhost:3003/api/anthropic-proxy" \
     ANTHROPIC_AUTH_TOKEN="fake-key-for-proxy" \
     claude -p \
       --multi-agent \
@@ -34,7 +34,7 @@ if [ "$MODE" = "multi-agent" ]; then
 
 elif [ "$MODE" = "single-agent" ]; then
     echo "⚡ Running Single-Agent Fallback Mode..."
-    ANTHROPIC_BASE_URL="http://localhost:3002/api/anthropic-proxy" \
+    ANTHROPIC_BASE_URL="http://localhost:3003/api/anthropic-proxy" \
     ANTHROPIC_AUTH_TOKEN="fake-key-for-proxy" \
     claude --dangerously-skip-permissions \
     "Follow the React Native app transformation workflow from claude-code-prompt.md in $(pwd)"
@@ -57,7 +57,7 @@ elif [ "$MODE" = "quick" ]; then
     echo "📋 Using basic app configuration..."
     echo ""
     
-    ANTHROPIC_BASE_URL="http://localhost:3002/api/anthropic-proxy" \
+    ANTHROPIC_BASE_URL="http://localhost:3003/api/anthropic-proxy" \
     ANTHROPIC_AUTH_TOKEN="fake-key-for-proxy" \
     claude --dangerously-skip-permissions \
     "Transform the branded44 React Native app into a '$APP_NAME' using the orchestration workflow from claude-code-prompt.md. SKIP the requirements gathering interview and create a standard $APP_NAME with common features. Use typical patterns for this app type and follow all quality standards including comprehensive testing. Work in $(pwd)."
@@ -80,7 +80,7 @@ elif [ "$MODE" = "quick-multi" ]; then
     echo "📋 Using basic app configuration with parallel sub-agents..."
     echo ""
     
-    ANTHROPIC_BASE_URL="http://localhost:3002/api/anthropic-proxy" \
+    ANTHROPIC_BASE_URL="http://localhost:3003/api/anthropic-proxy" \
     ANTHROPIC_AUTH_TOKEN="fake-key-for-proxy" \
     claude -p \
       --multi-agent \

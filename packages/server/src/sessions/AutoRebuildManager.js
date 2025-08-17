@@ -1,4 +1,5 @@
 const SessionBuilder = require('./SessionBuilder');
+const SessionMobileBundleBuilder = require('./SessionMobileBundleBuilder');
 
 /**
  * AutoRebuildManager handles automatic rebuilding of sessions when files change
@@ -7,6 +8,7 @@ class AutoRebuildManager {
   constructor(sessionManager) {
     this.sessionManager = sessionManager;
     this.sessionBuilder = new SessionBuilder();
+    this.mobileBundleBuilder = new SessionMobileBundleBuilder();
     this.pendingRebuilds = new Map(); // Track pending rebuilds with debouncing
     this.rebuildQueue = new Map(); // Track active rebuilds
     this.debounceTime = 1000; // 1 second debounce
@@ -146,13 +148,51 @@ class AutoRebuildManager {
     }
     
     try {
-      // Execute the rebuild
-      const buildResult = await this.sessionBuilder.buildSession(sessionId, session.sessionPath);
+      // Execute the web bundle rebuild
+      const webBuildResult = await this.sessionBuilder.buildSession(sessionId, session.sessionPath);
+      
+      // Also build mobile bundles for both Android and iOS
+      const mobileBuildResults = {};
+      const platforms = ['android', 'ios'];
+      
+      for (const platform of platforms) {
+        try {
+          console.log(`📱 [AutoRebuildManager] Starting ${platform} bundle build for session ${sessionId}`);
+          const mobileBuildResult = await this.mobileBundleBuilder.buildMobileBundle(sessionId, session.sessionPath, {
+            platform,
+            dev: true
+          });
+          mobileBuildResults[platform] = mobileBuildResult;
+          console.log(`✅ [AutoRebuildManager] ${platform} bundle built for session ${sessionId}`);
+          
+          // Emit mobile bundle ready event
+          if (this.io) {
+            this.io.emit('mobile-bundle-ready', {
+              sessionId,
+              platform,
+              bundleSize: mobileBuildResult.stats?.bundleSize,
+              timestamp: Date.now()
+            });
+          }
+        } catch (mobileError) {
+          console.warn(`⚠️ [AutoRebuildManager] ${platform} bundle build failed (continuing): ${mobileError.message}`);
+          mobileBuildResults[platform] = { error: mobileError.message };
+        }
+      }
       
       const duration = Date.now() - this.rebuildQueue.get(sessionId).startTime;
       
       console.log(`✅ [AutoRebuildManager] Auto-rebuild completed for session ${sessionId} (${duration}ms)`);
-      console.log(`📦 [AutoRebuildManager] Output: ${buildResult.compiledAppPath}`);
+      console.log(`📦 [AutoRebuildManager] Web Output: ${webBuildResult.compiledAppPath}`);
+      
+      // Log mobile bundle outputs
+      Object.entries(mobileBuildResults).forEach(([platform, result]) => {
+        if (result.bundlePath) {
+          console.log(`📱 [AutoRebuildManager] ${platform} Output: ${result.bundlePath}`);
+        } else if (result.error) {
+          console.log(`❌ [AutoRebuildManager] ${platform} Failed: ${result.error}`);
+        }
+      });
       
       // Notify frontend that rebuild completed successfully
       if (this.io) {
@@ -161,7 +201,8 @@ class AutoRebuildManager {
           triggerFile: triggerFilePath,
           duration,
           success: true,
-          buildResult,
+          buildResult: webBuildResult,
+          mobileBuildResults,
           timestamp: Date.now()
         });
       }

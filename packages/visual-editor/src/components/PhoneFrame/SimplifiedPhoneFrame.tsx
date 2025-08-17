@@ -452,7 +452,7 @@ const SimplifiedPhoneFrame: React.FC<SimplifiedPhoneFrameProps> = ({ src2Status 
                 position: 'relative',
                 backgroundColor: '#ffffff'
               }}>
-                <MobileAppRenderer />
+                <MobileAppRenderer selectedScreen={state.currentScreen || undefined} />
               </div>
             )}
             

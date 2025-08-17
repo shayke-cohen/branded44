@@ -14,6 +14,7 @@ import {useTheme} from '../../context/ThemeContext';
 import {useMember} from '../../context';
 import {wixApiClient} from '../../utils/wixApiClient';
 import {THEME_OPTIONS} from '../../constants';
+import SessionBundleSection from '../../components/SessionBundleSection';
 
 
 interface SettingsScreenProps {
@@ -483,6 +484,17 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
                 </Text>
               </View>
             </View>
+          </View>
+        )}
+
+        {/* Development Section - Session Bundle Management */}
+        {__DEV__ && (
+          <View style={styles.section}>
+            <SessionBundleSection 
+              onSessionChange={(sessionId) => {
+                console.log('📱 [SETTINGS] Session changed:', sessionId);
+              }}
+            />
           </View>
         )}
 

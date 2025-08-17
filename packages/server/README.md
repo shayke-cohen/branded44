@@ -192,7 +192,7 @@ Content-Type: application/json
   "allowedTools": ["Read", "Write", "Bash"],
   "model": "claude-sonnet-4-20250514",
   "dangerouslySkipPermissions": true,
-  "anthropicBaseUrl": "http://localhost:3002/api/anthropic-proxy",
+  "anthropicBaseUrl": "http://localhost:3003/api/anthropic-proxy",
   "anthropicAuthToken": "fake-key-for-proxy"
 }
 ```

@@ -5,10 +5,14 @@ const SessionManager = require('./SessionManager');
  */
 class SessionAPI {
   constructor(app, io) {
+    console.log('📱 [SessionAPI] Initializing SessionAPI...');
     this.app = app;
     this.io = io;
-    this.sessionManager = new SessionManager();
+    // Use the existing SessionManager instance from the app
+    this.sessionManager = app.get('sessionManager');
+    console.log('📱 [SessionAPI] SessionManager obtained:', !!this.sessionManager);
     this.setupRoutes();
+    console.log('📱 [SessionAPI] Routes set up successfully');
   }
 
   setupRoutes() {

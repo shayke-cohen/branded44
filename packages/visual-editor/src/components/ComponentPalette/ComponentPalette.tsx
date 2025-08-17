@@ -5,9 +5,11 @@ import { useEditor } from '../../contexts/EditorContext';
 import { dropZoneManager } from '../../services/DropZoneManager';
 import { componentScanner } from '../../services/ComponentScanner';
 import { componentRegistry, ComponentMetadata } from '../../services/ComponentRegistry';
+import ScreenSelector from '../ScreenSelector';
+import ClaudeCodeGenerator from '../ClaudeCodeGenerator';
 
 const PaletteContainer = styled.div`
-  width: 300px;
+  width: 450px;
   background: #ffffff;
   border-right: 1px solid #e0e0e0;
   display: flex;
@@ -16,6 +18,80 @@ const PaletteContainer = styled.div`
 `;
 
 const PaletteHeader = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #f0f0f0;
+  }
+`;
+
+const ComponentsHeaderGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ComponentsTitle = styled.h4`
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+`;
+
+const ComponentsCollapseIcon = styled.span<{ $collapsed: boolean }>`
+  font-size: 12px;
+  color: #666;
+  transition: transform 0.2s ease;
+  transform: ${props => props.$collapsed ? 'rotate(-90deg)' : 'rotate(0deg)'};
+`;
+
+const AiEditorHeader = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #f0f0f0;
+  }
+`;
+
+const AiEditorHeaderGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const AiEditorTitle = styled.h4`
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+`;
+
+const AiEditorCollapseIcon = styled.span<{ $collapsed: boolean }>`
+  font-size: 12px;
+  color: #666;
+  transition: transform 0.2s ease;
+  transform: ${props => props.$collapsed ? 'rotate(-90deg)' : 'rotate(0deg)'};
+`;
+
+const AiEditorContent = styled.div`
+  border-bottom: 1px solid #e0e0e0;
+`;
+
+const SearchContainer = styled.div`
   padding: 16px;
   border-bottom: 1px solid #e0e0e0;
   background: #f8f9fa;
@@ -268,6 +344,8 @@ const ComponentPalette: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [scannedComponents, setScannedComponents] = useState<ComponentMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Accordion state - only one section can be open at a time
+  const [openSection, setOpenSection] = useState<'screens' | 'components' | 'ai-editor' | null>('ai-editor');
 
   // Load components from src2 when session is ready
   useEffect(() => {
@@ -361,30 +439,51 @@ const ComponentPalette: React.FC = () => {
       .filter(section => section.components.length > 0);
   }, [activeCategory, searchTerm, scannedComponents, getComponentIcon]);
 
+  const toggleSection = (section: 'screens' | 'components' | 'ai-editor') => {
+    // If clicking the currently open section, close it (set to null)
+    // Otherwise, open the clicked section
+    setOpenSection(openSection === section ? null : section);
+  };
+
   return (
     <PaletteContainer>
-      <PaletteHeader>
-        <SearchInput
-          type="text"
-          placeholder="Search components..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <ScreenSelector 
+        collapsed={openSection !== 'screens'} 
+        onToggle={() => toggleSection('screens')} 
+      />
+      
+      <PaletteHeader onClick={() => toggleSection('components')}>
+        <ComponentsHeaderGroup>
+          <span>🧩</span>
+          <ComponentsTitle>Components</ComponentsTitle>
+        </ComponentsHeaderGroup>
+        <ComponentsCollapseIcon $collapsed={openSection !== 'components'}>▼</ComponentsCollapseIcon>
       </PaletteHeader>
 
-      <CategoryTabs>
-        {COMPONENT_CATEGORIES.map(category => (
-          <CategoryTab
-            key={category.id}
-            $active={activeCategory === category.id}
-            onClick={() => setActiveCategory(category.id)}
-          >
-            {category.name}
-          </CategoryTab>
-        ))}
-      </CategoryTabs>
+      {openSection === 'components' && (
+        <>
+          <SearchContainer>
+            <SearchInput
+              type="text"
+              placeholder="Search components..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </SearchContainer>
 
-      <ComponentList>
+          <CategoryTabs>
+            {COMPONENT_CATEGORIES.map(category => (
+              <CategoryTab
+                key={category.id}
+                $active={activeCategory === category.id}
+                onClick={() => setActiveCategory(category.id)}
+              >
+                {category.name}
+              </CategoryTab>
+            ))}
+          </CategoryTabs>
+
+          <ComponentList>
         {isLoading ? (
           <div style={{ 
             padding: '40px 20px', 
@@ -441,8 +540,25 @@ const ComponentPalette: React.FC = () => {
               </div>
             )}
           </>
-        )}
-      </ComponentList>
+          )}
+          </ComponentList>
+        </>
+      )}
+
+      {/* AI Editor Section */}
+      <AiEditorHeader onClick={() => toggleSection('ai-editor')}>
+        <AiEditorHeaderGroup>
+          <span>🤖</span>
+          <AiEditorTitle>AI Editor</AiEditorTitle>
+        </AiEditorHeaderGroup>
+        <AiEditorCollapseIcon $collapsed={openSection !== 'ai-editor'}>▼</AiEditorCollapseIcon>
+      </AiEditorHeader>
+      
+      {openSection === 'ai-editor' && (
+        <AiEditorContent>
+          <ClaudeCodeGenerator />
+        </AiEditorContent>
+      )}
     </PaletteContainer>
   );
 };

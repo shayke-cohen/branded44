@@ -212,7 +212,7 @@ pwd  # Should show .../branded44
 ```
 
 ### **Claude connection issues:**
-- Verify your API proxy is running on port 3002
+- Verify your API proxy is running on port 3003
 - Check ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN
 - Ensure you have proper network connectivity
 

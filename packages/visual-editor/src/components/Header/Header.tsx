@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useEditor } from '../../contexts/EditorContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { useSession } from '../../contexts/SessionContext';
 import SessionSelector from '../SessionSelector';
+import DeployProgress from '../DeployProgress';
+
+// Navigation tabs are now handled in the left pane ScreenSelector
 
 const HeaderContainer = styled.div`
   height: 60px;
@@ -32,25 +35,36 @@ const Logo = styled.div`
   gap: 8px;
 `;
 
-const ScreenSelector = styled.select`
-  background: rgba(255, 255, 255, 0.2);
+const NewAppButton = styled.button`
+  background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  min-width: 150px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 
-  option {
-    background: #333;
-    color: white;
-  }
-
-  &:focus {
-    outline: none;
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.25);
     border-color: rgba(255, 255, 255, 0.5);
   }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
+
+// Screen selector moved to left pane
 
 const CenterSection = styled.div`
   display: flex;
@@ -146,22 +160,14 @@ const Src2Status = styled.div<{ $status: 'initializing' | 'ready' | 'error' }>`
   }};
 `;
 
-// Mock screen options - will be replaced with actual screen registry
-const SCREEN_OPTIONS = [
-  { id: 'HomeScreen', name: 'Home Screen' },
-  { id: 'ComponentsShowcaseScreen', name: 'Components Showcase' },
-  { id: 'TemplateIndexScreen', name: 'Template Index' },
-  { id: 'SettingsScreen', name: 'Settings' },
-];
+// Screen selection moved to left pane
 
 const Header: React.FC = () => {
-  const { state, toggleInspection, setCurrentScreen } = useEditor();
+  const { state, toggleInspection } = useEditor();
   const { isConnected, connectionError } = useSocket();
   const { currentSession, switchToSession } = useSession();
-
-  const handleScreenChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setCurrentScreen(event.target.value);
-  };
+  const [isCreatingSession, setIsCreatingSession] = React.useState(false);
+  const [showDeployModal, setShowDeployModal] = useState(false);
 
   const getConnectionStatus = () => {
     if (connectionError) return 'error';
@@ -182,29 +188,75 @@ const Header: React.FC = () => {
     }
   };
 
+  // Create new session/app
+  const handleCreateNewApp = async () => {
+    setIsCreatingSession(true);
+    try {
+      console.log('📁 [Header] Creating new app session...');
+      
+      // Clear localStorage to force creation of new session
+      localStorage.removeItem('visual-editor-session-id');
+      
+      const response = await fetch('http://localhost:3001/api/editor/init', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ forceNew: true }), // Indicate we want a new session
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.sessionId) {
+        // Save the new session to localStorage
+        localStorage.setItem('visual-editor-session-id', data.sessionId);
+        
+        console.log('✅ [Header] Created new app session:', data.sessionId);
+        console.log('📁 [Header] Reloading page to switch to new session...');
+        
+        // Trigger page reload to initialize with new session
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('❌ [Header] Error creating new app session:', error);
+      alert(`Failed to create new app: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsCreatingSession(false);
+    }
+  };
+
   return (
+    <>
     <HeaderContainer>
       <LeftSection>
         <Logo>
           🎨 Branded44 Visual Editor
         </Logo>
         
+        <NewAppButton
+          onClick={handleCreateNewApp}
+          disabled={isCreatingSession}
+        >
+          {isCreatingSession ? (
+            <>
+              <span>⏳</span>
+              Creating...
+            </>
+          ) : (
+            <>
+              <span>✨</span>
+              New App
+            </>
+          )}
+        </NewAppButton>
+        
         <SessionSelector
           currentSession={currentSession}
           onSessionChange={switchToSession}
         />
-        
-        <ScreenSelector 
-          value={state.currentScreen || ''} 
-          onChange={handleScreenChange}
-        >
-          <option value="">Select Screen...</option>
-          {SCREEN_OPTIONS.map(screen => (
-            <option key={screen.id} value={screen.id}>
-              {screen.name}
-            </option>
-          ))}
-        </ScreenSelector>
       </LeftSection>
 
       <CenterSection>
@@ -220,7 +272,10 @@ const Header: React.FC = () => {
           💾 Save All
         </ActionButton>
         
-        <ActionButton disabled={state.src2Status !== 'ready'}>
+        <ActionButton 
+          disabled={state.src2Status !== 'ready' || !currentSession}
+          onClick={() => setShowDeployModal(true)}
+        >
           🚀 Deploy
         </ActionButton>
       </CenterSection>
@@ -235,6 +290,13 @@ const Header: React.FC = () => {
         </StatusIndicator>
       </RightSection>
     </HeaderContainer>
+    
+    <DeployProgress
+      visible={showDeployModal}
+      onClose={() => setShowDeployModal(false)}
+      sessionId={currentSession?.sessionId || null}
+    />
+    </>
   );
 };
 

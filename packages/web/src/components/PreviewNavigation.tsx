@@ -321,7 +321,7 @@ const PreviewNavigation: React.FC = () => {
         maxTurns: 20,
         workingDirectory: '/Users/shayco/branded44/packages/mobile',
         dangerouslySkipPermissions: true,
-        anthropicBaseUrl: 'http://localhost:3002/api/anthropic-proxy',
+        anthropicBaseUrl: 'http://localhost:3003/api/anthropic-proxy',
         anthropicAuthToken: 'fake-key-for-proxy'
       };
 
@@ -401,7 +401,7 @@ const PreviewNavigation: React.FC = () => {
         maxTurns: 20,
         workingDirectory: '/Users/shayco/branded44/packages/mobile',
         dangerouslySkipPermissions: true,
-        anthropicBaseUrl: 'http://localhost:3002/api/anthropic-proxy',
+        anthropicBaseUrl: 'http://localhost:3003/api/anthropic-proxy',
         anthropicAuthToken: 'fake-key-for-proxy'
       };
 
@@ -478,7 +478,7 @@ const PreviewNavigation: React.FC = () => {
         maxTurns: 20,
         workingDirectory: '/Users/shayco/branded44/packages/mobile',
         dangerouslySkipPermissions: true,
-        anthropicBaseUrl: 'http://localhost:3002/api/anthropic-proxy',
+        anthropicBaseUrl: 'http://localhost:3003/api/anthropic-proxy',
         anthropicAuthToken: 'fake-key-for-proxy'
       };
 

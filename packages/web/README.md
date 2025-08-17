@@ -162,7 +162,7 @@ The web interface provides a sophisticated prompt generation system:
   allowedTools: ['Read', 'Write', 'Bash'],
   workingDirectory: '/project/path',
   dangerouslySkipPermissions: true,
-  anthropicBaseUrl: 'http://localhost:3002/api/anthropic-proxy',
+  anthropicBaseUrl: 'http://localhost:3003/api/anthropic-proxy',
   streamingEnabled: true            // Real-time execution feedback
 }
 ```

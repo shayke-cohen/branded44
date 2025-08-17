@@ -132,6 +132,12 @@ class SessionManager {
         });
       }
     });
+
+    // Post-process files to fix import paths
+    await this._transformImportsInWorkspace(workspacePath);
+    
+    // Create a simplified App.tsx for Metro bundling (without Wix dependencies)
+    await this._createSimplifiedApp(workspacePath);
     
     console.log(`✅ [SessionManager] Copied mobile src directory to session workspace`);
     console.log(`📁 [SessionManager] Workspace path: ${workspacePath}`);
@@ -194,6 +200,102 @@ class SessionManager {
 
     console.log(`📁 [SessionManager] Created session: ${sessionId}`);
     return session;
+  }
+
+  /**
+   * Transform import paths in workspace files after copying
+   * @private
+   */
+  async _transformImportsInWorkspace(workspacePath) {
+    const glob = require('glob');
+    
+    // Find all TypeScript/JavaScript files
+    const pattern = path.join(workspacePath, '**/*.{ts,tsx,js,jsx}');
+    const files = glob.sync(pattern);
+    
+    console.log(`🔄 [SessionManager] Transforming imports in ${files.length} files...`);
+    
+    for (const filePath of files) {
+      try {
+        const content = await fs.readFile(filePath, 'utf8');
+        
+        // Replace relative imports to ~ with correct relative path for workspace structure
+        const transformedContent = content
+          .replace(/from\s+'\.\.\/\.\.\/\.\.\/\.\.\/~/g, "from '../../../~")
+          .replace(/from\s+"\.\.\/\.\.\/\.\.\/\.\.\/~/g, 'from "../../../~')
+          .replace(/'\.\.\/\.\.\/\.\.\/\.\.\/~/g, "'../../../~")
+          .replace(/"\.\.\/\.\.\/\.\.\/\.\.\/~/g, '"../../../~');
+        
+        // Only write if content changed
+        if (transformedContent !== content) {
+          await fs.writeFile(filePath, transformedContent, 'utf8');
+          console.log(`🔧 [SessionManager] Transformed imports in: ${path.relative(workspacePath, filePath)}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ [SessionManager] Failed to transform imports in ${filePath}:`, error.message);
+      }
+    }
+    
+    console.log(`✅ [SessionManager] Import transformation completed`);
+  }
+
+  /**
+   * Create a simplified App.tsx for Metro bundling (without Wix dependencies)
+   * @private
+   */
+  async _createSimplifiedApp(workspacePath) {
+    const appPath = path.join(workspacePath, 'App.tsx');
+    
+    const simplifiedApp = `
+import React from 'react';
+import { SafeAreaView, StatusBar, ScrollView, Text, StyleSheet } from 'react-native';
+import { Button } from './~/components/ui/button';
+import { Card } from './~/components/ui/card';
+
+const App: React.FC = () => {
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <ScrollView contentInsetAdjustmentBehavior="automatic" style={styles.scrollView}>
+        <Text style={styles.title}>React Native Session Bundle</Text>
+        <Card style={styles.card}>
+          <Text style={styles.cardText}>This is a test bundle with UI components</Text>
+          <Button title="Test Button" onPress={() => console.log('Button pressed')} />
+        </Card>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollView: {
+    backgroundColor: '#f8f9fa',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    padding: 20,
+  },
+  card: {
+    margin: 20,
+    padding: 20,
+  },
+  cardText: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+});
+
+export default App;
+`.trim();
+
+    await fs.writeFile(appPath, simplifiedApp, 'utf8');
+    console.log(`✅ [SessionManager] Created simplified App.tsx for Metro bundling`);
   }
 
   /**
