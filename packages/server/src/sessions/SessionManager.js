@@ -132,6 +132,9 @@ class SessionManager {
         });
       }
     });
+    
+    console.log(`✅ [SessionManager] Copied mobile src directory to session workspace`);
+    console.log(`📁 [SessionManager] Workspace path: ${workspacePath}`);
 
     // Also copy the ~ directory (UI components) from mobile package root
     const mobileRootPath = path.dirname(srcPath); // packages/mobile
@@ -297,6 +300,16 @@ class SessionManager {
           io.emit('file-changed', {
             filePath: relativePath,
             sessionId: sessionId,
+            timestamp: Date.now()
+          });
+        }
+        
+        // Trigger auto-rebuild
+        if (global.autoRebuildManager) {
+          global.autoRebuildManager.onFileChange({
+            sessionId,
+            filePath: relativePath,
+            fullPath: filePath,
             timestamp: Date.now()
           });
         }

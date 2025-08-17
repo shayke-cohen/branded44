@@ -1218,29 +1218,59 @@ router.get('/session-module/:sessionId/*', async (req, res) => {
     let jsContent = fileContent;
     
     if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
-      // Improved TypeScript to JavaScript transformation
-      // Handle multiline constructs properly
+      // Enhanced TypeScript to JavaScript transformation
+      // Handle multiline constructs and complex patterns properly
       jsContent = fileContent
-        // Remove import type statements
+        // Remove import type statements (including from destructured imports)
         .replace(/import\s+type\s+.*?from\s+.*?;/g, '')
-        // Remove export type statements (including multiline ones)
-        .replace(/export\s+type\s+[\s\S]*?;/g, '')
+        .replace(/import\s*\{\s*([^}]*?),?\s*type\s+([^,}]+)([^}]*?)\}\s*from\s+([^;]+);/g, 'import { $1 $3 } from $4;')
+        .replace(/import\s*\{\s*type\s+([^,}]+),?\s*([^}]*?)\}\s*from\s+([^;]+);/g, 'import { $2 } from $3;')
+        
+        // Remove export type statements (including multiline ones with better pattern)
+        .replace(/export\s+type\s+[^=]+\s*=\s*[^;]*;/gs, '')
+        .replace(/export\s+type\s+\w+\s*\{[\s\S]*?\}\s*;?/g, '')
+        
+        // Remove export interface declarations (including multiline ones)
+        .replace(/export\s+interface\s+\w+[\s\S]*?\}/g, '')
+        
         // Remove standalone type statements (including multiline ones)
-        .replace(/type\s+\w+\s*=\s*[\s\S]*?;/g, '')
-        // Remove 'type' keywords from import statements (e.g., "type EntityConfig")
-        .replace(/(\{\s*[^}]*?)type\s+(\w+)([^}]*?\})/g, '$1$2$3')
+        .replace(/type\s+\w+\s*=\s*[^;]*;/gs, '')
+        
         // Remove interface declarations (including multiline ones)
-        .replace(/interface\s+\w+[\s\S]*?}/g, '')
-        // Remove type annotations from function parameters
-        .replace(/(\w+):\s*[\w\[\]|<>&\s]+(?=[\s,)])/g, '$1')
+        .replace(/interface\s+\w+[\s\S]*?\}/g, '')
+        
+        // Remove 'type' keywords from import statements more carefully
+        .replace(/(\{\s*[^}]*?),?\s*type\s+(\w+),?([^}]*?\})/g, '$1, $2$3')
+        .replace(/(\{\s*)type\s+(\w+),?\s*([^}]*?\})/g, '$1$2, $3')
+        .replace(/,\s*,/g, ',') // Clean up double commas
+        .replace(/\{\s*,/g, '{') // Clean up leading commas
+        .replace(/,\s*\}/g, '}') // Clean up trailing commas
+        
+        // Remove type annotations from function parameters (improved)
+        .replace(/(\w+)\s*:\s*[^,)=]+(?=[\s,)=])/g, '$1')
+        
         // Remove return type annotations (including complex ones)
-        .replace(/\):\s*[\w\[\]|<>&\s]+(\s*=>|\s*{)/g, ')$1')
-        // Remove generic type parameters (improved)
-        .replace(/<[^<>]*(?:<[^<>]*>[^<>]*)*>/g, '')
-        // Remove as type assertions
-        .replace(/\s+as\s+[\w\[\]|<>&\s]+/g, '')
-        // Remove React.FC type annotations
-        .replace(/:\s*React\.FC[^=]*/g, '');
+        .replace(/\)\s*:\s*[^{=>]+(\s*[{=>])/g, ')$1')
+        
+        // Remove type assertions (as keyword)
+        .replace(/\s+as\s+[^,;)}\]]+/g, '')
+        
+        // Remove generic type parameters (improved to handle nested generics)
+        .replace(/<[^<>]*(?:<[^<>]*(?:<[^<>]*>[^<>]*)*>[^<>]*)*>/g, '')
+        
+        // Remove React.FC and similar type annotations
+        .replace(/:\s*React\.FC[^=,;)}\]]*(?=[=,;)}\]])/g, '')
+        .replace(/:\s*ComponentType[^=,;)}\]]*(?=[=,;)}\]])/g, '')
+        
+        // Clean up function signatures in object properties (like defaultProps)
+        .replace(/(async\s+)?\(([^)]*)\)\s*:\s*[^{=>\s][^{=>]*\s*=>/g, '($2) =>')
+        
+        // Clean up any remaining orphaned commas or spaces
+        .replace(/\s*,\s*,/g, ',')
+        .replace(/\(\s*,/g, '(')
+        .replace(/,\s*\)/g, ')')
+        .replace(/\{\s*,/g, '{')
+        .replace(/,\s*\}/g, '}');
     }
 
     // Set appropriate content type
@@ -1529,16 +1559,127 @@ router.get('/session-file/:sessionId/*', async (req, res) => {
       contentType = 'application/json';
     }
     
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
     console.log(`📄 [Session File] Served ${filePath} for session ${sessionId}`);
-    res.send(fileContent);
+    res.status(200).json({
+      success: true,
+      content: fileContent,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
     
   } catch (error) {
     console.error(`❌ [Session File] Error serving file:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+  }
+});
+
+// Save/Update file content in session workspace
+router.put('/session-file/:sessionId/*', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Date.now().toString();
+  
+  try {
+    const { sessionId } = req.params;
+    const filePath = req.params[0]; // Get the wildcard path
+    const { content } = req.body;
+    
+    console.log(`💾 [Session File Save] Saving ${filePath} for session ${sessionId}`);
+    
+    if (!sessionId || !filePath) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID and file path are required',
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    if (content === undefined || content === null) {
+      return res.status(400).json({
+        success: false,
+        error: 'File content is required',
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Get session manager
+    const sessionManager = req.app.get('sessionManager');
+    if (!sessionManager) {
+      return res.status(500).json({
+        success: false,
+        error: 'Session manager not available',
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Get session details
+    let session = sessionManager.getSession(sessionId);
+    if (!session) {
+      session = await sessionManager.loadSessionFromFilesystem(sessionId);
+    }
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: `Session not found: ${sessionId}`,
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // Construct the full file path in session workspace
+    const path = require('path');
+    const fs = require('fs-extra');
+    
+    const fullFilePath = path.join(session.sessionPath, 'workspace', filePath);
+    
+    // Ensure directory exists
+    await fs.ensureDir(path.dirname(fullFilePath));
+    
+    // Write file content
+    await fs.writeFile(fullFilePath, content, 'utf8');
+    
+    console.log(`✅ [Session File Save] Successfully saved ${filePath} for session ${sessionId}`);
+    
+    // Trigger file change event if global watcher exists
+    if (global.io) {
+      const relativePath = path.relative(session.workspacePath, fullFilePath);
+      global.io.emit('file-changed', {
+        filePath: relativePath,
+        sessionId: sessionId,
+        timestamp: Date.now()
+      });
+      console.log(`📡 [Session File Save] Emitted file-changed event for: ${relativePath}`);
+      
+      // Trigger auto-rebuild
+      if (global.autoRebuildManager) {
+        global.autoRebuildManager.onFileChange({
+          sessionId,
+          filePath: relativePath,
+          fullPath: fullFilePath,
+          timestamp: Date.now()
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `File saved successfully: ${filePath}`,
+      filePath,
+      sessionId,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+    
+  } catch (error) {
+    console.error(`❌ [Session File Save] Error saving file:`, error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -1553,4 +1694,389 @@ router.get('/test', (req, res) => {
   res.json({ message: 'Route file is being loaded correctly', timestamp: new Date().toISOString() });
 });
 
+// Auto-rebuild status endpoint
+router.get('/auto-rebuild/status', (req, res) => {
+  const startTime = Date.now();
+  const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  req.log('info', 'Auto-rebuild status requested', { requestId });
+
+  const autoRebuildManager = req.app.get('autoRebuildManager');
+  if (!autoRebuildManager) {
+    return res.status(500).json({
+      error: 'Auto-rebuild manager not available',
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+  }
+
+  const status = autoRebuildManager.getStatus();
+  
+  res.json({
+    status,
+    requestId,
+    responseTime: `${Date.now() - startTime}ms`
+  });
+});
+
+// Manual rebuild trigger endpoint
+router.post('/auto-rebuild/trigger/:sessionId', async (req, res) => {
+  const startTime = Date.now();
+  const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const { sessionId } = req.params;
+
+  req.log('info', 'Manual rebuild triggered', { sessionId, requestId });
+
+  try {
+    const autoRebuildManager = req.app.get('autoRebuildManager');
+    if (!autoRebuildManager) {
+      return res.status(500).json({
+        error: 'Auto-rebuild manager not available',
+        sessionId,
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    const buildResult = await autoRebuildManager.manualRebuild(sessionId);
+    
+    req.log('info', 'Manual rebuild completed', {
+      sessionId,
+      buildResult: buildResult.compiledAppPath,
+      requestId,
+      duration: `${Date.now() - startTime}ms`
+    });
+
+    res.json({
+      success: true,
+      message: `Manual rebuild completed for session ${sessionId}`,
+      sessionId,
+      buildResult,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+
+  } catch (error) {
+    req.log('error', 'Manual rebuild failed', {
+      sessionId,
+      error: error.message,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+
+    res.status(500).json({
+      error: error.message,
+      sessionId,
+      requestId,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+  }
+});
+
 module.exports = router;
+
+// Export helper function for adding Wix proxy routes to main app
+router.addWixProxyRoutes = (app) => {
+  // Wix API Proxy routes to avoid CORS issues in browser
+  app.use('/api/wix-proxy', async (req, res) => {
+    const startTime = Date.now();
+    const requestId = Date.now().toString();
+    
+    try {
+      const targetUrl = `https://www.wixapis.com${req.originalUrl.replace('/api/wix-proxy', '')}`;
+      
+      console.log(`🌐 [Wix Proxy] ${req.method} ${targetUrl}`);
+      
+      // Prepare headers for the proxied request
+      const headers = {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'User-Agent': 'Visual-Editor-Proxy/1.0',
+      };
+      
+      // Forward specific Wix-related headers if present
+      if (req.headers['authorization']) {
+        headers['Authorization'] = req.headers['authorization'];
+      }
+      if (req.headers['wix-site-id']) {
+        headers['wix-site-id'] = req.headers['wix-site-id'];
+      }
+      if (req.headers['wix-client-id']) {
+        headers['wix-client-id'] = req.headers['wix-client-id'];
+      }
+      
+      // Prepare request options
+      const requestOptions = {
+        method: req.method,
+        headers,
+      };
+      
+      // Add body for POST/PUT requests
+      if (req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+        requestOptions.body = JSON.stringify(req.body);
+      }
+      
+      // Make the proxied request
+      const response = await fetch(targetUrl, requestOptions);
+      
+      // Get response data
+      const responseData = await response.text();
+      
+      // Set CORS headers for the browser
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, wix-site-id, wix-client-id');
+      
+      // Forward response status and headers
+      res.status(response.status);
+      
+      // Forward important response headers
+      if (response.headers.get('content-type')) {
+        res.header('Content-Type', response.headers.get('content-type'));
+      }
+      
+      console.log(`✅ [Wix Proxy] ${req.method} ${targetUrl} - ${response.status} (${Date.now() - startTime}ms)`);
+      
+      // Send the response
+      res.send(responseData);
+      
+    } catch (error) {
+      console.error(`❌ [Wix Proxy] Error proxying request:`, error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        requestId,
+        responseTime: `${Date.now() - startTime}ms`
+      });
+    }
+  });
+  
+  // Handle preflight OPTIONS requests for CORS
+  app.options('/api/wix-proxy/*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, wix-site-id, wix-client-id');
+    res.sendStatus(200);
+  });
+};
+
+// Content tracing endpoint  
+router.post('/trace-content', async (req, res) => {
+  try {
+    const { sessionId, contentInfo } = req.body;
+    
+    if (!sessionId || !contentInfo) {
+      return res.status(400).json({ error: 'sessionId and contentInfo are required' });
+    }
+    
+    console.log(`🔍 [Content Tracing] Searching for content in session: ${sessionId}`);
+    console.log(`📝 [Content Tracing] Content info:`, contentInfo);
+    
+    const SessionManager = require('../sessions/SessionManager');
+    const sessionManager = new SessionManager();
+    const sessionPath = path.join(sessionManager.tempDir, sessionId, 'workspace');
+    
+    if (!fs.existsSync(sessionPath)) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    const traceResults = await traceContentInFiles(sessionPath, contentInfo);
+    
+    console.log(`📍 [Content Tracing] Found ${traceResults.length} matches`);
+    
+    res.json({
+      sessionId,
+      contentInfo,
+      matches: traceResults
+    });
+  } catch (error) {
+    console.error('❌ [Content Tracing] Error:', error);
+    res.status(500).json({ error: 'Failed to trace content' });
+  }
+});
+
+// Helper function to trace content in files
+async function traceContentInFiles(workspacePath, contentInfo) {
+  const matches = [];
+  const { text, textContent, className, attributes } = contentInfo;
+  
+  // Get all relevant files (TSX, JSX, TS, JS)
+  const files = await getFilesRecursively(workspacePath, ['.tsx', '.jsx', '.ts', '.js']);
+  
+  for (const filePath of files) {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const relativePath = path.relative(workspacePath, filePath);
+      const fileMatches = [];
+      
+      // Search for text content (most important)
+      if (text && text.length > 2) {
+        const textMatches = findTextInFile(content, text, relativePath);
+        fileMatches.push(...textMatches.map(m => ({ ...m, type: 'text' })));
+      }
+      
+      if (textContent && textContent !== text && textContent.length > 2) {
+        const textContentMatches = findTextInFile(content, textContent, relativePath);
+        fileMatches.push(...textContentMatches.map(m => ({ ...m, type: 'textContent' })));
+      }
+      
+      // Search for meaningful class names
+      if (className) {
+        const classNames = className.split(' ').filter(cls => cls.length > 3);
+        for (const cls of classNames) {
+          const classMatches = findClassInFile(content, cls, relativePath);
+          fileMatches.push(...classMatches.map(m => ({ ...m, type: 'className' })));
+        }
+      }
+      
+      // Search for attributes
+      for (const [attr, value] of Object.entries(attributes)) {
+        if (value && value.length > 2) {
+          const attrMatches = findAttributeInFile(content, attr, value, relativePath);
+          fileMatches.push(...attrMatches.map(m => ({ ...m, type: 'attribute', attr })));
+        }
+      }
+      
+      if (fileMatches.length > 0) {
+        matches.push({
+          file: relativePath,
+          fullPath: filePath,
+          matches: fileMatches
+        });
+      }
+    } catch (error) {
+      console.warn(`⚠️ [Content Tracing] Error reading ${filePath}:`, error.message);
+    }
+  }
+  
+  // Sort matches by relevance (text matches first, then by match count)
+  matches.sort((a, b) => {
+    const aTextMatches = a.matches.filter(m => m.type === 'text').length;
+    const bTextMatches = b.matches.filter(m => m.type === 'text').length;
+    
+    if (aTextMatches !== bTextMatches) {
+      return bTextMatches - aTextMatches;
+    }
+    
+    return b.matches.length - a.matches.length;
+  });
+  
+  return matches;
+}
+
+// Helper functions for finding content
+function findTextInFile(content, searchText, filePath) {
+  const matches = [];
+  const lines = content.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const index = line.toLowerCase().indexOf(searchText.toLowerCase());
+    
+    if (index !== -1) {
+      matches.push({
+        line: i + 1,
+        column: index + 1,
+        content: line.trim(),
+        context: getLineContext(lines, i, 2),
+        confidence: calculateTextConfidence(line, searchText)
+      });
+    }
+  }
+  
+  return matches;
+}
+
+function findClassInFile(content, className, filePath) {
+  const matches = [];
+  const lines = content.split('\n');
+  
+  // Look for className="..." or class="..."
+  const classRegex = new RegExp(`(class|className)=['""][^'"]*${className.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^'"]*['"]`, 'gi');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = classRegex.exec(line);
+    
+    if (match) {
+      matches.push({
+        line: i + 1,
+        column: match.index + 1,
+        content: line.trim(),
+        context: getLineContext(lines, i, 2),
+        confidence: 0.8
+      });
+    }
+  }
+  
+  return matches;
+}
+
+function findAttributeInFile(content, attr, value, filePath) {
+  const matches = [];
+  const lines = content.split('\n');
+  
+  const attrRegex = new RegExp(`${attr}=['""]${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`, 'gi');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = attrRegex.exec(line);
+    
+    if (match) {
+      matches.push({
+        line: i + 1,
+        column: match.index + 1,
+        content: line.trim(),
+        context: getLineContext(lines, i, 2),
+        confidence: 0.9
+      });
+    }
+  }
+  
+  return matches;
+}
+
+function calculateTextConfidence(line, searchText) {
+  // Higher confidence for exact matches, JSX content, etc.
+  const exactMatch = line.includes(searchText);
+  const inJSX = line.includes('<') && line.includes('>');
+  const inString = /['"`]/.test(line);
+  
+  let confidence = 0.5;
+  if (exactMatch) confidence += 0.3;
+  if (inJSX) confidence += 0.2;
+  if (inString) confidence += 0.1;
+  
+  return Math.min(confidence, 1.0);
+}
+
+function getLineContext(lines, lineIndex, contextSize) {
+  const start = Math.max(0, lineIndex - contextSize);
+  const end = Math.min(lines.length, lineIndex + contextSize + 1);
+  
+  return {
+    before: lines.slice(start, lineIndex),
+    after: lines.slice(lineIndex + 1, end)
+  };
+}
+
+async function getFilesRecursively(dir, extensions) {
+  const files = [];
+  
+  async function scan(currentDir) {
+    const items = fs.readdirSync(currentDir);
+    
+    for (const item of items) {
+      const fullPath = path.join(currentDir, item);
+      const stat = fs.statSync(fullPath);
+      
+      if (stat.isDirectory() && !item.startsWith('.') && item !== 'node_modules') {
+        await scan(fullPath);
+      } else if (stat.isFile() && extensions.some(ext => item.endsWith(ext))) {
+        files.push(fullPath);
+      }
+    }
+  }
+  
+  await scan(dir);
+  return files;
+}

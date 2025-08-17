@@ -263,6 +263,9 @@ const SimplifiedPhoneFrame: React.FC<SimplifiedPhoneFrameProps> = ({ src2Status 
     if (appContentRef.current) {
       componentInspector.stopInspection(appContentRef.current);
     }
+    
+    // Keep the Properties panel focused on the selected component
+    console.log('📱 [SimplifiedPhoneFrame] Component selected - Properties panel will show details for:', component.id);
   };
 
   // Toggle inspection mode
@@ -449,7 +452,7 @@ const SimplifiedPhoneFrame: React.FC<SimplifiedPhoneFrameProps> = ({ src2Status 
                 position: 'relative',
                 backgroundColor: '#ffffff'
               }}>
-                <MobileAppRenderer selectedScreen={state.selectedComponent || undefined} />
+                <MobileAppRenderer />
               </div>
             )}
             

@@ -7,6 +7,7 @@ const path = require('path');
 const visualEditorRoutes = require('./routes/visualEditor');
 const { loggingMiddleware } = require('./middleware/logging');
 const SessionManager = require('./sessions/SessionManager');
+const AutoRebuildManager = require('./sessions/AutoRebuildManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +16,10 @@ const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } })
 // Initialize SessionManager and attach to app
 const sessionManager = new SessionManager();
 app.set('sessionManager', sessionManager);
+
+// Initialize AutoRebuildManager
+const autoRebuildManager = new AutoRebuildManager(sessionManager);
+app.set('autoRebuildManager', autoRebuildManager);
 
 // Middleware
 app.use(cors());
@@ -44,6 +49,11 @@ app.get('/working-directory', (req, res) => {
 
 // Visual editor routes
 app.use('/api/editor', visualEditorRoutes);
+
+// Add Wix proxy routes for CORS handling
+if (visualEditorRoutes.addWixProxyRoutes) {
+  visualEditorRoutes.addWixProxyRoutes(app);
+}
 
 // Real Mobile App serving - completely clean implementation
 app.get('/real-app/:sessionId', (req, res) => {
@@ -335,6 +345,9 @@ server.listen(PORT, () => {
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`📱 Mobile app preview: http://localhost:${PORT}/real-app/{sessionId}`);
   console.log(`🎯 API endpoints available at: http://localhost:${PORT}/api/editor`);
+
+  // Initialize AutoRebuildManager
+  autoRebuildManager.initialize(io);
 
   // Auto-start watching the most recent session on server startup
   setTimeout(() => {

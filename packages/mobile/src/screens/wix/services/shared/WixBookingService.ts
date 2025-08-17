@@ -166,6 +166,28 @@ class WixBookingService {
   }
 
   /**
+   * Get a single service provider by ID
+   */
+  async getServiceProvider(providerId: string): Promise<WixServiceProvider> {
+    try {
+      console.log('🎯 [BOOKING SERVICE] Fetching service provider:', providerId);
+
+      const providerResponse = await wixBookingApiClient.getServiceProviderForBooking(providerId);
+      if (!providerResponse || !providerResponse.success || !providerResponse.data) {
+        throw new Error('Service provider not found');
+      }
+
+      const transformedProvider = this.transformProvider(providerResponse.data);
+
+      console.log('✅ [BOOKING SERVICE] Provider loaded successfully');
+      return transformedProvider;
+    } catch (error) {
+      console.error('❌ [BOOKING SERVICE] Error fetching provider:', error);
+      throw new Error('Failed to load service provider. Please try again.');
+    }
+  }
+
+  /**
    * Get service providers
    */
   async getServiceProviders(serviceId: string): Promise<WixServiceProvider[]> {

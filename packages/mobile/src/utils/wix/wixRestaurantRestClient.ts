@@ -222,7 +222,7 @@ class WixRestaurantRestClient {
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     await this.ensureValidTokens();
 
-    const url = `https://www.wixapis.com${endpoint}`;
+    const url = `${this.baseURL}${endpoint}`;
     
     const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',

@@ -7,7 +7,8 @@ import {
   ScrollView, 
   Animated, 
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import {useTheme} from '../../context';
 import HamburgerMenu from './HamburgerMenu';
@@ -43,12 +44,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuPress }) => {
         Animated.timing(animatedValue, {
           toValue: 1,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(animatedValue, {
           toValue: 0,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ])
     ).start();
@@ -59,12 +60,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuPress }) => {
         Animated.timing(sparkleAnimation, {
           toValue: 1,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(sparkleAnimation, {
           toValue: 0,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ])
     ).start();

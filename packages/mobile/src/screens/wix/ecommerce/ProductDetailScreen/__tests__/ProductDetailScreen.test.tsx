@@ -1,8 +1,8 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { WixCartProvider, AlertProvider } from '../../../../context';
-import { ThemeProvider } from '../../../../context/ThemeContext';
+import { WixCartProvider, AlertProvider, MemberProvider } from '../../../../../context';
+import { ThemeProvider } from '../../../../../context/ThemeContext';
 import ProductDetailScreen from '../ProductDetailScreen';
 
 // Simple smoke tests for ProductDetailScreen to avoid React Testing Library rendering issues
@@ -93,9 +93,11 @@ describe('Wix ProductDetailScreen', () => {
     const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
       <AlertProvider>
         <ThemeProvider>
-          <WixCartProvider>
-            {children}
-          </WixCartProvider>
+          <MemberProvider>
+            <WixCartProvider>
+              {children}
+            </WixCartProvider>
+          </MemberProvider>
         </ThemeProvider>
       </AlertProvider>
     );
@@ -117,7 +119,7 @@ describe('Wix ProductDetailScreen', () => {
 
     beforeEach(() => {
       // Mock the useProductDetail hook
-      jest.doMock('../../../../shared/hooks/useProductDetail', () => ({
+      jest.doMock('../../../../../shared/hooks/useProductDetail', () => ({
         useProductDetail: () => ({
           product: mockProduct,
           loading: false,
@@ -143,8 +145,8 @@ describe('Wix ProductDetailScreen', () => {
 
     it('should display cart icon in header', async () => {
       // Mock useWixCart with 0 items
-      jest.doMock('../../../../context', () => ({
-        ...jest.requireActual('../../../../context'),
+      jest.doMock('../../../../../context', () => ({
+        ...jest.requireActual('../../../../../context'),
         useWixCart: () => createMockUseWixCart(0)
       }));
 
@@ -161,8 +163,8 @@ describe('Wix ProductDetailScreen', () => {
 
     it('should display cart badge when cart has items', async () => {
       // Mock useWixCart with 3 items
-      jest.doMock('../../../../context', () => ({
-        ...jest.requireActual('../../../../context'),
+      jest.doMock('../../../../../context', () => ({
+        ...jest.requireActual('../../../../../context'),
         useWixCart: () => createMockUseWixCart(3)
       }));
 
@@ -180,8 +182,8 @@ describe('Wix ProductDetailScreen', () => {
 
     it('should not display cart badge when cart is empty', async () => {
       // Mock useWixCart with 0 items
-      jest.doMock('../../../../context', () => ({
-        ...jest.requireActual('../../../../context'),
+      jest.doMock('../../../../../context', () => ({
+        ...jest.requireActual('../../../../../context'),
         useWixCart: () => createMockUseWixCart(0)
       }));
 
@@ -199,8 +201,8 @@ describe('Wix ProductDetailScreen', () => {
 
     it('should call onCartPress when cart icon is pressed', async () => {
       // Mock useWixCart
-      jest.doMock('../../../../context', () => ({
-        ...jest.requireActual('../../../../context'),
+      jest.doMock('../../../../../context', () => ({
+        ...jest.requireActual('../../../../../context'),
         useWixCart: () => createMockUseWixCart(0)
       }));
 
@@ -225,8 +227,8 @@ describe('Wix ProductDetailScreen', () => {
 
     it('should navigate to cart when cart icon is pressed with navigation prop', async () => {
       // Mock useWixCart
-      jest.doMock('../../../../context', () => ({
-        ...jest.requireActual('../../../../context'),
+      jest.doMock('../../../../../context', () => ({
+        ...jest.requireActual('../../../../../context'),
         useWixCart: () => createMockUseWixCart(0)
       }));
 
@@ -255,8 +257,8 @@ describe('Wix ProductDetailScreen', () => {
 
     it('should display correct cart badge for double digit numbers', async () => {
       // Mock useWixCart with 15 items
-      jest.doMock('../../../../context', () => ({
-        ...jest.requireActual('../../../../context'),
+      jest.doMock('../../../../../context', () => ({
+        ...jest.requireActual('../../../../../context'),
         useWixCart: () => createMockUseWixCart(15)
       }));
 
@@ -274,8 +276,8 @@ describe('Wix ProductDetailScreen', () => {
 
     it('should handle large cart counts gracefully', async () => {
       // Mock useWixCart with 99 items
-      jest.doMock('../../../../context', () => ({
-        ...jest.requireActual('../../../../context'),
+      jest.doMock('../../../../../context', () => ({
+        ...jest.requireActual('../../../../../context'),
         useWixCart: () => createMockUseWixCart(99)
       }));
 

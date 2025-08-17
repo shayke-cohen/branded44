@@ -6,6 +6,9 @@ import { items } from '@wix/data';
 import { currentCart } from '@wix/ecom';
 import { redirects } from '@wix/redirects';
 
+// Declare window for web environment
+declare const window: any;
+
 // Global token generation lock to prevent multiple simultaneous requests
 let tokenGenerationPromise: Promise<void> | null = null;
 
@@ -243,6 +246,7 @@ export interface WixDataResponse<T = WixDataItem> {
 
 class WixCmsClient {
   private wixClient: any;
+  private baseURL = getApiBaseUrl();
   private siteId = getSiteId();
   private clientId = getClientId();
   private authToken: string | null = null;
@@ -323,7 +327,7 @@ class WixCmsClient {
       console.log('🔍 [CMS] Checking if Wix Data is enabled...');
       
       // Try to list collections first to see if Wix Data is enabled
-      const testUrl = `https://www.wixapis.com/wix-data/v2/collections?paging.limit=1`;
+      const testUrl = `${this.baseURL}/wix-data/v2/collections?paging.limit=1`;
       const testHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'wix-site-id': this.siteId,
@@ -347,7 +351,7 @@ class WixCmsClient {
         console.log('⚙️ [CMS] Wix Data not enabled, provisioning Velo...');
         
         // Provision Wix Code (Velo) to enable Wix Data
-        const provisionUrl = `https://www.wixapis.com/mcp-serverless/v1/velo/provision/`;
+        const provisionUrl = `${this.baseURL}/mcp-serverless/v1/velo/provision/`;
         const provisionResponse = await fetch(provisionUrl, {
           method: 'POST',
           headers: testHeaders,
@@ -378,7 +382,7 @@ class WixCmsClient {
       
       // Use correct Wix Data REST API endpoint
       const endpoint = `/wix-data/v2/collections`;
-      const url = `https://www.wixapis.com${endpoint}`;
+      const url = `${this.baseURL}${endpoint}`;
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -474,7 +478,7 @@ class WixCmsClient {
 
       // Use correct Wix Data REST API endpoint
       const endpoint = `/wix-data/v2/items/query`;
-      const url = `https://www.wixapis.com${endpoint}`;
+      const url = `${this.baseURL}${endpoint}`;
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -589,7 +593,7 @@ class WixCmsClient {
       
       // Use correct Wix Data REST API endpoint
       const endpoint = `/wix-data/v2/items`;
-      const url = `https://www.wixapis.com${endpoint}`;
+      const url = `${this.baseURL}${endpoint}`;
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -732,7 +736,7 @@ class WixCmsClient {
       
       // Use correct Wix Data REST API endpoint
       const endpoint = `/wix-data/v2/collections/${collectionId}`;
-      const url = `https://www.wixapis.com${endpoint}`;
+      const url = `${this.baseURL}${endpoint}`;
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -994,7 +998,7 @@ class WixApiClient {
       console.log('🔧 [DEBUG] Request headers:', JSON.stringify(headers, null, 2));
       console.log('🔧 [DEBUG] Request body:', JSON.stringify(requestBody, null, 2));
       
-      const response = await fetch('https://www.wixapis.com/oauth2/token', {
+      const response = await fetch(`${this.baseURL}/oauth2/token`, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
@@ -1038,7 +1042,7 @@ class WixApiClient {
 
       console.log('🌐 [API] POST /oauth2/token (refresh visitor tokens)');
       
-      const response = await fetch('https://www.wixapis.com/oauth2/token', {
+      const response = await fetch(`${this.baseURL}/oauth2/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1243,7 +1247,7 @@ class WixApiClient {
 
       console.log('🌐 [MEMBER AUTH] Making login request with site ID:', this.siteId);
 
-      const response = await fetch('https://www.wixapis.com/_api/iam/authentication/v2/login', {
+      const response = await fetch(`${this.baseURL}/_api/iam/authentication/v2/login`, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
@@ -1321,7 +1325,7 @@ class WixApiClient {
 
       console.log('🌐 [MEMBER AUTH] Making registration request with site ID:', this.siteId);
 
-      const response = await fetch('https://www.wixapis.com/_api/iam/authentication/v2/register', {
+      const response = await fetch(`${this.baseURL}/_api/iam/authentication/v2/register`, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
@@ -1365,83 +1369,9 @@ class WixApiClient {
     }
   }
 
-  // Login an existing member
-  async loginMember(email: string, password: string): Promise<AuthResponse | null> {
-    try {
-      console.log('🔐 [MEMBER AUTH] Logging in member...');
-      
-      // Ensure we have valid visitor tokens with site context
-      await this.ensureValidVisitorTokens();
-      
-      if (!this.visitorTokens?.accessToken) {
-        throw new Error('Missing visitor authentication context. Please ensure visitor tokens are initialized.');
-      }
-      
-      const requestBody = {
-        loginId: { email },
-        password,
-      };
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'wix-site-id': this.siteId,
-        'Authorization': `Bearer ${this.visitorTokens.accessToken}`,
-      };
-
-      console.log('🌐 [MEMBER AUTH] Making login request with site ID:', this.siteId);
-
-      const response = await fetch('https://www.wixapis.com/_api/iam/authentication/v2/login', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ [MEMBER AUTH] Login failed:', {
-          status: response.status,
-          error: errorText,
-          siteId: this.siteId,
-          hasVisitorToken: !!this.visitorTokens?.accessToken
-        });
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const authResponse: AuthResponse = await response.json();
-      
-      if (authResponse.state === 'SUCCESS' && authResponse.sessionToken) {
-        // Store session token for direct use
-        this.sessionToken = authResponse.sessionToken;
-        await AsyncStorage.setItem('wix_session_token', authResponse.sessionToken);
-        
-        // Store member profile first
-        this.currentMember = authResponse.identity;
-        await AsyncStorage.setItem('wix_current_member', JSON.stringify(this.currentMember));
-        
-        // Convert session token to member tokens (this may fail, but that's okay)
-        await this.getMemberTokensFromSession(authResponse.sessionToken);
-        
-        // Attempt to migrate visitor cart to member cart
-        await this.migrateVisitorCartToMember();
-        
-        console.log('✅ [MEMBER AUTH] Member logged in successfully');
-      }
-
-      return authResponse;
-    } catch (error) {
-      console.error('❌ [MEMBER AUTH] Failed to login member:', error);
-      return null;
-    }
-  }
-
   // Get current member info
   getCurrentMember(): MemberIdentity | null {
     return this.currentMember;
-  }
-
-  // Check if member is logged in
-  isMemberLoggedIn(): boolean {
-    return this.currentMember !== null && this.sessionToken !== null;
   }
 
   // Check if we have valid member tokens
@@ -1493,10 +1423,7 @@ class WixApiClient {
     return false;
   }
 
-  // Check if we have valid member tokens for API calls
-  hasMemberTokens(): boolean {
-    return !!(this.memberTokens && this.isMemberTokenValid(this.memberTokens));
-  }
+
 
   // Get member authentication header
   private getMemberAuthHeader(): string | null {

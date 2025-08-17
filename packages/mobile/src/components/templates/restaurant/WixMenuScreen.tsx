@@ -15,7 +15,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 
 // Import the base MenuScreen
-import { MenuScreen, type MenuScreenProps } from './MenuScreen';
+import MenuScreen, { type MenuScreenProps } from './MenuScreen';
 
 // Import Wix integration
 import {

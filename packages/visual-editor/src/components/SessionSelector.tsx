@@ -125,10 +125,10 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
     const parts = sessionId.split('-');
     if (parts.length >= 2) {
       const timestamp = new Date(parseInt(parts[1]));
-      const shortId = parts[2]?.slice(0, 8) || 'unknown';
+      const shortId = parts[2] || 'unknown'; // Take full random ID part, don't truncate
       return `Session ${shortId}`;
     }
-    return `Session ${sessionId.slice(-8)}`; // Fallback to last 8 chars
+    return `Session ${sessionId.slice(-12)}`; // Fallback to last 12 chars for full display
   };
 
   // Format session display with timestamp for dropdown
@@ -136,11 +136,11 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
     const parts = sessionId.split('-');
     if (parts.length >= 2) {
       const timestamp = new Date(parseInt(parts[1]));
-      const shortId = parts[2]?.slice(0, 8) || 'unknown';
+      const shortId = parts[2] || 'unknown'; // Take full random ID part, don't truncate
       const timeStr = timestamp.toLocaleDateString() + ' ' + timestamp.toLocaleTimeString();
       return `Session ${shortId} (${timeStr})`;
     }
-    return `Session ${sessionId.slice(-8)}`;
+    return `Session ${sessionId.slice(-12)}`; // Fallback to last 12 chars for full display
   };
 
   return (
@@ -238,7 +238,7 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
 const styles = {
   container: {
     position: 'relative' as const,
-    minWidth: '300px',
+    minWidth: '320px',
     fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   header: {
@@ -260,7 +260,7 @@ const styles = {
     border: '2px solid #e1e5e9',
     borderRadius: '6px',
     cursor: 'pointer',
-    minWidth: '250px',
+    minWidth: '280px',
     fontSize: '13px',
     transition: 'all 0.2s ease',
   },

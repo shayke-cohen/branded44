@@ -484,6 +484,9 @@ const PhoneFrameComponent: React.FC<PhoneFrameProps> = ({ src2Status }) => {
     if (appContentRef.current) {
       componentInspector.stopInspection(appContentRef.current);
     }
+    
+    // Keep the Properties panel focused on the selected component
+    console.log('📱 [PhoneFrame] Component selected - Properties panel will show details for:', component.id);
   };
 
   // Toggle inspection mode

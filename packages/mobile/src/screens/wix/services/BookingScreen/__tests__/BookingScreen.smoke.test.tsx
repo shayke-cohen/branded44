@@ -13,16 +13,32 @@ import BookingScreen from '../BookingScreen';
 
 // Mock the Wix booking API client
 const mockGetServiceForBooking = jest.fn().mockResolvedValue({
-  success: false,
-  error: 'Mock service not found',
+  success: true,
+  data: {
+    id: 'test-service-id',
+    name: 'Test Service',
+    description: 'Test Description',
+    duration: 60,
+    price: 100,
+    category: { id: 'category-1', name: 'Test Category' }
+  }
+});
+
+const mockGetServiceProviderForBooking = jest.fn().mockResolvedValue({
+  success: true,
+  data: {
+    id: 'test-provider-id',
+    name: 'Test Provider',
+    email: 'test@example.com'
+  }
 });
 
 jest.mock('../../shared/wixBookingApiClient', () => ({
   wixBookingApiClient: {
     getServiceForBooking: mockGetServiceForBooking,
-    getServiceProviderForBooking: jest.fn().mockResolvedValue({
-      success: false,
-      error: 'Mock provider not found',
+    getServiceProviderForBooking: mockGetServiceProviderForBooking,
+    queryServiceProviders: jest.fn().mockResolvedValue({
+      providers: []
     }),
   },
 }));

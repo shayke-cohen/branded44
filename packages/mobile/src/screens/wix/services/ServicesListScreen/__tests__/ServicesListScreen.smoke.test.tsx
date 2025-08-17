@@ -11,15 +11,28 @@ import React from 'react';
 import { render, screen } from '../../../../../test/test-utils';
 import ServicesListScreen from '../ServicesListScreen';
 
-// Mock the Wix booking API client
-const mockGetServices = jest.fn().mockResolvedValue({
-  success: true,
-  data: [],
+// Mock the Wix booking API client with correct methods
+const mockQueryServices = jest.fn().mockResolvedValue({
+  services: [
+    {
+      id: 'test-service-1',
+      name: 'Test Service',
+      description: 'Test Description',
+      duration: 60,
+      price: 100,
+      category: { id: 'category-1', name: 'Test Category' }
+    }
+  ]
+});
+
+const mockQueryServiceProviders = jest.fn().mockResolvedValue({
+  providers: []
 });
 
 jest.mock('../../shared/wixBookingApiClient', () => ({
   wixBookingApiClient: {
-    getServices: mockGetServices,
+    queryServices: mockQueryServices,
+    queryServiceProviders: mockQueryServiceProviders,
     getServiceCategories: jest.fn().mockResolvedValue({
       success: true,
       data: [],
@@ -77,7 +90,7 @@ describe('ServicesListScreen Smoke Tests', () => {
       
       // Should attempt to load services data
       await new Promise(resolve => setTimeout(resolve, 100));
-      expect(mockGetServices).toHaveBeenCalled();
+      expect(mockQueryServices).toHaveBeenCalled();
     });
 
     it('should handle context dependencies', () => {

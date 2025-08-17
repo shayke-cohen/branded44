@@ -488,10 +488,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.sm,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
   },
   statItem: {
     alignItems: 'center',
@@ -555,10 +552,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 25,
     elevation: 8,
-    shadowColor: COLORS.primary[600],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0 4px 8px rgba(74, 144, 226, 0.3)',
   },
   cartBadge: {
     backgroundColor: 'white',

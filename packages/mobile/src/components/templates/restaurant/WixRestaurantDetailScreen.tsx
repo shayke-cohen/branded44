@@ -15,7 +15,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 // Import the base RestaurantDetailScreen
-import { RestaurantDetailScreen, type RestaurantDetailScreenProps } from './RestaurantDetailScreen';
+import RestaurantDetailScreen, { type RestaurantDetailScreenProps } from './RestaurantDetailScreen';
 
 // Import Wix integration
 import {

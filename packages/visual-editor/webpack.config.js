@@ -142,6 +142,16 @@ module.exports = (env, argv) => {
             console.log('📁 [Webpack Proxy] Target URL:', proxyReq.path);
           }
         },
+        // Proxy Wix API calls to server to avoid CORS issues
+        '/api/wix-proxy/**': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          logLevel: 'debug',
+          onProxyReq: (proxyReq, req, res) => {
+            console.log('🌐 [Webpack Proxy] Proxying Wix API request:', req.url);
+            console.log('🌐 [Webpack Proxy] Target URL:', proxyReq.path);
+          }
+        },
       },
       client: {
         logging: 'warn', // Reduce console noise

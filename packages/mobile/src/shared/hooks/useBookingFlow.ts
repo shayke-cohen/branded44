@@ -125,7 +125,7 @@ export const useBookingFlow = (): UseBookingFlowReturn => {
       console.log('🔄 [BOOKING FLOW HOOK] Initializing booking...', { serviceId, providerId });
 
       // Load service details
-      const service = await bookingService.getService(serviceId);
+      const service = await bookingService.getService({ serviceId });
       
       let provider: WixServiceProvider | null = null;
       if (providerId) {

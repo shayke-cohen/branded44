@@ -1,6 +1,7 @@
 import React, {useState, useEffect, Suspense, useCallback} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import { useEditor } from '../contexts/EditorContext';
 
 // Type declarations for React Native Web compatibility
 declare module 'react' {
@@ -63,6 +64,9 @@ const MobileAppRenderer: React.FC<MobileAppRendererProps> = ({
   
   // Load session workspace for real-time editing
   const { isLoaded, templateConfig, error, isLoading } = useSessionWorkspace();
+  
+  // Get editor state for navigation control
+  const { state } = useEditor();
   
   // Determine which template config to use (session or original)
   const getScreenComponent = templateConfig?.getScreenComponent || originalGetScreenComponent;
