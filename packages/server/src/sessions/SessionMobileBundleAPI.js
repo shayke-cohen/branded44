@@ -18,7 +18,7 @@ class SessionMobileBundleAPI {
     this.app.post('/api/editor/session/:sessionId/build-mobile', async (req, res) => {
       try {
         const { sessionId } = req.params;
-        const { platform = 'android', dev = true, minify = false } = req.body;
+        const { platform = 'android', dev = true, minify = false, forceRebuild = false } = req.body;
         
         console.log(`📱 [SessionMobileBundleAPI] Building mobile bundle for session: ${sessionId}`);
         
@@ -37,7 +37,7 @@ class SessionMobileBundleAPI {
         const result = await this.bundleBuilder.buildMobileBundle(
           sessionId, 
           session.sessionPath, 
-          { platform, dev, minify }
+          { platform, dev, minify, forceRebuild }
         );
         
         // Emit bundle ready event to connected clients

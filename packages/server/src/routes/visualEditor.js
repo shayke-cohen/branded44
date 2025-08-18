@@ -760,13 +760,15 @@ router.post('/session/:sessionId/build', async (req, res) => {
   
   try {
     const { sessionId } = req.params;
+    const { forceRebuild = false } = req.body;
     const sessionManager = req.app.get('sessionManager');
     const SessionBuilder = require('../sessions/SessionBuilder');
     const sessionBuilder = new SessionBuilder();
     
     req.log('info', 'Building session workspace', {
       requestId,
-      sessionId
+      sessionId,
+      forceRebuild
     });
 
     // Get session info
@@ -793,7 +795,7 @@ router.post('/session/:sessionId/build', async (req, res) => {
     }
 
     // Build the session
-    const buildResult = await sessionBuilder.buildSession(sessionId, session.sessionPath);
+    const buildResult = await sessionBuilder.buildSession(sessionId, session.sessionPath, { forceRebuild });
     
     const endTime = Date.now();
     req.updateConnectionStats(true, endTime - startTime);
@@ -1227,57 +1229,37 @@ router.get('/session-module/:sessionId/*', async (req, res) => {
     let jsContent = fileContent;
     
     if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
-      // Enhanced TypeScript to JavaScript transformation
-      // Handle multiline constructs and complex patterns properly
+      // MINIMAL TypeScript to JavaScript transformation
+      // Only remove the safest patterns to avoid breaking syntax
       jsContent = fileContent
-        // Remove import type statements (including from destructured imports)
+        // Remove import type statements only
         .replace(/import\s+type\s+.*?from\s+.*?;/g, '')
-        .replace(/import\s*\{\s*([^}]*?),?\s*type\s+([^,}]+)([^}]*?)\}\s*from\s+([^;]+);/g, 'import { $1 $3 } from $4;')
-        .replace(/import\s*\{\s*type\s+([^,}]+),?\s*([^}]*?)\}\s*from\s+([^;]+);/g, 'import { $2 } from $3;')
         
-        // Remove export type statements (including multiline ones with better pattern)
-        .replace(/export\s+type\s+[^=]+\s*=\s*[^;]*;/gs, '')
-        .replace(/export\s+type\s+\w+\s*\{[\s\S]*?\}\s*;?/g, '')
+        // Remove export type and interface declarations (including multi-line)
+        .replace(/^export\s+type\s+.*$/gm, '')
+        .replace(/^export\s+interface\s+\w+[^{]*\{[\s\S]*?\}/gm, '')
+        .replace(/^interface\s+\w+[^{]*\{[\s\S]*?\}/gm, '')
+        .replace(/^type\s+.*$/gm, '')
         
-        // Remove export interface declarations (including multiline ones)
-        .replace(/export\s+interface\s+\w+[\s\S]*?\}/g, '')
+        // SIMPLE approach: Remove only the safest type annotations
+        .replace(/:\s*\w+\[\](?=\s*[=])/g, '') // Remove simple array types before =
+        .replace(/:\s*\w+(?=\s*[=])/g, '') // Remove simple types before =
         
-        // Remove standalone type statements (including multiline ones)
-        .replace(/type\s+\w+\s*=\s*[^;]*;/gs, '')
+        // Fix function parameter type annotations (critical for runtime)
+        .replace(/(\([^)]*\})\s*:\s*\w+(?=\s*\))/g, '$1') // Remove types from destructured parameters
         
-        // Remove interface declarations (including multiline ones)
-        .replace(/interface\s+\w+[\s\S]*?\}/g, '')
+        // Fix malformed syntax from previous transformations
+        .replace(/\)>\s*\|\s*undefined\s*=>/g, ') =>') // Fix )> | undefined =>
+        .replace(/\)=>/g, ') =>') // Fix )=> to ) =>
         
-        // Remove 'type' keywords from import statements more carefully
-        .replace(/(\{\s*[^}]*?),?\s*type\s+(\w+),?([^}]*?\})/g, '$1, $2$3')
-        .replace(/(\{\s*)type\s+(\w+),?\s*([^}]*?\})/g, '$1$2, $3')
-        .replace(/,\s*,/g, ',') // Clean up double commas
-        .replace(/\{\s*,/g, '{') // Clean up leading commas
-        .replace(/,\s*\}/g, '}') // Clean up trailing commas
+        // Remove type keyword from imports (safer pattern)
+        .replace(/import\s*\{\s*([^}]*?),?\s*type\s+(\w+),?\s*([^}]*?)\}\s*from/g, 'import { $1 $3 } from')
+        .replace(/import\s*\{\s*type\s+(\w+),?\s*([^}]*?)\}\s*from/g, 'import { $2 } from')
         
-        // Remove type annotations from function parameters (improved)
-        .replace(/(\w+)\s*:\s*[^,)=]+(?=[\s,)=])/g, '$1')
-        
-        // Remove return type annotations (including complex ones)
-        .replace(/\)\s*:\s*[^{=>]+(\s*[{=>])/g, ')$1')
-        
-        // Remove type assertions (as keyword)
-        .replace(/\s+as\s+[^,;)}\]]+/g, '')
-        
-        // Remove generic type parameters (improved to handle nested generics)
-        .replace(/<[^<>]*(?:<[^<>]*(?:<[^<>]*>[^<>]*)*>[^<>]*)*>/g, '')
-        
-        // Remove React.FC and similar type annotations
-        .replace(/:\s*React\.FC[^=,;)}\]]*(?=[=,;)}\]])/g, '')
-        .replace(/:\s*ComponentType[^=,;)}\]]*(?=[=,;)}\]])/g, '')
-        
-        // Clean up function signatures in object properties (like defaultProps)
-        .replace(/(async\s+)?\(([^)]*)\)\s*:\s*[^{=>\s][^{=>]*\s*=>/g, '($2) =>')
-        
-        // Clean up any remaining orphaned commas or spaces
-        .replace(/\s*,\s*,/g, ',')
-        .replace(/\(\s*,/g, '(')
-        .replace(/,\s*\)/g, ')')
+        // Clean up empty imports and double commas
+        .replace(/import\s*\{\s*,\s*([^}]+)\}/g, 'import { $1 }')
+        .replace(/import\s*\{\s*([^}]+?),\s*\}/g, 'import { $1 }')
+        .replace(/,\s*,/g, ',')
         .replace(/\{\s*,/g, '{')
         .replace(/,\s*\}/g, '}');
     }

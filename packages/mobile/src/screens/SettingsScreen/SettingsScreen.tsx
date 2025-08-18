@@ -488,23 +488,19 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
           </View>
         )}
 
-        {/* Development Section - Session Bundle Management */}
-        {__DEV__ && (
-          <View style={styles.section}>
-            <SessionBundleSection 
-              onSessionChange={(sessionId) => {
-                console.log('📱 [SETTINGS] Session changed:', sessionId);
-              }}
-            />
-          </View>
-        )}
+        {/* Session Bundle Management */}
+        <View style={styles.section}>
+          <SessionBundleSection 
+            onSessionChange={(sessionId) => {
+              console.log('📱 [SETTINGS] Session changed:', sessionId);
+            }}
+          />
+        </View>
 
-        {/* Development Section - OTA Component Demo */}
-        {__DEV__ && (
-          <View style={styles.section}>
-            <DynamicComponentDemo />
-          </View>
-        )}
+        {/* Dynamic Component Demo */}
+        <View style={styles.section}>
+          <DynamicComponentDemo />
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Appearance</Text>

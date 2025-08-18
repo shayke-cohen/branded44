@@ -123,9 +123,10 @@ export const SessionBundleManager: React.FC = () => {
       message: `Bundle loaded successfully (${data.bundleCode.length} chars)`
     }));
     
+    const sessionInfo = data.bundleInfo?.sessionId ? `\n\nSession: ${data.bundleInfo.sessionId}` : '';
     Alert.alert(
       'Bundle Loaded',
-      'New bundle has been loaded successfully!',
+      `New bundle has been loaded successfully!${sessionInfo}`,
       [{ text: 'OK' }]
     );
   };

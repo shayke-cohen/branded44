@@ -86,6 +86,7 @@ export class DeployManager {
     buildWeb?: boolean;
     buildMobile?: boolean;
     platforms?: ('android' | 'ios')[];
+    forceRebuild?: boolean;
   } = {}): Promise<DeployResult> {
     
     const buildId = `deploy-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`;
@@ -94,12 +95,13 @@ export class DeployManager {
     const {
       buildWeb = true,
       buildMobile = true,
-      platforms = ['android', 'ios']
+      platforms = ['android', 'ios'],
+      forceRebuild = false
     } = options;
 
     console.log(`🚀 [DeployManager] Starting deployment: ${buildId}`);
     console.log(`🚀 [DeployManager] Session: ${sessionId}`);
-    console.log(`🚀 [DeployManager] Options:`, { buildWeb, buildMobile, platforms });
+    console.log(`🚀 [DeployManager] Options:`, { buildWeb, buildMobile, platforms, forceRebuild });
 
     const result: DeployResult = {
       success: false,
@@ -132,7 +134,7 @@ export class DeployManager {
         });
 
         try {
-          result.webBundle = await this.buildWebBundle(sessionId);
+          result.webBundle = await this.buildWebBundle(sessionId, forceRebuild);
           currentProgress += stepIncrement;
           
           this.emitProgress({
@@ -174,7 +176,7 @@ export class DeployManager {
           });
 
           try {
-            const mobileBuild = await this.buildMobileBundle(sessionId, platform);
+            const mobileBuild = await this.buildMobileBundle(sessionId, platform, forceRebuild);
             result.mobileBundle[platform] = mobileBuild;
             currentProgress += stepIncrement;
             
@@ -245,7 +247,7 @@ export class DeployManager {
   /**
    * Build web bundle using existing SessionBuilder
    */
-  private async buildWebBundle(sessionId: string): Promise<{
+  private async buildWebBundle(sessionId: string, forceRebuild: boolean = false): Promise<{
     success: boolean;
     size?: number;
     path?: string;
@@ -257,6 +259,9 @@ export class DeployManager {
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          forceRebuild
+        }),
       });
 
       const result = await response.json();
@@ -281,7 +286,7 @@ export class DeployManager {
   /**
    * Build mobile bundle using SessionMobileBundleBuilder
    */
-  private async buildMobileBundle(sessionId: string, platform: 'android' | 'ios'): Promise<{
+  private async buildMobileBundle(sessionId: string, platform: 'android' | 'ios', forceRebuild: boolean = false): Promise<{
     success: boolean;
     size?: number;
     path?: string;
@@ -296,7 +301,8 @@ export class DeployManager {
         body: JSON.stringify({
           platform,
           dev: true,
-          minify: false
+          minify: false,
+          forceRebuild
         })
       });
 

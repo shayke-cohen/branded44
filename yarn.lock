@@ -1686,7 +1686,7 @@ __metadata:
     socket.io: ^4.8.1
     text-encoding-polyfill: ^0.6.7
     ts-node: ^10.9.2
-    typescript: ^5.8.3
+    typescript: ^5.9.2
     webpack: ^5.95.0
     ws: ^8.18.3
   languageName: unknown
@@ -1768,8 +1768,8 @@ __metadata:
     "@babel/runtime": ^7.27.6
     "@eslint/js": ^9.15.0
     "@react-native-async-storage/async-storage": ^2.2.0
-    "@types/react": ^18.2.0
-    "@types/react-dom": ^18.2.0
+    "@types/react": ^19.0.0
+    "@types/react-dom": ^19.0.0
     "@typescript-eslint/eslint-plugin": ^8.15.0
     "@typescript-eslint/parser": ^8.15.0
     babel-loader: ^9.1.3
@@ -1777,9 +1777,9 @@ __metadata:
     eslint: ^9.15.0
     file-loader: ^6.2.0
     html-webpack-plugin: ^5.6.0
-    react: ^18.2.0
-    react-dom: ^18.2.0
-    react-native-web: ^0.19.12
+    react: 19.1.0
+    react-dom: 19.1.0
+    react-native-web: ^0.21.0
     style-loader: ^3.3.4
     typescript: 5.0.4
     url-loader: ^4.1.1
@@ -5374,13 +5374,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/prop-types@npm:*":
-  version: 15.7.15
-  resolution: "@types/prop-types@npm:15.7.15"
-  checksum: 31aa2f59b28f24da6fb4f1d70807dae2aedfce090ec63eaf9ea01727a9533ef6eaf017de5bff99fbccad7d1c9e644f52c6c2ba30869465dd22b1a7221c29f356
-  languageName: node
-  linkType: hard
-
 "@types/qs@npm:*":
   version: 6.14.0
   resolution: "@types/qs@npm:6.14.0"
@@ -5392,15 +5385,6 @@ __metadata:
   version: 1.2.7
   resolution: "@types/range-parser@npm:1.2.7"
   checksum: 95640233b689dfbd85b8c6ee268812a732cf36d5affead89e806fe30da9a430767af8ef2cd661024fd97e19d61f3dec75af2df5e80ec3bea000019ab7028629a
-  languageName: node
-  linkType: hard
-
-"@types/react-dom@npm:^18.2.0":
-  version: 18.3.7
-  resolution: "@types/react-dom@npm:18.3.7"
-  peerDependencies:
-    "@types/react": ^18.0.0
-  checksum: c8b63ec944d2a68992b4dba474003fe55ee1d949c4b9c8fe97eecb2290de23f76acfb670b2f7ceb46a5fc8e46808d1745369b03edda48a7a0cf730eff4c5d315
   languageName: node
   linkType: hard
 
@@ -5428,16 +5412,6 @@ __metadata:
   dependencies:
     csstype: ^3.0.2
   checksum: 1d9c5edb5957e797ad59dc71f92f6faa1f8033007c037f9aeb01161366c92fa257a6ddb267ff33f7787c072c5d568b5f8593868d58f2858f7face6978cd18e00
-  languageName: node
-  linkType: hard
-
-"@types/react@npm:^18.2.0":
-  version: 18.3.23
-  resolution: "@types/react@npm:18.3.23"
-  dependencies:
-    "@types/prop-types": "*"
-    csstype: ^3.0.2
-  checksum: d781257d42bf3c66f4bcd21e76a86cd9b6e21fbaf377fe0f840f1ff35049efa59491aa6a4dcf2b3db42af4ab085acebe185f0ae28b7c36d60be5e9094c707bdd
   languageName: node
   linkType: hard
 
@@ -8590,7 +8564,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "branded44@workspace:."
   dependencies:
+    base64-js: ^1.5.1
     concurrently: ^8.2.0
+    ieee754: ^1.2.1
   languageName: unknown
   linkType: soft
 
@@ -12180,6 +12156,15 @@ __metadata:
     css-in-js-utils: ^3.1.0
     fast-loops: ^1.1.3
   checksum: caf7a75d18acbedc7e3b8bfac17563082becd2df6b65accad964a6afdf490329b42315c37fe65ba0177cc10fd32809eb40d62aba23a0118c74d87d4fc58defa2
+  languageName: node
+  linkType: hard
+
+"inline-style-prefixer@npm:^7.0.1":
+  version: 7.0.1
+  resolution: "inline-style-prefixer@npm:7.0.1"
+  dependencies:
+    css-in-js-utils: ^3.1.0
+  checksum: 07a72573dfdac5e08fa18f5ce71d922861716955e230175ac415db227d9ed49443c764356cb407a92f4c85b30ebf39604165260b4dfbf3196b7736d7332c5c06
   languageName: node
   linkType: hard
 
@@ -15863,6 +15848,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-native-web@npm:^0.21.0":
+  version: 0.21.0
+  resolution: "react-native-web@npm:0.21.0"
+  dependencies:
+    "@babel/runtime": ^7.18.6
+    "@react-native/normalize-colors": ^0.74.1
+    fbjs: ^3.0.4
+    inline-style-prefixer: ^7.0.1
+    memoize-one: ^6.0.0
+    nullthrows: ^1.1.1
+    postcss-value-parser: ^4.2.0
+    styleq: ^0.1.3
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+  checksum: dd2c4206f95d0e255323a472ac9852b3a37af26034a7396b5448fb840b5da5c1cbb973dd0243555819c73eb44840d22b7540bb4623d1b46096b52cbeeea798a4
+  languageName: node
+  linkType: hard
+
 "react-native-webview@npm:^13.15.0":
   version: 13.15.0
   resolution: "react-native-webview@npm:13.15.0"
@@ -17906,7 +17910,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.3.3, typescript@npm:^5.8.3":
+"typescript@npm:^5.3.3, typescript@npm:^5.9.2":
   version: 5.9.2
   resolution: "typescript@npm:5.9.2"
   bin:
@@ -17926,7 +17930,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^5.3.3#~builtin<compat/typescript>, typescript@patch:typescript@^5.8.3#~builtin<compat/typescript>":
+"typescript@patch:typescript@^5.3.3#~builtin<compat/typescript>, typescript@patch:typescript@^5.9.2#~builtin<compat/typescript>":
   version: 5.9.2
   resolution: "typescript@patch:typescript@npm%3A5.9.2#~builtin<compat/typescript>::version=5.9.2&hash=5786d5"
   bin:

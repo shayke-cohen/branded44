@@ -54,6 +54,7 @@ function createSessionMetroConfig(workspacePath, options = {}) {
         /.*\/context\/WixBookingContext\.tsx$/,
         /.*\/context\/.*Wix.*\.tsx$/,
         // Block Node.js core modules that should not be in React Native bundles
+        // Note: base64-js and ieee754 are needed by React Native internals
         /.*\/node_modules\/buffer\/.*/,
         /.*\/node_modules\/stream\/.*/,
         /.*\/node_modules\/stream-browserify\/.*/,
@@ -63,8 +64,6 @@ function createSessionMetroConfig(workspacePath, options = {}) {
         /.*\/node_modules\/text-encoding\/.*/,
         /.*\/node_modules\/text-encoding-polyfill\/.*/,
         /.*\/node_modules\/url\/.*/,
-        /.*\/node_modules\/base64-js\/.*/,
-        /.*\/node_modules\/ieee754\/.*/,
         /.*\/node_modules\/process\/.*/,
       ],
     },

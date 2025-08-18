@@ -20,10 +20,11 @@ class SessionMobileBundleBuilder {
    * @returns {Promise<Object>} Build result with bundle info
    */
   async buildMobileBundle(sessionId, sessionPath, options = {}) {
-    console.log(`📱 [SessionMobileBundleBuilder] Building mobile bundle for session: ${sessionId}`);
+    const { forceRebuild = false } = options;
+    console.log(`📱 [SessionMobileBundleBuilder] Building mobile bundle for session: ${sessionId}${forceRebuild ? ' (force rebuild)' : ''}`);
     
-    // Check if build is already in progress
-    if (this.activeBuilds.has(sessionId)) {
+    // Check if build is already in progress (unless force rebuild)
+    if (!forceRebuild && this.activeBuilds.has(sessionId)) {
       console.log(`⏳ [SessionMobileBundleBuilder] Build already in progress for session: ${sessionId}`);
       return this.activeBuilds.get(sessionId);
     }
@@ -53,13 +54,15 @@ class SessionMobileBundleBuilder {
     const platform = options.platform || 'android';
     const dev = options.dev !== false;
     const minify = options.minify || false;
+    const forceRebuild = options.forceRebuild || false;
 
     try {
       // Create Metro config for this session
       const metroConfig = createSessionMetroConfig(workspacePath, {
         platform,
         dev,
-        projectRoot: workspacePath
+        projectRoot: workspacePath,
+        resetCache: forceRebuild
       });
 
       console.log(`📦 [SessionMobileBundleBuilder] Starting Metro bundler for ${platform}...`);

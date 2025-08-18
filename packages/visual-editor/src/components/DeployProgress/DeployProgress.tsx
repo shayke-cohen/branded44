@@ -232,7 +232,19 @@ export const DeployProgress: React.FC<DeployProgressProps> = ({
     setResult(null);
     
     try {
-      await deployManager.quickDeploy(sessionId);
+      // If this is a redeploy (result exists), force rebuild
+      const forceRebuild = !!result;
+      if (forceRebuild) {
+        console.log('🔄 [DeployProgress] Force redeploying session:', sessionId);
+        await deployManager.deploySession(sessionId, {
+          buildWeb: true,
+          buildMobile: true,
+          platforms: ['android', 'ios'],
+          forceRebuild: true
+        });
+      } else {
+        await deployManager.quickDeploy(sessionId);
+      }
     } catch (error) {
       console.error('Deploy failed:', error);
       setIsDeploying(false);
@@ -400,6 +412,15 @@ export const DeployProgress: React.FC<DeployProgressProps> = ({
               disabled={isDeploying || !sessionId}
             >
               Retry Deploy
+            </Button>
+          )}
+          {result && result.success && (
+            <Button 
+              $variant="primary" 
+              onClick={handleDeploy}
+              disabled={isDeploying || !sessionId}
+            >
+              🔄 Redeploy
             </Button>
           )}
         </ActionButtons>

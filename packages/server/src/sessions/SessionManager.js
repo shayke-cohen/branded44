@@ -37,7 +37,8 @@ class SessionManager {
               workspacePath,
               srcPath: path.resolve(__dirname, '../../../../packages/mobile/src'),
               createdAt: new Date(),
-              lastAccessed: new Date()
+              lastAccessed: new Date(),
+              startTime: Date.now() // Add startTime for age calculation
             };
             
             this.activeSessions.set(sessionId, sessionInfo);
@@ -76,7 +77,8 @@ class SessionManager {
         workspacePath,
         srcPath: path.resolve(__dirname, '../../../../packages/mobile/src'),
         createdAt: new Date(),
-        lastAccessed: new Date()
+        lastAccessed: new Date(),
+        startTime: Date.now() // Add startTime for age calculation
       };
       
       // Add to active sessions

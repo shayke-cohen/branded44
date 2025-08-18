@@ -222,7 +222,7 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
     
     Alert.alert(
       'Bundle Loaded',
-      `New ${downloadStats?.platform || 'mobile'} code has been loaded!\n\nSize: ${sizeText}\nPlatform: ${downloadStats?.platform || 'unknown'}`,
+      `New ${downloadStats?.platform || 'mobile'} code has been loaded!\n\nSession: ${bundleInfo?.sessionId || 'unknown'}\nSize: ${sizeText}\nPlatform: ${downloadStats?.platform || 'unknown'}`,
       [{ text: 'Great!' }]
     );
   };
@@ -734,7 +734,13 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
                     <View style={styles.bundleDetailRow}>
                       <Text style={styles.bundleDetailLabel}>Downloaded:</Text>
                       <Text style={styles.bundleDetailValue}>
-                        {new Date(currentBundle.downloadedAt).toLocaleString()}
+                        {new Date(currentBundle.downloadedAt).toLocaleString([], {
+                          day: '2-digit', 
+                          month: '2-digit', 
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </Text>
                     </View>
                   )}
@@ -775,7 +781,13 @@ export const SessionBundleSection: React.FC<SessionBundleSectionProps> = ({
                   <View style={styles.historyHeader}>
                     <Text style={styles.historyPlatform}>{bundle.platform}</Text>
                     <Text style={styles.historyTime}>
-                      {bundle.downloadedAt ? new Date(bundle.downloadedAt).toLocaleDateString() : 'Unknown'}
+                      {bundle.downloadedAt ? new Date(bundle.downloadedAt).toLocaleString([], { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'Unknown'}
                     </Text>
                   </View>
                   <Text style={styles.historySessionId}>

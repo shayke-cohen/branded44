@@ -18,11 +18,12 @@ class SessionBuilder {
    * @param {string} sessionPath - Path to session directory
    * @returns {Promise<Object>} Build result with compiled app info
    */
-  async buildSession(sessionId, sessionPath) {
-    console.log(`🔨 [SessionBuilder] Building session: ${sessionId}`);
+  async buildSession(sessionId, sessionPath, options = {}) {
+    const { forceRebuild = false } = options;
+    console.log(`🔨 [SessionBuilder] Building session: ${sessionId}${forceRebuild ? ' (force rebuild)' : ''}`);
     
-    // Check if build is already in progress
-    if (this.activeBuilds.has(sessionId)) {
+    // Check if build is already in progress (unless force rebuild)
+    if (!forceRebuild && this.activeBuilds.has(sessionId)) {
       console.log(`⏳ [SessionBuilder] Build already in progress for session: ${sessionId}`);
       return this.activeBuilds.get(sessionId);
     }

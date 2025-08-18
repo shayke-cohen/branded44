@@ -317,8 +317,12 @@ export class SessionBundleLoader {
    * Load bundle from server
    */
   async loadBundle(bundleInfo: BundleInfo): Promise<void> {
+    const startTime = Date.now();
+    console.log(`📥 [SessionBundleLoader] Starting bundle download for session: ${bundleInfo.sessionId}`);
+    console.log(`📱 [SessionBundleLoader] Platform: ${bundleInfo.platform}, Size: ${bundleInfo.bundleSize || 'unknown'} bytes`);
+    console.log(`📱 [SessionBundleLoader] Bundle URL: ${bundleInfo.bundleUrl}`);
+    
     try {
-      console.log(`📱 [SessionBundleLoader] Loading ${bundleInfo.platform} bundle from: ${bundleInfo.bundleUrl}`);
       console.log(`📱 [SessionBundleLoader] Platform filter: ${this.config.platform} (device: ${Platform.OS})`);
       
       // Verify platform matches before downloading
@@ -333,16 +337,20 @@ export class SessionBundleLoader {
       const fullUrl = `${this.config.serverUrl}${bundleInfo.bundleUrl}`;
       const startTime = Date.now();
       
-      console.log(`🔄 [SessionBundleLoader] Downloading bundle for ${bundleInfo.platform}...`);
+      console.log(`⬇️ [SessionBundleLoader] Downloading bundle for ${bundleInfo.platform} from: ${fullUrl}`);
       const response = await fetch(fullUrl);
       
       if (!response.ok) {
+        console.error(`❌ [SessionBundleLoader] Download failed: ${response.status} ${response.statusText}`);
         throw new Error(`Failed to download bundle: ${response.status} ${response.statusText}`);
       }
       
+      console.log(`📦 [SessionBundleLoader] Bundle downloaded successfully, parsing content...`);
       const bundleCode = await response.text();
       const downloadTime = Date.now() - startTime;
       const fileSize = new Blob([bundleCode]).size;
+      
+      console.log(`📄 [SessionBundleLoader] Bundle stats: ${fileSize} bytes in ${downloadTime}ms`);
       
       // Enhanced bundle info with download metadata (preserve server data for comparison)
       const enhancedBundleInfo: BundleInfo = {
@@ -357,7 +365,9 @@ export class SessionBundleLoader {
       
       // Update current bundle with enhanced info
       this.currentBundle = enhancedBundleInfo;
+      console.log(`💾 [SessionBundleLoader] Saving bundle info to local storage...`);
       await this.saveBundleInfo(enhancedBundleInfo);
+      console.log(`📚 [SessionBundleLoader] Adding bundle to history...`);
       await this.addToHistory(enhancedBundleInfo);
       
       console.log(`📦 [SessionBundleLoader] Downloaded ${bundleInfo.platform} bundle:`);
@@ -369,11 +379,16 @@ export class SessionBundleLoader {
       // Execute bundle if enabled
       if (this.config.executeBundle) {
         try {
-          console.log(`🚀 [SessionBundleLoader] Executing bundle for session: ${bundleInfo.sessionId}`);
+          console.log(`🚀 [SessionBundleLoader] Starting bundle execution for session: ${bundleInfo.sessionId}`);
+          console.log(`🔧 [SessionBundleLoader] Bundle platform: ${bundleInfo.platform}, Device: ${Platform.OS}`);
+          const execStartTime = Date.now();
           await componentRegistry.loadSessionBundle(bundleCode, bundleInfo.sessionId);
-          console.log(`✅ [SessionBundleLoader] Bundle executed successfully`);
+          const execTime = Date.now() - execStartTime;
+          console.log(`✅ [SessionBundleLoader] Bundle executed successfully in ${execTime}ms`);
+          console.log(`🎯 [SessionBundleLoader] Components now available for rendering`);
         } catch (executionError) {
           console.error(`❌ [SessionBundleLoader] Bundle execution failed:`, executionError);
+          console.error(`📍 [SessionBundleLoader] Error details: ${executionError instanceof Error ? executionError.message : String(executionError)}`);
           // Don't throw here - we still want to emit the bundle-loaded event
           const errorMessage = executionError instanceof Error ? executionError.message : 'Bundle execution failed';
           this.emit('bundle-execution-error', { 
@@ -382,24 +397,30 @@ export class SessionBundleLoader {
           });
         }
       } else {
-        console.log(`📦 [SessionBundleLoader] Bundle execution disabled - only downloading`);
+        console.log(`⏸️ [SessionBundleLoader] Bundle execution disabled - only downloading`);
       }
       
       // Emit the bundle loaded event with enhanced info
+      const totalTime = Date.now() - startTime;
       this.emit('bundle-loaded', { 
         bundleInfo: enhancedBundleInfo, 
         bundleCode,
         downloadStats: {
           fileSize,
           downloadTime,
-          platform: bundleInfo.platform
+          platform: bundleInfo.platform,
+          totalTime
         }
       });
       
+      console.log(`🎉 [SessionBundleLoader] Bundle load completed in ${totalTime}ms total`);
+      console.log(`📊 [SessionBundleLoader] Summary: Download(${downloadTime}ms) + Processing + Execution`);
       console.log(`✅ [SessionBundleLoader] ${bundleInfo.platform} bundle loaded successfully`);
       
     } catch (error) {
-      console.error(`❌ [SessionBundleLoader] Failed to load ${bundleInfo.platform} bundle:`, error);
+      const errorTime = Date.now() - startTime;
+      console.error(`❌ [SessionBundleLoader] Bundle load failed after ${errorTime}ms:`, error);
+      console.error(`📍 [SessionBundleLoader] Session: ${bundleInfo.sessionId}, Platform: ${bundleInfo.platform}`);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load bundle';
       this.emit('bundle-load-error', { bundleInfo, error: errorMessage });
       throw error;
