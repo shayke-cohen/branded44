@@ -109,6 +109,34 @@ class WixProductService {
       };
     } catch (error) {
       console.error('❌ [PRODUCT SERVICE] Error fetching products:', error);
+      
+      // Provide more specific error messages based on error type
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        if (errorMessage.includes('cors') || errorMessage.includes('blocked by cors policy')) {
+          throw new Error('Connection error: Please check your network settings and try again.');
+        }
+        
+        if (errorMessage.includes('failed to fetch') || errorMessage.includes('network')) {
+          throw new Error('Network error: Please check your internet connection and try again.');
+        }
+        
+        if (errorMessage.includes('unauthorized') || errorMessage.includes('authentication')) {
+          throw new Error('Authentication error: Please log in again.');
+        }
+        
+        if (errorMessage.includes('timeout')) {
+          throw new Error('Request timeout: The server is taking too long to respond. Please try again.');
+        }
+        
+        // For other known errors, pass through the original message
+        if (error.message && error.message.length > 0 && error.message.length < 200) {
+          throw new Error(error.message);
+        }
+      }
+      
+      // Fallback to generic message
       throw new Error('Failed to load products. Please try again.');
     }
   }
@@ -129,6 +157,34 @@ class WixProductService {
       return this.transformProduct(product);
     } catch (error) {
       console.error('❌ [PRODUCT SERVICE] Error fetching product:', error);
+      
+      // Provide more specific error messages based on error type
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        if (errorMessage.includes('cors') || errorMessage.includes('blocked by cors policy')) {
+          throw new Error('Connection error: Please check your network settings and try again.');
+        }
+        
+        if (errorMessage.includes('failed to fetch') || errorMessage.includes('network')) {
+          throw new Error('Network error: Please check your internet connection and try again.');
+        }
+        
+        if (errorMessage.includes('not found')) {
+          throw new Error('Product not found. It may have been removed or is no longer available.');
+        }
+        
+        if (errorMessage.includes('unauthorized') || errorMessage.includes('authentication')) {
+          throw new Error('Authentication error: Please log in again.');
+        }
+        
+        // For other known errors, pass through the original message
+        if (error.message && error.message.length > 0 && error.message.length < 200) {
+          throw new Error(error.message);
+        }
+      }
+      
+      // Fallback to generic message
       throw new Error('Failed to load product details. Please try again.');
     }
   }

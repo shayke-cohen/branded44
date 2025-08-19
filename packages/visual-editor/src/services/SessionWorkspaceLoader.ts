@@ -37,6 +37,7 @@ export const useSessionWorkspace = (): SessionWorkspaceState => {
   // Get session info from window global
   const getSessionInfo = (): SessionInfo | null => {
     const windowSession = (window as any).__VISUAL_EDITOR_SESSION__;
+    console.log('🔍 [SessionWorkspace] Getting session info:', windowSession);
     return windowSession || null;
   };
 
@@ -157,9 +158,14 @@ export const useSessionWorkspace = (): SessionWorkspaceState => {
   const loadTemplateConfig = async (): Promise<TemplateConfig> => {
     console.log('🔄 [SessionWorkspace] Loading template config from session...');
     
+    const sessionInfo = getSessionInfo();
+    console.log('🔍 [SessionWorkspace] Session info for template loading:', sessionInfo);
+    
     try {
       // Load the session's templateConfig.ts
+      console.log('🔄 [SessionWorkspace] Attempting to load: screen-templates/templateConfig.ts');
       const templateModule = await dynamicImportFromSession('screen-templates/templateConfig.ts');
+      console.log('✅ [SessionWorkspace] Successfully loaded session template module:', templateModule);
       
       const templateConfig: TemplateConfig = {
         getScreenComponent: (screenId: string) => {
@@ -294,6 +300,23 @@ export const useSessionWorkspace = (): SessionWorkspaceState => {
   const handleFileChange = (filePath: string) => {
     console.log(`📝 [SessionWorkspace] File changed: ${filePath}`);
     
+    // Option 1: Aggressive reload - trigger app reload for ANY file change
+    console.log('🔥 [SessionWorkspace] Triggering aggressive app reload for any file change...');
+    clearModuleCache();
+    
+    // Always trigger full app reload instead of just workspace reload
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fileWatcher:appReload', {
+        detail: { filePath, timestamp: Date.now() }
+      }));
+      console.log('📡 [SessionWorkspace] Dispatched appReload event for:', filePath);
+    }
+    
+    // Also do the traditional workspace reload as backup
+    initializeWorkspace();
+    
+    // Original selective logic (commented out for aggressive approach)
+    /*
     // Check if the changed file affects our app (any TypeScript/JavaScript file)
     if (filePath.endsWith('.ts') || filePath.endsWith('.tsx') || filePath.endsWith('.js') || filePath.endsWith('.jsx')) {
       console.log('🔄 [SessionWorkspace] App file changed, reloading session workspace...');
@@ -309,6 +332,7 @@ export const useSessionWorkspace = (): SessionWorkspaceState => {
         initializeWorkspace(); // Re-initialize to pick up changes
       }
     }
+    */
   };
 
   // Initialize on mount and when session changes

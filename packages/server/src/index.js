@@ -5,7 +5,7 @@ const socketIo = require('socket.io');
 
 const path = require('path');
 
-const visualEditorRoutes = require('./routes/visualEditor');
+const createVisualEditorRouter = require('./routes/VisualEditorRouter');
 const { loggingMiddleware } = require('./middleware/logging');
 const SessionManager = require('./sessions/SessionManager');
 const AutoRebuildManager = require('./sessions/AutoRebuildManager');
@@ -29,7 +29,7 @@ app.use(cors({
   origin: ['http://localhost:3002', 'http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'wix-site-id', 'wix-client-id', 'x-wix-member-id']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -435,8 +435,425 @@ app.post('/execute-claude-code', async (req, res) => {
   }
 });
 
+// Execute Claude Code with streaming support
+app.post('/execute-claude-code-stream', async (req, res) => {
+  console.log('🌊 [Claude Code Stream] Starting streaming execution...');
+  console.log('📋 [Claude Code Stream] Raw request body:', JSON.stringify(req.body, null, 2));
+  
+  // Set up Server-Sent Events headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control'
+  });
+
+  // Function to send SSE data
+  const sendSSE = (type, data) => {
+    const sseData = JSON.stringify({ type, ...data });
+    res.write(`data: ${sseData}\n\n`);
+    console.log(`📡 [Claude Code Stream] SSE sent: ${type}`, data);
+  };
+
+  // Send connection established event
+  sendSSE('connection', { message: 'Streaming connection established' });
+
+  const { 
+    prompt, 
+    maxTurns = 100, 
+    workingDirectory = process.cwd(),
+    systemPrompt,
+    appendSystemPrompt,
+    allowedTools,
+    disallowedTools,
+    mcpConfig,
+    permissionPromptTool,
+    model = 'claude-3-5-sonnet-20241022',
+    permissionMode,
+    verbose,
+    dangerouslySkipPermissions,
+    anthropicBaseUrl,
+    anthropicAuthToken
+  } = req.body;
+
+  // Log all extracted parameters
+  console.log('📋 [Claude Code Stream] ===== EXTRACTED PARAMETERS =====');
+  console.log('📋 [Claude Code Stream] prompt:', prompt ? `"${prompt.substring(0, 100)}..."` : 'MISSING');
+  console.log('📋 [Claude Code Stream] maxTurns:', maxTurns);
+  console.log('📋 [Claude Code Stream] workingDirectory:', workingDirectory);
+  console.log('📋 [Claude Code Stream] systemPrompt:', systemPrompt ? `"${systemPrompt.substring(0, 50)}..."` : 'EMPTY');
+  console.log('📋 [Claude Code Stream] appendSystemPrompt:', appendSystemPrompt ? `"${appendSystemPrompt.substring(0, 50)}..."` : 'EMPTY');
+  console.log('📋 [Claude Code Stream] allowedTools:', allowedTools);
+  console.log('📋 [Claude Code Stream] disallowedTools:', disallowedTools);
+  console.log('📋 [Claude Code Stream] mcpConfig:', mcpConfig);
+  console.log('📋 [Claude Code Stream] permissionPromptTool:', permissionPromptTool);
+  console.log('📋 [Claude Code Stream] model:', model);
+  console.log('📋 [Claude Code Stream] permissionMode:', permissionMode);
+  console.log('📋 [Claude Code Stream] verbose:', verbose);
+  console.log('📋 [Claude Code Stream] dangerouslySkipPermissions:', dangerouslySkipPermissions);
+  console.log('📋 [Claude Code Stream] anthropicBaseUrl:', anthropicBaseUrl);
+  console.log('📋 [Claude Code Stream] anthropicAuthToken:', anthropicAuthToken ? 'PROVIDED' : 'MISSING');
+  console.log('📋 [Claude Code Stream] ===============================');
+
+  if (!prompt) {
+    sendSSE('error', {
+      error: 'Prompt is required',
+      details: 'No prompt provided in request body'
+    });
+    res.end();
+    return;
+  }
+
+  try {
+    console.log('⚙️ [Claude Code Stream] Starting execution...');
+    console.log('📁 [Claude Code Stream] Working directory:', workingDirectory);
+    
+    // Send progress message
+    sendSSE('message', {
+      type: 'system',
+      content: 'Starting Claude Code execution...',
+      timestamp: new Date().toISOString()
+    });
+
+    const fetch = require('node-fetch');
+    
+    // Determine if we're using Claude Code proxy or direct Anthropic API
+    const useProxy = anthropicBaseUrl && anthropicBaseUrl.includes('localhost:3003');
+    
+    if (useProxy) {
+      console.log('🔄 [Claude Code Stream] Using Claude Code proxy mode');
+      
+      sendSSE('message', {
+        type: 'system',
+        content: 'Connecting to Claude via proxy...',
+        timestamp: new Date().toISOString()
+      });
+
+      // Proxy mode: Use Anthropic API format for the proxy
+      const proxyUrl = `${anthropicBaseUrl}/v1/messages`;
+      
+      // Build the system prompt  
+      let finalSystemPrompt = systemPrompt || 'You are Claude, a helpful AI assistant.';
+      if (appendSystemPrompt) {
+        finalSystemPrompt += '\n\n' + appendSystemPrompt;
+      }
+      
+      // Add working directory context to system prompt
+      let contextualSystemPrompt = finalSystemPrompt;
+      if (workingDirectory) {
+        contextualSystemPrompt += `\n\nYou are working in the directory: ${workingDirectory}`;
+        if (verbose) {
+          contextualSystemPrompt += `\nVerbose mode is enabled - provide detailed explanations.`;
+        }
+      }
+
+      const requestBody = {
+        model: model || 'claude-3-5-sonnet-20241022',
+        max_tokens: maxTurns ? Math.min(maxTurns * 100, 4096) : 4096,
+        system: [{ text: contextualSystemPrompt, type: 'text' }],
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      };
+
+      // Add tools if allowed
+      if (allowedTools && allowedTools.length > 0) {
+        const availableTools = [];
+        
+        if (allowedTools.some(tool => tool.toLowerCase().includes('read'))) {
+          availableTools.push({
+            name: "read_file",
+            description: "Read a file from the working directory",
+            input_schema: {
+              type: "object",
+              properties: {
+                path: { type: "string", description: "Path to the file relative to working directory" }
+              },
+              required: ["path"]
+            }
+          });
+        }
+        
+        if (allowedTools.some(tool => tool.toLowerCase().includes('write'))) {
+          availableTools.push({
+            name: "write_file",
+            description: "Write content to a file in the working directory",
+            input_schema: {
+              type: "object", 
+              properties: {
+                path: { type: "string", description: "Path to the file relative to working directory" },
+                content: { type: "string", description: "Content to write to the file" }
+              },
+              required: ["path", "content"]
+            }
+          });
+        }
+
+        if (allowedTools.some(tool => tool.toLowerCase().includes('list'))) {
+          availableTools.push({
+            name: "list_files",
+            description: "List files and directories in the working directory",
+            input_schema: {
+              type: "object",
+              properties: {
+                path: { type: "string", description: "Path to list (default: current directory)" }
+              }
+            }
+          });
+        }
+
+        if (availableTools.length > 0) {
+          requestBody.tools = availableTools;
+          console.log(`🔧 [Claude Code Stream] Added ${availableTools.length} tools`);
+          sendSSE('message', {
+            type: 'system',
+            content: `Added ${availableTools.length} tools: ${availableTools.map(t => t.name).join(', ')}`,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      console.log(`🌐 [Claude Code Stream] Calling proxy: ${proxyUrl}`);
+      console.log('📋 [Claude Code Stream] Final request body to Claude:', JSON.stringify(requestBody, null, 2));
+      
+      const proxyResponse = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicAuthToken || 'fake-key-for-proxy',
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify(requestBody),
+        timeout: 300000 // 5 minute timeout for long operations
+      });
+
+      const proxyData = await proxyResponse.json();
+
+      if (!proxyResponse.ok) {
+        console.error('❌ [Claude Code Stream] Proxy error:', proxyData);
+        sendSSE('error', {
+          error: `Claude Code proxy error: ${proxyData.error || proxyData.message || 'Unknown error'}`,
+          details: proxyData,
+          timestamp: new Date().toISOString()
+        });
+        res.end();
+        return;
+      }
+
+      // Send the response as messages
+      sendSSE('message', {
+        type: 'assistant',
+        content: proxyData.content?.find(item => item.type === 'text')?.text || 'No response content',
+        timestamp: new Date().toISOString()
+      });
+
+      // Handle tool calls if present
+      if (proxyData.content && proxyData.content.some(item => item.type === 'tool_use')) {
+        console.log('🔧 [Claude Code Stream] Processing tool calls...');
+        const fs = require('fs');
+        const path = require('path');
+        
+        for (const contentItem of proxyData.content) {
+          if (contentItem.type === 'tool_use') {
+            const { name, input } = contentItem;
+            console.log(`🔧 [Claude Code Stream] Executing tool: ${name}`, input);
+            
+            sendSSE('message', {
+              type: 'tool_use',
+              name: name,
+              input: input,
+              timestamp: new Date().toISOString()
+            });
+            
+            try {
+              let toolResult = '';
+              const targetPath = path.resolve(workingDirectory || process.cwd(), input.path || '.');
+              
+              switch (name) {
+                case 'read_file':
+                  if (fs.existsSync(targetPath)) {
+                    toolResult = fs.readFileSync(targetPath, 'utf8');
+                  } else {
+                    toolResult = `Error: File ${input.path} not found`;
+                  }
+                  break;
+                  
+                case 'write_file':
+                  fs.writeFileSync(targetPath, input.content);
+                  toolResult = `Successfully wrote to ${input.path}`;
+                  break;
+                  
+                case 'list_files':
+                  const listPath = input.path ? path.resolve(workingDirectory || process.cwd(), input.path) : (workingDirectory || process.cwd());
+                  if (fs.existsSync(listPath)) {
+                    const items = fs.readdirSync(listPath).map(item => {
+                      const itemPath = path.join(listPath, item);
+                      const stats = fs.statSync(itemPath);
+                      return `${stats.isDirectory() ? 'DIR' : 'FILE'}: ${item}`;
+                    });
+                    toolResult = items.join('\n');
+                  } else {
+                    toolResult = `Error: Directory ${input.path || '.'} not found`;
+                  }
+                  break;
+                  
+                default:
+                  toolResult = `Error: Unknown tool ${name}`;
+              }
+              
+              sendSSE('message', {
+                type: 'tool_result',
+                tool_name: name,
+                content: toolResult,
+                timestamp: new Date().toISOString()
+              });
+              
+            } catch (error) {
+              console.error(`❌ [Claude Code Stream] Tool ${name} error:`, error.message);
+              sendSSE('message', {
+                type: 'tool_result',
+                tool_name: name,
+                content: `Error: ${error.message}`,
+                is_error: true,
+                timestamp: new Date().toISOString()
+              });
+            }
+          }
+        }
+      }
+      
+      console.log('✅ [Claude Code Stream] Proxy execution completed successfully');
+      
+      // Send completion event
+      sendSSE('complete', {
+        messages: [
+          {
+            type: 'assistant',
+            content: proxyData.content?.find(item => item.type === 'text')?.text || 'No response content',
+            timestamp: new Date().toISOString()
+          }
+        ],
+        usage: proxyData.usage || {},
+        model: proxyData.model || model,
+        timestamp: new Date().toISOString()
+      });
+      
+    } else {
+      console.log('🔗 [Claude Code Stream] Using direct Anthropic API mode');
+      
+      sendSSE('message', {
+        type: 'system',
+        content: 'Connecting to Claude via direct API...',
+        timestamp: new Date().toISOString()
+      });
+
+      // Direct API mode: Only use API-compatible parameters
+      const apiUrl = 'https://api.anthropic.com/v1/messages';
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      
+      if (!apiKey) {
+        sendSSE('error', {
+          error: 'ANTHROPIC_API_KEY environment variable is required for direct API access',
+          details: 'Set ANTHROPIC_API_KEY in environment variables'
+        });
+        res.end();
+        return;
+      }
+
+      // Build the system prompt
+      let finalSystemPrompt = systemPrompt || 'You are Claude, a helpful AI assistant.';
+      if (appendSystemPrompt) {
+        finalSystemPrompt += '\n\n' + appendSystemPrompt;
+      }
+
+      // Prepare the API request - only API-compatible parameters
+      const requestBody = {
+        model: model || 'claude-3-5-sonnet-20241022',
+        max_tokens: maxTurns ? Math.min(maxTurns * 100, 4096) : 4096,
+        system: finalSystemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      };
+
+      console.log(`🌐 [Claude Code Stream] Calling direct API: ${apiUrl}`);
+      console.log('📋 [Claude Code Stream] Final request body to Claude:', JSON.stringify(requestBody, null, 2));
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      };
+
+      const apiResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestBody),
+        timeout: 60000 // 60 second timeout
+      });
+
+      const responseData = await apiResponse.json();
+
+      if (!apiResponse.ok) {
+        console.log('❌ [Claude Code Stream] Direct API error:', responseData);
+        sendSSE('error', {
+          error: `API request failed: ${responseData.error?.message || responseData.message || 'Unknown error'}`,
+          details: responseData,
+          timestamp: new Date().toISOString()
+        });
+        res.end();
+        return;
+      }
+
+      // Extract the response content
+      const assistantResponse = responseData.content?.[0]?.text || responseData.message || 'No response content';
+
+      sendSSE('message', {
+        type: 'assistant',
+        content: assistantResponse,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log('✅ [Claude Code Stream] Direct API call completed successfully');
+      
+      // Send completion event
+      sendSSE('complete', {
+        messages: [
+          {
+            type: 'assistant',
+            content: assistantResponse,
+            timestamp: new Date().toISOString()
+          }
+        ],
+        usage: responseData.usage || {},
+        model: responseData.model || model,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ [Claude Code Stream] Execution error:', error.message);
+    sendSSE('error', {
+      error: error.message,
+      details: error.stack,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  res.end();
+});
+
 // Visual editor routes
-app.use('/api/editor', visualEditorRoutes);
+// Initialize modular visual editor routes
+const visualEditorRouter = createVisualEditorRouter();
+app.use('/api/editor', visualEditorRouter);
 
 // Mobile bundle polling endpoint
 app.get('/api/sessions/:sessionId/bundle', (req, res) => {
@@ -516,9 +933,87 @@ app.get('/api/sessions/:sessionId/bundle', (req, res) => {
 });
 
 // Add Wix proxy routes for CORS handling
-if (visualEditorRoutes.addWixProxyRoutes) {
-  visualEditorRoutes.addWixProxyRoutes(app);
-}
+// Add Wix proxy routes at app level for CORS handling (not under /api/editor)
+app.use('/api/wix-proxy', async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    const targetUrl = `https://www.wixapis.com${req.originalUrl.replace('/api/wix-proxy', '')}`;
+    
+    console.log(`🌐 [Wix Proxy] ${req.method} ${targetUrl}`);
+    
+    // Prepare headers for the proxied request
+    const headers = {
+      'Content-Type': req.headers['content-type'] || 'application/json',
+      'User-Agent': 'Visual-Editor-Proxy/1.0',
+    };
+    
+    // Forward specific Wix-related headers if present
+    if (req.headers['authorization']) {
+      headers['Authorization'] = req.headers['authorization'];
+    }
+    if (req.headers['wix-site-id']) {
+      headers['wix-site-id'] = req.headers['wix-site-id'];
+    }
+    if (req.headers['wix-client-id']) {
+      headers['wix-client-id'] = req.headers['wix-client-id'];
+    }
+    if (req.headers['x-wix-member-id']) {
+      headers['x-wix-member-id'] = req.headers['x-wix-member-id'];
+    }
+    
+    // Prepare request options
+    const requestOptions = {
+      method: req.method,
+      headers,
+    };
+    
+    // Add body for POST/PUT requests
+    if (req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+      requestOptions.body = JSON.stringify(req.body);
+    }
+    
+    // Make the proxied request
+    const response = await fetch(targetUrl, requestOptions);
+    
+    // Get response data
+    const responseData = await response.text();
+    
+    // Set CORS headers for the browser
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, wix-site-id, wix-client-id, x-wix-member-id');
+    
+    // Forward response status and headers
+    res.status(response.status);
+    
+    // Forward important response headers
+    if (response.headers.get('content-type')) {
+      res.header('Content-Type', response.headers.get('content-type'));
+    }
+    
+    console.log(`✅ [Wix Proxy] ${req.method} ${targetUrl} - ${response.status} (${Date.now() - startTime}ms)`);
+    
+    // Send the response
+    res.send(responseData);
+    
+  } catch (error) {
+    console.error(`❌ [Wix Proxy] Error proxying request:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      responseTime: `${Date.now() - startTime}ms`
+    });
+  }
+});
+
+// Handle preflight OPTIONS requests for CORS
+app.options('/api/wix-proxy/*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, wix-site-id, wix-client-id, x-wix-member-id');
+  res.sendStatus(200);
+});
 
 // Real Mobile App serving - completely clean implementation
 app.get('/real-app/:sessionId', (req, res) => {
@@ -782,6 +1277,9 @@ app.use('*', (req, res) => {
     availableEndpoints: [
       'GET /health',
       'GET /working-directory',
+      'GET /check-claude-code',
+      'POST /execute-claude-code',
+      'POST /execute-claude-code-stream',
       'GET /real-app/:sessionId',
       'POST /api/editor/init',
       'POST /api/editor/files/read',

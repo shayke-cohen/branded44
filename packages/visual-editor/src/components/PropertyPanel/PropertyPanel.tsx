@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { useEditor } from '../../contexts/EditorContext';
+import AggressiveReloadPanel from '../AggressiveReloadPanel/AggressiveReloadPanel';
 
 const PanelContainer = styled.div`
   display: flex;
@@ -117,7 +118,7 @@ const FileItem = styled.div<{ $level: number; selected: boolean }>`
 
 const PropertyPanel: React.FC = () => {
   const { state, updateFileTree } = useEditor();
-  const [activeTab, setActiveTab] = useState<'properties' | 'files' | 'code'>('properties');
+  const [activeTab, setActiveTab] = useState<'properties' | 'files' | 'code' | 'dev'>('properties');
   const [componentCode, setComponentCode] = useState<string>('');
   const [isLoadingCode, setIsLoadingCode] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -215,7 +216,7 @@ const PropertyPanel: React.FC = () => {
             )}
           </div>
         </FileItem>
-        {node.children && node.type === 'directory' && isExpanded && (
+        {node.children && Array.isArray(node.children) && node.type === 'directory' && isExpanded && (
           <div>
             {node.children.map((child: any) => renderFileNode(child, level + 1))}
           </div>
@@ -1123,7 +1124,7 @@ const PropertyPanel: React.FC = () => {
   };
 
   const renderFiles = () => {
-    if (state.fileTree.length === 0) {
+    if (!state.fileTree || !Array.isArray(state.fileTree) || state.fileTree.length === 0) {
       return (
         <EmptyState>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
@@ -1210,7 +1211,7 @@ const PropertyPanel: React.FC = () => {
             🗂️ File Tree
           </div>
           <FileTree>
-            {state.fileTree.map(node => renderFileNode(node, 0))}
+            {state.fileTree?.map(node => renderFileNode(node, 0))}
           </FileTree>
         </div>
 
@@ -1545,12 +1546,25 @@ const PropertyPanel: React.FC = () => {
         >
           Code
         </Tab>
+        <Tab
+          $active={activeTab === 'dev'}
+          onClick={() => setActiveTab('dev')}
+        >
+          🔧 Dev
+        </Tab>
+
       </TabContainer>
 
       <PanelContent>
         {activeTab === 'properties' && renderProperties()}
         {activeTab === 'files' && renderFiles()}
         {activeTab === 'code' && renderCode()}
+        {activeTab === 'dev' && (
+          <div style={{ height: '100%', overflow: 'auto' }}>
+            <AggressiveReloadPanel />
+          </div>
+        )}
+
       </PanelContent>
     </PanelContainer>
   );

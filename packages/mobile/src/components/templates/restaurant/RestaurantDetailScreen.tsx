@@ -21,10 +21,9 @@ import {
   TouchableOpacity,
   Dimensions 
 } from 'react-native';
-import { 
+import {
   RestaurantHeader,
   MenuCard,
-  ReviewCard,
   type Restaurant,
   type MenuItem,
   type RestaurantHeaderData 
@@ -312,8 +311,8 @@ export default function RestaurantDetailScreen({
               onImagePress={(image, index) => onViewPhoto?.(image, index)}
               layout="grid"
               columns={3}
-              showThumbnails={false}
-              autoPlay={false}
+
+
               style={styles.gallery}
             />
           </View>
@@ -565,10 +564,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
   },
   restaurantDescription: {
     fontSize: 16,
@@ -633,10 +629,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
   },
   hoursRow: {
     flexDirection: 'row',
@@ -666,10 +659,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
   },
   contactItem: {
     flexDirection: 'row',
@@ -726,10 +716,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -765,11 +752,3 @@ const styles = StyleSheet.create({
 });
 
 // === EXPORTS ===
-
-export type {
-  RestaurantDetailScreenProps,
-  RestaurantDetailScreenConfig,
-  Review,
-  OperatingHours,
-  ContactInfo,
-};

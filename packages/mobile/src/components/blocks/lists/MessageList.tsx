@@ -735,13 +735,7 @@ const styles = StyleSheet.create({
   otherMessageBubble: {
     backgroundColor: COLORS.white,
     borderBottomLeftRadius: 4,
-    shadowColor: COLORS.neutral[900],
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   groupedOwnMessage: {
@@ -917,13 +911,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
-    shadowColor: COLORS.neutral[900],
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   typingDots: {

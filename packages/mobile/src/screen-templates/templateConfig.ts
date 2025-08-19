@@ -139,7 +139,7 @@ export const TEMPLATE_CONFIG: TemplateConfig[] = [
         },
         {
           key: 'bio',
-          label: 'Bio',
+          label: 'Bio', 
           type: 'textarea',
           placeholder: 'Tell us about yourself',
         },

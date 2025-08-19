@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, Easing } from 'react-native';
+import { View, Text, Animated, Easing, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { createProductListStyles } from '../../shared/styles/ProductListStyles';
 
@@ -30,6 +30,9 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
     if (!showDots) return;
 
     const animateDots = () => {
+      // Only use native driver on actual mobile platforms, not web
+      const useNativeDriver = Platform.OS !== 'web';
+      
       const createAnimation = (dot: Animated.Value, delay: number) => {
         return Animated.sequence([
           Animated.delay(delay),
@@ -37,13 +40,13 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
             toValue: -10,
             duration: 400,
             easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
+            useNativeDriver,
           }),
           Animated.timing(dot, {
             toValue: 0,
             duration: 400,
             easing: Easing.in(Easing.quad),
-            useNativeDriver: true,
+            useNativeDriver,
           }),
         ]);
       };

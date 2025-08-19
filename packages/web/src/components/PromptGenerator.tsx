@@ -159,7 +159,7 @@ const PromptGenerator: React.FC = () => {
         maxTurns: maxTurns
       };
 
-      // Add advanced options if specified
+      // Add all advanced options (always send boolean values and important parameters)
       if (systemPrompt) requestBody.systemPrompt = systemPrompt;
       if (appendSystemPrompt) requestBody.appendSystemPrompt = appendSystemPrompt;
       if (allowedTools) requestBody.allowedTools = allowedTools.split(',').map(t => t.trim());
@@ -168,13 +168,15 @@ const PromptGenerator: React.FC = () => {
       if (permissionPromptTool) requestBody.permissionPromptTool = permissionPromptTool;
       if (model) requestBody.model = model;
       if (permissionMode !== 'default') requestBody.permissionMode = permissionMode;
-      if (verbose) requestBody.verbose = verbose;
+      
+      // Always send boolean values and critical parameters regardless of their value
+      requestBody.verbose = verbose;
+      requestBody.dangerouslySkipPermissions = dangerouslySkipPermissions;
       if (workingDirectory) requestBody.workingDirectory = workingDirectory;
-      if (dangerouslySkipPermissions) requestBody.dangerouslySkipPermissions = dangerouslySkipPermissions;
       if (anthropicBaseUrl) requestBody.anthropicBaseUrl = anthropicBaseUrl;
       if (anthropicAuthToken) requestBody.anthropicAuthToken = anthropicAuthToken;
 
-      console.log('Starting streaming execution with options:', requestBody);
+      console.log('🌊 [Web] Starting streaming execution with options:', requestBody);
 
       // Use fetch stream for real-time streaming
       const response = await fetch('http://localhost:3001/execute-claude-code-stream', {
@@ -282,7 +284,7 @@ const PromptGenerator: React.FC = () => {
         maxTurns: maxTurns
       };
 
-      // Add advanced options if specified
+      // Add all advanced options (always send boolean values and important parameters)
       if (systemPrompt) requestBody.systemPrompt = systemPrompt;
       if (appendSystemPrompt) requestBody.appendSystemPrompt = appendSystemPrompt;
       if (allowedTools) requestBody.allowedTools = allowedTools.split(',').map(t => t.trim());
@@ -291,9 +293,11 @@ const PromptGenerator: React.FC = () => {
       if (permissionPromptTool) requestBody.permissionPromptTool = permissionPromptTool;
       if (model) requestBody.model = model;
       if (permissionMode !== 'default') requestBody.permissionMode = permissionMode;
-      if (verbose) requestBody.verbose = verbose;
+      
+      // Always send boolean values and critical parameters regardless of their value
+      requestBody.verbose = verbose;
+      requestBody.dangerouslySkipPermissions = dangerouslySkipPermissions;
       if (workingDirectory) requestBody.workingDirectory = workingDirectory;
-      if (dangerouslySkipPermissions) requestBody.dangerouslySkipPermissions = dangerouslySkipPermissions;
       if (anthropicBaseUrl) requestBody.anthropicBaseUrl = anthropicBaseUrl;
       if (anthropicAuthToken) requestBody.anthropicAuthToken = anthropicAuthToken;
 

@@ -218,7 +218,8 @@ export class Src2Manager {
       const response = await axios.get(`${this.serverUrl}/api/editor/files/tree`);
 
       if (response.data.success) {
-        return response.data.tree;
+        // Handle both old and new API response formats
+        return response.data.fileTree || response.data.tree || [];
       } else {
         throw new Error(response.data.error || 'Failed to get file tree');
       }

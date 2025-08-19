@@ -35,7 +35,8 @@ import {
   Text, 
   StyleSheet,
   Animated,
-  Easing
+  Easing,
+  Platform
 } from 'react-native';
 import { Card } from '../../../../~/components/ui/card';
 import { COLORS, SPACING, TYPOGRAPHY } from '../../../lib/constants';
@@ -158,6 +159,9 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
   useEffect(() => {
     if (!animated) return;
 
+    // Only use native driver on actual mobile platforms, not web
+    const useNativeDriver = Platform.OS !== 'web';
+
     const createAnimation = () => {
       switch (type) {
         case 'skeleton':
@@ -168,13 +172,13 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
                 toValue: 1,
                 duration: animationDuration / 2,
                 easing: Easing.ease,
-                useNativeDriver: true,
+                useNativeDriver,
               }),
               Animated.timing(fadeAnim, {
                 toValue: 0.3,
                 duration: animationDuration / 2,
                 easing: Easing.ease,
-                useNativeDriver: true,
+                useNativeDriver,
               }),
             ])
           );
@@ -185,7 +189,7 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
               toValue: 1,
               duration: animationDuration,
               easing: Easing.linear,
-              useNativeDriver: true,
+              useNativeDriver,
             })
           );
 
@@ -195,7 +199,7 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
               toValue: 1,
               duration: animationDuration,
               easing: Easing.ease,
-              useNativeDriver: true,
+              useNativeDriver,
             })
           );
 
@@ -207,13 +211,13 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
                 toValue: 1.2,
                 duration: animationDuration / 3,
                 easing: Easing.ease,
-                useNativeDriver: true,
+                useNativeDriver,
               }),
               Animated.timing(scaleAnim, {
                 toValue: 1,
                 duration: animationDuration / 3,
                 easing: Easing.ease,
-                useNativeDriver: true,
+                useNativeDriver,
               }),
             ])
           );
@@ -224,7 +228,7 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({
               toValue: 1,
               duration: animationDuration,
               easing: Easing.ease,
-              useNativeDriver: true,
+              useNativeDriver,
             })
           );
       }
@@ -507,7 +511,7 @@ const styles = StyleSheet.create({
   noBorder: {
     borderWidth: 0,
     elevation: 0,
-    shadowOpacity: 0,
+    boxShadow: 'none',
   },
   content: {
     padding: SPACING.md,

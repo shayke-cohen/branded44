@@ -20,6 +20,9 @@ import StatusBar from './components/StatusBar/StatusBar';
 // Services
 import { Src2Manager } from './services/Src2Manager';
 import { fileWatcher } from './services/FileWatcher';
+import { aggressiveReloadManager } from './services/AggressiveReloadManager';
+import { debugFileWatcher } from './utils/DebugFileWatcher';
+import { DebugSessionInfo } from './utils/DebugSessionInfo';
 
 const AppContainer = styled.div`
   height: 100vh;
@@ -144,6 +147,16 @@ const AppContent: React.FC = () => {
           console.warn('⚠️ [Visual Editor] File watcher connection failed, continuing without it:', fileWatcherError);
           // Continue initialization even if file watcher fails
         }
+        
+        // Initialize aggressive reload manager
+        console.log('🔥 [Visual Editor] Initializing aggressive reload manager...');
+        aggressiveReloadManager.setEnabled(true); // Enable by default
+        console.log('✅ [Visual Editor] Aggressive reload manager initialized');
+        
+        // Initialize session debugger
+        console.log('🔍 [Visual Editor] Installing session debugger...');
+        DebugSessionInfo.installGlobalDebugger();
+        console.log('✅ [Visual Editor] Session debugger installed');
         
         // File watching for Simple Real App approach
         // Note: With iframe-based rendering, file changes are handled automatically

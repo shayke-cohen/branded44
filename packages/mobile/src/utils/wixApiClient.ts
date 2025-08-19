@@ -1936,7 +1936,24 @@ class WixApiClient {
       await this.updateWixClientAuth();
 
       console.log('🛒 [GET CART] Using Wix eCommerce SDK...');
-      const cart = await this.wixClient.currentCart.getCurrentCart();
+      
+      // Handle expected 404 errors gracefully
+      let cart;
+      
+      try {
+        cart = await this.wixClient.currentCart.getCurrentCart();
+      } catch (sdkError: any) {
+        // Check if this is an expected "no cart" error before re-throwing
+        if (sdkError?.message?.includes('OWNED_CART_NOT_FOUND') || 
+            sdkError?.message?.includes('Cart not found') ||
+            sdkError?.details?.httpCode === 404 ||
+            sdkError?.status === 404) {
+          console.log('ℹ️ [CART] No current cart found (this is normal for new users)');
+          return null;
+        }
+        // Re-throw unexpected errors
+        throw sdkError;
+      }
       
       // Log detailed cart information
       if (cart) {
@@ -1992,14 +2009,7 @@ class WixApiClient {
         return null;
       }
     } catch (error: any) {
-      // Handle expected "no cart" scenarios gracefully
-      if (error?.message?.includes('OWNED_CART_NOT_FOUND') || 
-          error?.message?.includes('Cart not found')) {
-        console.log('ℹ️ [CART] No current cart found (this is normal for new users)');
-        return null;
-      }
-      
-      // Log unexpected cart errors
+      // Log unexpected cart errors (expected errors are handled above)
       console.warn('⚠️ [CART] Unexpected error getting current cart:', error);
       return null;
     }

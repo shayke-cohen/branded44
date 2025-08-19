@@ -229,6 +229,18 @@ export class FileWatcher {
       });
       window.dispatchEvent(customEvent);
       console.log(`📡 [FileWatcher] Dispatched file-change event for: ${event.path}`);
+
+      // NEW: Always trigger app reload for ANY file change
+      const appReloadEvent = new CustomEvent('fileWatcher:appReload', {
+        detail: {
+          filePath: event.path,
+          type: event.type,
+          timestamp: Date.now(),
+          triggeredBy: 'aggressive-reload'
+        }
+      });
+      window.dispatchEvent(appReloadEvent);
+      console.log(`🔥 [FileWatcher] Dispatched aggressive appReload event for: ${event.path}`);
     }
 
     // Handle hot reload if enabled

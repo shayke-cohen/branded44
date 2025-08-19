@@ -68,6 +68,23 @@ const MobileAppRenderer: React.FC<MobileAppRendererProps> = ({
   // Get editor state for navigation control
   const { state } = useEditor();
   
+  // Add aggressive reload listener
+  const [reloadKey, setReloadKey] = useState(0);
+  
+  useEffect(() => {
+    const handleAppReload = (event: CustomEvent) => {
+      console.log('🔥 [MobileAppRenderer] Received app reload event:', event.detail);
+      console.log('🔄 [MobileAppRenderer] Forcing component re-render...');
+      setReloadKey(prev => prev + 1);
+    };
+
+    window.addEventListener('fileWatcher:appReload', handleAppReload as EventListener);
+    
+    return () => {
+      window.removeEventListener('fileWatcher:appReload', handleAppReload as EventListener);
+    };
+  }, []);
+  
   // Determine which template config to use (session or original)
   const getScreenComponent = templateConfig?.getScreenComponent || originalGetScreenComponent;
   const getNavTabs = templateConfig?.getNavTabs || originalGetNavTabs;
@@ -192,7 +209,7 @@ const MobileAppRenderer: React.FC<MobileAppRendererProps> = ({
   console.log('📱 [MobileAppRenderer] Available navigation tabs:', navTabs.map((tab: any) => tab.name));
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider key={reloadKey}>
       <ThemeProvider>
         <AlertProvider>
           <CartProvider>
