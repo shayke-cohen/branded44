@@ -21,6 +21,24 @@ export interface InspectableComponent {
   hierarchy?: InspectableComponent[]; // Component hierarchy from clicked element to parents
   isEditable?: boolean; // Whether this component has editable source code
   contentInfo?: ContentInfo; // Extracted content for direct tracing
+  elementContent?: ElementContent; // Detailed element content for inspection display
+}
+
+export interface ElementContent {
+  outerHTML: string;
+  innerHTML: string;
+  textContent: string;
+  tagName: string;
+  className: string;
+  id: string;
+  attributes: Record<string, string>;
+  computedStyles: Record<string, string>;
+  children: Array<{
+    tagName: string;
+    textContent: string;
+    className: string;
+    id?: string;
+  }>;
 }
 
 export interface InspectionResult {
@@ -157,29 +175,34 @@ export class ComponentInspector {
   /**
    * Handle mouse move during inspection with live code updates
    */
-  private handleMouseMove = async (event: MouseEvent): Promise<void> => {
-    if (!this.isInspecting || !this.currentHighlight) return;
+  private handleMouseMove = (event: MouseEvent): void => {
+    if (!this.isInspecting) return;
 
     const target = event.target as HTMLElement;
     
-    // Only find components that have traceable code
-    const inspectableComponent = await this.findInspectableComponentWithCode(target);
+    // Use the same component detection as click for consistency
+    const inspectableComponent = this.findInspectableComponent(target);
 
-    if (inspectableComponent && inspectableComponent.element) {
-      // In edit mode, prefer highlighting editable components
-      let targetElement = inspectableComponent.element;
-      if (this.editMode && inspectableComponent.hierarchy) {
-        const editableComponent = inspectableComponent.hierarchy.find(c => c.isEditable);
-        if (editableComponent && editableComponent.element) {
-          targetElement = editableComponent.element;
+    if (inspectableComponent) {
+      // console.log('🖱️ [ComponentInspector] Hover detected component:', inspectableComponent.name);
+      
+      if (inspectableComponent.element) {
+        // In edit mode, prefer highlighting editable components
+        let targetElement = inspectableComponent.element;
+        if (this.editMode && inspectableComponent.hierarchy) {
+          const editableComponent = inspectableComponent.hierarchy.find(c => c.isEditable);
+          if (editableComponent && editableComponent.element) {
+            targetElement = editableComponent.element;
+          }
         }
+        
+        this.highlightComponent(targetElement, inspectableComponent.isEditable || (this.editMode && inspectableComponent.hierarchy?.some(c => c.isEditable)));
       }
       
-      this.highlightComponent(targetElement, inspectableComponent.isEditable || (this.editMode && inspectableComponent.hierarchy?.some(c => c.isEditable)));
-      
-      // Dispatch live code update
+      // Dispatch live code update and hover preview
       this.dispatchLiveCodeUpdate(inspectableComponent);
     } else {
+      // console.log('🖱️ [ComponentInspector] No component found on hover');
       this.hideHighlight();
       this.dispatchLiveCodeUpdate(null); // Clear code display
     }
@@ -246,9 +269,11 @@ export class ComponentInspector {
     
     selectedComponent.hierarchy = hierarchy;
     selectedComponent.contentInfo = contentInfo;
+    selectedComponent.elementContent = this.extractElementContent(element);
     
     console.log('🔍 [ComponentInspector] Built component hierarchy:', hierarchy.map(c => `${c.name}(${c.type}${c.isEditable ? '-editable' : ''})`).join(' → '));
     console.log('📝 [ComponentInspector] Extracted content info:', contentInfo);
+    console.log('🎯 [ComponentInspector] Extracted element content for inspection display');
     
     return selectedComponent;
   }
@@ -296,6 +321,72 @@ export class ComponentInspector {
     });
     
     return info;
+  }
+
+  /**
+   * Extract detailed element content for inspection display
+   */
+  private extractElementContent(element: HTMLElement): ElementContent {
+    const computedStyles = window.getComputedStyle(element);
+    const attributes: Record<string, string> = {};
+    const children: Array<{ tagName: string; textContent: string; className: string; id?: string }> = [];
+
+    // Extract all attributes
+    for (let i = 0; i < element.attributes.length; i++) {
+      const attr = element.attributes[i];
+      attributes[attr.name] = attr.value;
+    }
+
+    // Extract key computed styles
+    const relevantStyles: Record<string, string> = {};
+    const styleProps = [
+      'display', 'position', 'width', 'height', 'padding', 'margin', 
+      'background-color', 'color', 'font-size', 'font-family', 'border',
+      'border-radius', 'flex-direction', 'justify-content', 'align-items'
+    ];
+    
+    styleProps.forEach(prop => {
+      const value = computedStyles.getPropertyValue(prop);
+      if (value && value !== 'initial' && value !== 'normal') {
+        relevantStyles[prop] = value;
+      }
+    });
+
+    // Extract direct children information (not all descendants)
+    for (let i = 0; i < element.children.length; i++) {
+      const child = element.children[i] as HTMLElement;
+      children.push({
+        tagName: child.tagName.toLowerCase(),
+        textContent: (child.textContent || '').trim().substring(0, 100), // Limit length
+        className: child.className || '',
+        id: child.id || undefined
+      });
+    }
+
+    // Limit HTML content length for display
+    const maxLength = 2000;
+    let outerHTML = element.outerHTML;
+    let innerHTML = element.innerHTML;
+    
+    if (outerHTML.length > maxLength) {
+      outerHTML = outerHTML.substring(0, maxLength) + '...';
+    }
+    
+    if (innerHTML.length > maxLength) {
+      innerHTML = innerHTML.substring(0, maxLength) + '...';
+    }
+
+    return {
+      outerHTML,
+      innerHTML,
+      textContent: (element.textContent || '').trim(),
+      tagName: element.tagName.toLowerCase(),
+      className: element.className || '',
+      id: element.id || '',
+      attributes,
+      computedStyles: relevantStyles,
+      children
+    };
   }
 
   /**
@@ -368,8 +459,28 @@ export class ComponentInspector {
     });
     window.dispatchEvent(liveUpdateEvent);
     
+    // Also dispatch preview event for Properties panel real-time updates
     if (component) {
-      console.log('📡 [ComponentInspector] Live code update dispatched for:', component.name);
+      // console.log('📡 [ComponentInspector] Live code update dispatched for:', component.name);
+      
+      // Emit hover preview event for Properties panel
+      const previewEvent = new CustomEvent('component-hover-preview', {
+        detail: { 
+          component: component,
+          isPreview: true 
+        }
+      });
+      window.dispatchEvent(previewEvent);
+      // console.log('👀 [ComponentInspector] Hover preview dispatched for Properties panel:', component.name);
+    } else {
+      // Clear preview when no component is hovered
+      const clearPreviewEvent = new CustomEvent('component-hover-preview', {
+        detail: { 
+          component: null,
+          isPreview: true 
+        }
+      });
+      window.dispatchEvent(clearPreviewEvent);
     }
   }
 

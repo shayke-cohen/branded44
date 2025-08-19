@@ -118,10 +118,10 @@ const FileItem = styled.div<{ $level: number; selected: boolean }>`
 
 const PropertyPanel: React.FC = () => {
   const { state, updateFileTree } = useEditor();
-  const [activeTab, setActiveTab] = useState<'properties' | 'files' | 'code' | 'dev'>('properties');
-  const [componentCode, setComponentCode] = useState<string>('');
-  const [isLoadingCode, setIsLoadingCode] = useState(false);
-  const [codeError, setCodeError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'properties' | 'files' | 'dev'>('properties');
+
+
+
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['screens', 'screens/HomeScreen', 'screens/wix']));
   
   // File editor state
@@ -399,58 +399,7 @@ const PropertyPanel: React.FC = () => {
     return 'This component could not be mapped to a source file. It may be a generated element or part of a library component.';
   };
 
-  // Load component source code
-  const loadComponentCode = async (componentId: string) => {
-    setIsLoadingCode(true);
-    setCodeError(null);
-    
-    try {
-      // Use the mapping function to find the file path
-      const filePath = getComponentFilePath(componentId);
-      const possiblePaths = filePath ? [filePath] : [
-        'screens/HomeScreen/HomeNavigation.tsx',
-        'screens/HomeScreen/HomeScreen.tsx',
-        'screens/SettingsScreen/SettingsScreen.tsx',
-        'screens/wix/ecommerce/CartScreen/CartScreen.tsx',
-        'screens/wix/navigation/ProductsNavigation.tsx',
-        'screen-templates/templateConfig.ts'
-      ];
-      
-      let foundCode = '';
-      let foundPath = '';
-      
-      // Get session info from localStorage or global
-      const sessionInfo = localStorage.getItem('visual-editor-session-id');
-      
-      if (sessionInfo) {
-        for (const path of possiblePaths) {
-          try {
-            const response = await fetch(`http://localhost:3001/api/editor/session-file/${sessionInfo}/${path}`);
-            if (response.ok) {
-              foundCode = await response.text();
-              foundPath = path;
-              break;
-            }
-          } catch (error) {
-            // Try next path
-          }
-        }
-      }
-      
-      if (foundCode) {
-        setComponentCode(foundCode);
-        console.log(`📄 [PropertyPanel] Loaded code from: ${foundPath}`);
-      } else {
-        const reason = getUnmappableReason(componentId);
-        setCodeError(`Component source not found: ${reason}`);
-      }
-    } catch (error) {
-      console.error('❌ [PropertyPanel] Error loading component code:', error);
-      setCodeError(error instanceof Error ? error.message : 'Failed to load code');
-    } finally {
-      setIsLoadingCode(false);
-    }
-  };
+
 
   // Load workspace path when component mounts
   React.useEffect(() => {
@@ -490,9 +439,15 @@ const PropertyPanel: React.FC = () => {
     fetchWorkspacePath();
   }, []);
 
-  // Auto-correlate selected component with Files and Code tabs
+  // Auto-correlate selected component with Files tab
   React.useEffect(() => {
     if (state.selectedComponent) {
+      // Ensure Properties tab is active when a component is selected
+      if (activeTab !== 'properties') {
+        console.log('🎯 [PropertyPanel] Component selected - switching to Properties tab');
+        setActiveTab('properties');
+      }
+      
       // Get the file path for the selected component
       const componentFilePath = getComponentFilePath(state.selectedComponent);
       
@@ -511,11 +466,7 @@ const PropertyPanel: React.FC = () => {
           setFileError(null);
         }
         
-        if (componentCode !== '') {
-          console.log(`🗑️ [PropertyPanel] Clearing previous component code`);
-          setComponentCode('');
-          setCodeError(null);
-        }
+
         
         // Load content based on active tab
         if (activeTab === 'files') {
@@ -523,10 +474,7 @@ const PropertyPanel: React.FC = () => {
           loadFileContent(componentFilePath);
         }
         
-        if (activeTab === 'code') {
-          console.log(`💻 [PropertyPanel] Code tab active - loading code for: ${state.selectedComponent}`);
-          loadComponentCode(state.selectedComponent);
-        }
+
         
         // Auto-expand directories to show the selected file
         const pathParts = componentFilePath.split('/');
@@ -549,9 +497,7 @@ const PropertyPanel: React.FC = () => {
         setFileError(null);
         setHasUnsavedChanges(false);
         
-        // Set appropriate messages for Code tab
-        setComponentCode('');
-        setCodeError(`Cannot find source file for component: ${state.selectedComponent}\n\nThis might be a DOM element or styled component without a direct source mapping.`);
+
       }
     } else {
       // Clear selection when no component is selected
@@ -562,10 +508,9 @@ const PropertyPanel: React.FC = () => {
         setFileContent('');
         setHasUnsavedChanges(false);
       }
-      setComponentCode('');
-      setCodeError(null);
+
     }
-  }, [state.selectedComponent, activeTab]);
+  }, [state.selectedComponent]);
 
   // Handle tab switching to load content for selected component
   React.useEffect(() => {
@@ -583,12 +528,6 @@ const PropertyPanel: React.FC = () => {
         console.log(`📁 [PropertyPanel] Loading file content for tab switch: ${componentFilePath}`);
         loadFileContent(componentFilePath);
       }
-    } else if (activeTab === 'code') {
-      // Only load if we don't already have code for this component
-      if (componentCode === '' && !isLoadingCode) {
-        console.log(`💻 [PropertyPanel] Loading component code for tab switch: ${state.selectedComponent}`);
-        loadComponentCode(state.selectedComponent);
-      }
     }
   }, [activeTab]); // Only depend on activeTab to detect tab switching
 
@@ -597,41 +536,51 @@ const PropertyPanel: React.FC = () => {
   const [selectedHierarchyIndex, setSelectedHierarchyIndex] = React.useState<number>(0);
   const [editMode, setEditMode] = React.useState<boolean>(false);
   
+  // Hover preview state for real-time updates
+  const [hoverPreviewComponent, setHoverPreviewComponent] = React.useState<any>(null);
+  const [isShowingPreview, setIsShowingPreview] = React.useState<boolean>(false);
+  
   // Content tracing results
   const [contentMatches, setContentMatches] = React.useState<any[]>([]);
   const [isLoadingContentTrace, setIsLoadingContentTrace] = React.useState(false);
   const [selectedMatch, setSelectedMatch] = React.useState<any>(null);
 
-  // Live inspection state
-  const [liveInspectionComponent, setLiveInspectionComponent] = React.useState<any>(null);
-  const [isLiveInspecting, setIsLiveInspecting] = React.useState(false);
+  // Legacy live inspection state (now replaced by hover preview)
+  // const [liveInspectionComponent, setLiveInspectionComponent] = React.useState<any>(null);
+  // const [isLiveInspecting, setIsLiveInspecting] = React.useState(false);
 
-  // Listen for live code updates (hover inspection)
-  React.useEffect(() => {
-    const handleLiveCodeUpdate = (event: any) => {
-      const component = event.detail?.component;
-      setLiveInspectionComponent(component);
-      setIsLiveInspecting(!!component);
-      
-      if (component?.contentInfo) {
-        // Trigger live content tracing
-        traceContent(component.contentInfo);
-      } else {
-        // Clear tracing results when no component
-        setContentMatches([]);
-        setSelectedMatch(null);
-      }
-    };
-    
-    window.addEventListener('live-code-update', handleLiveCodeUpdate);
-    return () => window.removeEventListener('live-code-update', handleLiveCodeUpdate);
-  }, []);
+  // Legacy live code update listener (now replaced by hover preview)
+  // React.useEffect(() => {
+  //   const handleLiveCodeUpdate = (event: any) => {
+  //     const component = event.detail?.component;
+  //     setLiveInspectionComponent(component);
+  //     setIsLiveInspecting(!!component);
+  //     
+  //     if (component?.contentInfo) {
+  //       // Trigger live content tracing
+  //       traceContent(component.contentInfo);
+  //     } else {
+  //       // Clear tracing results when no component
+  //       setContentMatches([]);
+  //       setSelectedMatch(null);
+  //     }
+  //   };
+  //   
+  //   window.addEventListener('live-code-update', handleLiveCodeUpdate);
+  //   return () => window.removeEventListener('live-code-update', handleLiveCodeUpdate);
+  // }, []);
 
   // Listen for component hierarchy updates (click selection)
   React.useEffect(() => {
     const handleComponentHierarchy = (event: any) => {
       if (event.detail?.hierarchy) {
         setComponentHierarchy(event.detail.hierarchy);
+        
+        // Ensure Properties tab is active when inspecting components
+        if (activeTab !== 'properties') {
+          console.log('🎯 [PropertyPanel] Component inspected - switching to Properties tab');
+          setActiveTab('properties');
+        }
         
         // Trigger content tracing for direct file mapping
         if (event.detail.hierarchy[0]?.contentInfo) {
@@ -650,7 +599,38 @@ const PropertyPanel: React.FC = () => {
     
     window.addEventListener('component-hierarchy-updated', handleComponentHierarchy);
     return () => window.removeEventListener('component-hierarchy-updated', handleComponentHierarchy);
-  }, [editMode]);
+  }, [editMode, activeTab]);
+
+  // Listen for hover preview events (real-time updates during inspection)
+  React.useEffect(() => {
+    const handleHoverPreview = (event: any) => {
+      // console.log('📥 [PropertyPanel] Hover preview event received:', event.detail);
+      if (event.detail?.isPreview) {
+        const component = event.detail.component;
+        if (component) {
+          // console.log('👀 [PropertyPanel] Hover preview received for component:', component.name);
+          setHoverPreviewComponent(component);
+          setIsShowingPreview(true);
+          
+          // Trigger content tracing for the hovered component (optional)
+          if (component?.contentInfo) {
+            traceContent(component.contentInfo);
+          }
+        } else {
+          // console.log('👀 [PropertyPanel] Hover preview cleared');
+          setHoverPreviewComponent(null);
+          setIsShowingPreview(false);
+          
+          // Clear tracing results when no component is hovered
+          setContentMatches([]);
+          setSelectedMatch(null);
+        }
+      }
+    };
+    
+    window.addEventListener('component-hover-preview', handleHoverPreview);
+    return () => window.removeEventListener('component-hover-preview', handleHoverPreview);
+  }, []);
 
   // Content tracing function
   const traceContent = async (contentInfo: any) => {
@@ -700,11 +680,11 @@ const PropertyPanel: React.FC = () => {
         // Auto-load the best matching file
         loadFileContent(bestMatch.file);
         
-        // Switch to Files tab for immediate editing
-        setActiveTab('files');
+        // Keep focus on Properties tab to show element content
+        // User can manually switch to Files tab if they want to edit
         
         console.log('✅ [PropertyPanel] Content traced successfully:', result.matches.length, 'files found');
-        console.log('📁 [PropertyPanel] Auto-loaded file:', bestMatch.file);
+        console.log('📁 [PropertyPanel] Auto-loaded file (staying on Properties tab):', bestMatch.file);
       }
 
     } catch (error) {
@@ -743,9 +723,9 @@ const PropertyPanel: React.FC = () => {
     const currentComponent = componentHierarchy[selectedHierarchyIndex];
     const currentComponentPath = currentComponent ? getComponentFilePath(currentComponent.id) : componentFilePath;
     
-    // Use live inspection component when available, otherwise use selected component
-    const activeComponent = liveInspectionComponent || currentComponent || state.selectedComponent;
-    const isLiveMode = !!liveInspectionComponent;
+    // Use hover preview component when available, otherwise use selected component
+    const activeComponent = hoverPreviewComponent || currentComponent || state.selectedComponent;
+    const isLiveMode = !!hoverPreviewComponent;
 
     return (
       <>
@@ -763,9 +743,11 @@ const PropertyPanel: React.FC = () => {
             textAlign: 'center',
             boxShadow: '0 2px 8px rgba(33, 150, 243, 0.2)'
           }}>
-            <div style={{ marginBottom: '4px' }}>🔍 Live Code Inspection Active</div>
+            <div style={{ marginBottom: '4px' }}>
+              {isShowingPreview ? '👀 Hover Preview Active' : '🔍 Live Code Inspection Active'}
+            </div>
             <div style={{ fontSize: '12px', fontWeight: 'normal', color: '#1976d2' }}>
-              Hover over elements to see their source code instantly
+              {isShowingPreview ? 'Showing properties for hovered element - click to select' : 'Hover over elements to see their source code instantly'}
             </div>
             {activeComponent && (
               <div style={{ 
@@ -865,7 +847,7 @@ const PropertyPanel: React.FC = () => {
                   if (selectedMatch || contentMatches[0]) {
                     const fileToEdit = selectedMatch || contentMatches[0];
                     loadFileContent(fileToEdit.file);
-                    setActiveTab('files');
+                    setActiveTab('files'); // Only switch when user explicitly wants to edit
                   }
                 }}
                 style={{
@@ -1033,7 +1015,7 @@ const PropertyPanel: React.FC = () => {
             <div style={{ marginLeft: '24px', fontSize: '13px' }}>
               {currentComponentPath ? (
                 <div>
-                  This component can be edited in the Files and Code tabs.
+                  This component can be edited in the Files tab.
                 </div>
               ) : (
                 <div>
@@ -1114,11 +1096,221 @@ const PropertyPanel: React.FC = () => {
             
             {componentFilePath && (
               <div style={{ marginTop: '12px', padding: '8px', background: '#f0f8ff', borderRadius: '4px' }}>
-                💡 <strong>Tip:</strong> Switch to the Files or Code tab to view and edit this component's source code.
+                💡 <strong>Tip:</strong> Switch to the Files tab to view and edit this component's source code.
               </div>
             )}
           </div>
         </PropertyGroup>
+
+        {/* Element Content Section */}
+        {currentComponent?.elementContent && (
+          <PropertyGroup>
+            <div style={{
+              background: 'linear-gradient(90deg, #e3f2fd, #f3e5f5)',
+              border: '2px solid #2196f3',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#1565c0',
+              textAlign: 'center'
+            }}>
+              🔍 Inspected Element Content
+              <div style={{ fontSize: '12px', fontWeight: 'normal', marginTop: '4px', color: '#1976d2' }}>
+                Live inspection of selected DOM element
+              </div>
+            </div>
+            <GroupTitle>📋 Element Details</GroupTitle>
+            
+            {/* Basic Element Info */}
+            <div style={{ 
+              padding: '12px',
+              background: '#f8f9fa',
+              border: '1px solid #e0e0e0',
+              borderRadius: '8px',
+              fontSize: '13px',
+              marginBottom: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <span>🏷️</span>
+                <strong>Element: &lt;{currentComponent.elementContent.tagName}&gt;</strong>
+              </div>
+              
+              {currentComponent.elementContent.id && (
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>ID:</strong> <code>{currentComponent.elementContent.id}</code>
+                </div>
+              )}
+              
+              {currentComponent.elementContent.className && (
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>Classes:</strong> <code>{currentComponent.elementContent.className}</code>
+                </div>
+              )}
+              
+              {currentComponent.elementContent.textContent && (
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>Text:</strong> <span style={{ fontStyle: 'italic' }}>"{currentComponent.elementContent.textContent.substring(0, 100)}{currentComponent.elementContent.textContent.length > 100 ? '...' : ''}"</span>
+                </div>
+              )}
+              
+              {currentComponent.elementContent.children.length > 0 && (
+                <div>
+                  <strong>Children:</strong> {currentComponent.elementContent.children.length} elements
+                </div>
+              )}
+            </div>
+
+            {/* HTML Content */}
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}>
+                <span>📄</span>
+                <span>HTML Structure</span>
+              </div>
+              
+              <textarea
+                readOnly
+                value={currentComponent.elementContent.outerHTML}
+                style={{
+                  width: '100%',
+                  height: '150px',
+                  fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                  fontSize: '11px',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  background: '#fafafa',
+                  resize: 'vertical',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Computed Styles */}
+            {Object.keys(currentComponent.elementContent.computedStyles).length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  <span>🎨</span>
+                  <span>Key Styles</span>
+                </div>
+                
+                <div style={{
+                  background: '#f8f9fa',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                  padding: '8px',
+                  fontSize: '12px',
+                  fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
+                }}>
+                  {Object.entries(currentComponent.elementContent.computedStyles).map(([prop, value]) => (
+                    <div key={prop} style={{ marginBottom: '2px' }}>
+                      <span style={{ color: '#d73a49' }}>{prop}</span>: <span style={{ color: '#032f62' }}>{String(value)}</span>;
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Attributes */}
+            {Object.keys(currentComponent.elementContent.attributes).length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  <span>⚙️</span>
+                  <span>Attributes</span>
+                </div>
+                
+                <div style={{
+                  background: '#f8f9fa',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                  padding: '8px',
+                  fontSize: '12px'
+                }}>
+                  {Object.entries(currentComponent.elementContent.attributes).map(([attr, value]) => (
+                    <div key={attr} style={{ marginBottom: '4px' }}>
+                      <strong>{attr}:</strong> <code>{String(value)}</code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Children Preview */}
+            {currentComponent.elementContent.children.length > 0 && (
+              <div>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  <span>👶</span>
+                  <span>Child Elements ({currentComponent.elementContent.children.length})</span>
+                </div>
+                
+                <div style={{
+                  background: '#f8f9fa',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                  padding: '8px',
+                  fontSize: '12px',
+                  maxHeight: '120px',
+                  overflow: 'auto'
+                }}>
+                  {currentComponent.elementContent.children.map((child: any, index: number) => (
+                    <div key={index} style={{ 
+                      marginBottom: '6px',
+                      padding: '4px',
+                      background: '#fff',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '3px'
+                    }}>
+                      <div>
+                        <strong>&lt;{child.tagName}&gt;</strong>
+                        {child.className && <span style={{ color: '#6f42c1' }}> .{child.className}</span>}
+                        {child.id && <span style={{ color: '#e83e8c' }}> #{child.id}</span>}
+                      </div>
+                      {child.textContent && (
+                        <div style={{ 
+                          fontSize: '11px', 
+                          color: '#6c757d', 
+                          fontStyle: 'italic',
+                          marginTop: '2px'
+                        }}>
+                          "{child.textContent.substring(0, 50)}{child.textContent.length > 50 ? '...' : ''}"
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </PropertyGroup>
+        )}
       </>
     );
   };
@@ -1334,165 +1526,7 @@ const PropertyPanel: React.FC = () => {
     );
   };
 
-  const renderCode = () => {
-    if (!state.selectedComponent) {
-      return (
-        <EmptyState>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>💻</div>
-          <div style={{ fontSize: '16px', marginBottom: '8px' }}>No Component Selected</div>
-          <div style={{ fontSize: '14px' }}>
-            Select a component to view and edit its source code
-          </div>
-        </EmptyState>
-      );
-    }
 
-    if (isLoadingCode) {
-      return (
-        <EmptyState>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-          <div style={{ fontSize: '16px', marginBottom: '8px' }}>Loading Code...</div>
-          <div style={{ fontSize: '14px' }}>
-            Fetching component source code...
-          </div>
-        </EmptyState>
-      );
-    }
-
-    if (codeError) {
-      const componentFilePath = getComponentFilePath(state.selectedComponent!);
-      const reason = getUnmappableReason(state.selectedComponent!);
-      
-      return (
-        <div style={{ padding: '16px' }}>
-          <div style={{ 
-            marginBottom: '16px',
-            padding: '12px',
-            background: '#fff3cd',
-            border: '2px solid #ffc107',
-            borderRadius: '8px',
-            fontSize: '14px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '16px' }}>⚠️</span>
-              <strong style={{ color: '#856404' }}>Source Code Not Available</strong>
-            </div>
-            <div style={{ marginLeft: '24px' }}>
-              <div><strong>Component:</strong> {state.selectedComponent}</div>
-              <div><strong>Expected File:</strong> {componentFilePath || 'No mapping found'}</div>
-            </div>
-          </div>
-          
-          <div style={{
-            padding: '16px',
-            background: '#f8f9fa',
-            borderRadius: '8px',
-            fontSize: '14px',
-            lineHeight: '1.5'
-          }}>
-            <div style={{ marginBottom: '12px', fontWeight: '600' }}>
-              📄 Why can't this component be edited?
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              {reason}
-            </div>
-            
-            <div style={{ 
-              padding: '12px',
-              background: '#e3f2fd',
-              borderRadius: '6px',
-              fontSize: '13px'
-            }}>
-              <div style={{ marginBottom: '8px', fontWeight: '600' }}>
-                💡 Tip: Try clicking on a React component instead
-              </div>
-              <div>
-                Look for components with names like <code>HomeScreen</code>, <code>MenuScreen</code>, or <code>Button</code> - 
-                these usually have editable source files.
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const componentFilePath = getComponentFilePath(state.selectedComponent!);
-
-    return (
-      <div style={{ padding: '16px' }}>
-        <div style={{ 
-          marginBottom: '16px',
-          padding: '12px',
-          background: '#f0f8ff',
-          border: '2px solid #3498db',
-          borderRadius: '8px',
-          fontSize: '14px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '16px' }}>🎯</span>
-            <strong style={{ color: '#3498db' }}>Selected Component</strong>
-          </div>
-          <div style={{ marginLeft: '24px' }}>
-            <div><strong>ID:</strong> {state.selectedComponent}</div>
-            <div><strong>File:</strong> {componentFilePath || 'Unknown'}</div>
-            <div><strong>Status:</strong> {componentCode ? 'Source code loaded' : 'Loading...'}</div>
-          </div>
-        </div>
-        
-        <textarea
-          value={componentCode}
-          onChange={(e) => setComponentCode(e.target.value)}
-          style={{
-            width: '100%',
-            height: '400px',
-            fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-            fontSize: '12px',
-            padding: '12px',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            resize: 'vertical',
-            background: '#fafafa'
-          }}
-          placeholder="Component source code will appear here..."
-        />
-        
-        <div style={{ 
-          marginTop: '12px', 
-          display: 'flex', 
-          gap: '8px' 
-        }}>
-          <button
-            onClick={() => loadComponentCode(state.selectedComponent!)}
-            style={{
-              padding: '8px 16px',
-              background: '#1976d2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🔄 Reload
-          </button>
-          
-          <button
-            style={{
-              padding: '8px 16px',
-              background: '#388e3c',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            💾 Save Changes
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <PanelContainer>
@@ -1540,12 +1574,7 @@ const PropertyPanel: React.FC = () => {
         >
           Files
         </Tab>
-        <Tab
-          $active={activeTab === 'code'}
-          onClick={() => setActiveTab('code')}
-        >
-          Code
-        </Tab>
+
         <Tab
           $active={activeTab === 'dev'}
           onClick={() => setActiveTab('dev')}
@@ -1558,7 +1587,7 @@ const PropertyPanel: React.FC = () => {
       <PanelContent>
         {activeTab === 'properties' && renderProperties()}
         {activeTab === 'files' && renderFiles()}
-        {activeTab === 'code' && renderCode()}
+
         {activeTab === 'dev' && (
           <div style={{ height: '100%', overflow: 'auto' }}>
             <AggressiveReloadPanel />

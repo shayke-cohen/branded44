@@ -40,6 +40,9 @@ export class Src2Manager {
               (window as any).__VISUAL_EDITOR_SESSION__ = this.sessionInfo;
               console.log('📁 [Src2Manager] Existing session loaded successfully:', this.sessionInfo);
               
+              // Sync the existing session with the server
+              await this.syncSessionWithServer(this.sessionInfo.sessionId);
+              
               // Notify other components that session is ready
               const event = new CustomEvent('visual-editor-session-ready', { 
                 detail: { sessionId: this.sessionInfo.sessionId, type: 'existing' } 
@@ -94,6 +97,9 @@ export class Src2Manager {
           sessionId: this.sessionInfo.sessionId,
           workspacePath: this.sessionInfo.workspacePath
         });
+        
+        // Sync the session with the server to set global.currentEditorSession
+        await this.syncSessionWithServer(this.sessionInfo.sessionId);
         
         // Notify other components that session is ready
         const event = new CustomEvent('visual-editor-session-ready', { 
@@ -226,6 +232,34 @@ export class Src2Manager {
     } catch (error) {
       console.error('📁 [Src2Manager] Failed to get file tree:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Sync the current session with the server to set global.currentEditorSession
+   */
+  async syncSessionWithServer(sessionId: string): Promise<void> {
+    try {
+      console.log(`🔄 [Src2Manager] Syncing session with server: ${sessionId}`);
+
+      const response = await axios.post(`${this.serverUrl}/api/editor/sync`, {
+        sessionId: sessionId
+      }, {
+        timeout: 5000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.success) {
+        console.log(`✅ [Src2Manager] Session synced successfully: ${sessionId}`);
+      } else {
+        throw new Error(response.data.error || 'Failed to sync session with server');
+      }
+    } catch (error) {
+      console.error(`❌ [Src2Manager] Failed to sync session with server:`, error);
+      // Don't throw here - session sync failing shouldn't break the initialization
+      // but we should log it so we know something is wrong
     }
   }
 }

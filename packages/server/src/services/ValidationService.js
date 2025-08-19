@@ -257,13 +257,13 @@ class ValidationService {
       };
     }
 
-    // Validate text fields
-    if (text && (typeof text !== 'string' || text.length < 2)) {
-      return { valid: false, error: 'Text must be a string with at least 2 characters' };
+    // Validate text fields (allow single characters for icons)
+    if (text && (typeof text !== 'string' || text.length < 1)) {
+      return { valid: false, error: 'Text must be a non-empty string' };
     }
 
-    if (textContent && (typeof textContent !== 'string' || textContent.length < 2)) {
-      return { valid: false, error: 'Text content must be a string with at least 2 characters' };
+    if (textContent && (typeof textContent !== 'string' || textContent.length < 1)) {
+      return { valid: false, error: 'Text content must be a non-empty string' };
     }
 
     if (className && typeof className !== 'string') {
