@@ -288,8 +288,16 @@ class VisualEditorRouter {
 
 // Export a function that creates and returns the router
 // This allows for easy integration with the existing app structure
-function createVisualEditorRouter() {
+function createVisualEditorRouter(app) {
   const visualEditorRouter = new VisualEditorRouter();
+  
+  // Set route controllers on the app instance for access by other routes
+  if (app) {
+    for (const [name, controller] of visualEditorRouter.routeControllers) {
+      app.set(name === 'dynamicScreen' ? 'dynamicScreenRoutes' : name, controller);
+    }
+    console.log('📱 [VisualEditorRouter] Route controllers set on app instance');
+  }
   
   // Export cleanup function for graceful shutdown
   visualEditorRouter.getRouter().cleanup = () => visualEditorRouter.cleanup();

@@ -201,8 +201,13 @@ const DirectMobileAppPhoneFrame: React.FC<DirectMobileAppPhoneFrameProps> = ({
   const appContentRef = useRef<HTMLDivElement>(null);
   
   // ========== INSPECTION ==========
-  const componentInspector = useRef(new ComponentInspector());
+  const componentInspector = useRef<ComponentInspector | null>(null);
   const { isInspecting } = state;
+  
+  // Initialize component inspector only once
+  if (!componentInspector.current) {
+    componentInspector.current = new ComponentInspector();
+  }
 
   // ========== INITIALIZATION ==========
   useEffect(() => {
@@ -378,7 +383,7 @@ const DirectMobileAppPhoneFrame: React.FC<DirectMobileAppPhoneFrameProps> = ({
     editorToggleInspection(false);
     
     // Stop inspection mode
-    if (appContentRef.current) {
+    if (appContentRef.current && componentInspector.current) {
       componentInspector.current.stopInspection(appContentRef.current);
     }
     
@@ -386,14 +391,24 @@ const DirectMobileAppPhoneFrame: React.FC<DirectMobileAppPhoneFrameProps> = ({
   };
 
   const toggleInspection = () => {
-    if (!appContentRef.current) return;
+    console.log('🔍 [DirectMobileAppPhoneFrame] toggleInspection called, appContentRef.current:', !!appContentRef.current);
+    console.log('🔍 [DirectMobileAppPhoneFrame] Current isInspecting state:', isInspecting);
+    console.log('🔍 [DirectMobileAppPhoneFrame] componentInspector.current:', !!componentInspector.current);
+    
+    if (!appContentRef.current || !componentInspector.current) {
+      console.error('❌ [DirectMobileAppPhoneFrame] appContentRef or componentInspector is null, cannot toggle inspection');
+      return;
+    }
 
     if (isInspecting) {
+      console.log('🔍 [DirectMobileAppPhoneFrame] Stopping inspection...');
       componentInspector.current.stopInspection(appContentRef.current);
       editorToggleInspection(false);
     } else {
+      console.log('🔍 [DirectMobileAppPhoneFrame] Starting inspection...');
       componentInspector.current.startInspection(appContentRef.current, handleComponentSelect);
       editorToggleInspection(true);
+      console.log('🔍 [DirectMobileAppPhoneFrame] Inspection started, new state should be:', true);
     }
   };
 

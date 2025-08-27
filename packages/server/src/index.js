@@ -47,6 +47,65 @@ app.set('sessionAPI', sessionAPI);
 const directMobileAppWS = new DirectMobileAppWebSocketManager(io);
 app.set('directMobileAppWS', directMobileAppWS);
 
+// Set up file change handler for Direct Mobile App hot-reload
+global.directMobileAppWS = directMobileAppWS;
+global.handleDirectMobileAppFileChange = (changeEvent) => {
+  const { sessionId, filePath, eventType } = changeEvent;
+  console.log(`🔥 [DirectMobileApp] File change detected: ${filePath} (${eventType})`);
+  
+  // Check if this is a screen file
+  const screenMatch = filePath.match(/screens\/([^\/]+)\/([^\/]+)\.(tsx?|jsx?)$/);
+  if (screenMatch) {
+    const [, screenDir, screenFile] = screenMatch;
+    
+    // Create proper screen ID mapping based on common patterns
+    // HomeScreen -> home-screen, SettingsScreen -> settings-screen, etc.
+    const screenId = global.getScreenIdFromPath(screenDir, screenFile);
+    
+    console.log(`📱 [DirectMobileApp] Screen file changed: ${screenId} -> ${filePath}`);
+    console.log(`🔄 [DirectMobileApp] Triggering hot-reload for screen: ${screenId}`);
+    
+    // Trigger hot-reload for this screen
+    directMobileAppWS.triggerScreenHotReload(sessionId, screenId, {
+      filePath,
+      eventType,
+      timestamp: Date.now(),
+      source: 'file-watcher'
+    });
+  } else {
+    console.log(`📁 [DirectMobileApp] Non-screen file changed: ${filePath} - no action needed`);
+  }
+};
+
+// Helper function to map file paths to screen IDs
+global.getScreenIdFromPath = (screenDir, screenFile) => {
+  // Map common patterns to proper screen IDs
+  const mapping = {
+    'HomeScreen': 'home-screen',
+    'SettingsScreen': 'settings-screen',
+    'ComponentsShowcaseScreen': 'components-showcase-screen',
+    'TemplateIndexScreen': 'template-index-screen',
+    'AuthDemoScreen': 'auth-demo-screen',
+    'ProfileScreen': 'profile-screen',
+    'LoginScreen': 'login-screen'
+  };
+  
+  // Direct mapping if available
+  if (mapping[screenDir]) {
+    return mapping[screenDir];
+  }
+  
+  // Fallback: convert CamelCase to kebab-case and add -screen
+  const kebabCase = screenDir
+    .replace(/([a-z])([A-Z])/g, '$1-$2')  // CamelCase -> kebab-case
+    .toLowerCase()
+    .replace(/screen$/, '') // Remove trailing "screen" 
+    + '-screen'; // Add back "-screen"
+    
+  console.log(`🔍 [DirectMobileApp] Mapped ${screenDir} -> ${kebabCase}`);
+  return kebabCase;
+};
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -857,7 +916,7 @@ app.post('/execute-claude-code-stream', async (req, res) => {
 
 // Visual editor routes
 // Initialize modular visual editor routes
-const visualEditorRouter = createVisualEditorRouter();
+const visualEditorRouter = createVisualEditorRouter(app);
 app.use('/api/editor', visualEditorRouter);
 
 // Mobile bundle polling endpoint

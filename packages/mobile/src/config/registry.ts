@@ -291,4 +291,10 @@ export const registerScreen = (
   console.log(`📱 Screen registered: ${config.name} (${screenId})${config.hasTab ? ' with tab' : ''}`);
 };
 
+// Expose globalRegistry on window for visual editor screen overrides
+if (typeof window !== 'undefined') {
+  (window as any).globalRegistry = globalRegistry;
+  console.log('🌐 [Registry] Exposed globalRegistry on window for screen overrides');
+}
+
 export default globalRegistry; 

@@ -417,6 +417,17 @@ export default App;
             timestamp: Date.now()
           });
         }
+        
+        // Trigger Direct Mobile App hot-reload
+        if (global.handleDirectMobileAppFileChange) {
+          global.handleDirectMobileAppFileChange({
+            sessionId,
+            filePath: relativePath,
+            fullPath: filePath,
+            eventType: 'change',
+            timestamp: Date.now()
+          });
+        }
       });
 
     // Set global session info

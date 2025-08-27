@@ -21,9 +21,10 @@ export interface SessionInfo {
 
 export interface ScreenOverride {
   screenId: string;
-  component: React.ComponentType<any>;
+  component: React.ComponentType<any> | null; // Nullable for direct refresh approach
   path: string;
   lastModified: number;
+  isDirectRefresh?: boolean; // Flag for direct refresh markers
 }
 
 export interface MobileAppDirectSession {
@@ -97,39 +98,46 @@ export class MobileAppDirectLoader {
   }
 
   /**
-   * Hot-swap a single screen from session
+   * Hot-swap a single screen from session (Direct Mobile App approach)
+   * Load the updated session screen code and override the original component
    */
   async hotSwapScreen(screenId: string): Promise<void> {
     if (!this.currentSession) {
       throw new Error('No active mobile app session for hot-swap');
     }
     
-    console.log(`🔥 [MobileAppDirectLoader] Hot-swapping screen: ${screenId}`);
+    console.log(`🔥 [MobileAppDirectLoader] SIMPLE Hot-reload: ${screenId}`);
     
     try {
-      // Fetch and evaluate the updated screen from session
-      const updatedScreen = await this.loadSessionScreen(screenId);
+      // SIMPLE: Just fetch, eval, and dispatch event
+      const response = await fetch(`${this.serverUrl}/api/editor/session/${this.sessionInfo!.sessionId}/direct-screen/${screenId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch screen: ${response.status}`);
+      }
+      const screenData = await response.json();
       
-      // Update the screen override
-      this.currentSession.screenOverrides.set(screenId, updatedScreen);
-      this.currentSession.lastUpdate = Date.now();
+      // Debug: Log the actual content being fetched
+      console.log(`🔍 [MobileAppDirectLoader] Server returned content for ${screenId}:`);
+      console.log(`🔍 [MobileAppDirectLoader] Content preview:`, screenData.code.component.substring(0, 200) + '...');
       
-      // Notify listeners for live update
-      const listener = this.screenSwapListeners.get(screenId);
-      if (listener) {
-        listener(updatedScreen);
+      // Look for user's text changes in the server content
+      const serverTextMatches = screenData.code.component.match(/"[^"]*"/g) || [];
+      console.log(`🔍 [MobileAppDirectLoader] Server text content:`, serverTextMatches.slice(0, 5));
+      
+      const component = await this.evaluateScreenComponent(screenData.code.component, screenId);
+      
+      // SIMPLE: Just dispatch event to mobile app (runs in same window, not iframe)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('screen-hot-reload', {
+          detail: { screenId, component }
+        }));
+        console.log(`✅ [MobileAppDirectLoader] SIMPLE: Dispatched hot-reload event for ${screenId}`);
+      } else {
+        throw new Error('Window not available');
       }
       
-      // Notify app update listeners
-      this.appUpdateListeners.forEach(listener => {
-        listener(this.currentSession!);
-      });
-      
-      console.log(`✅ [MobileAppDirectLoader] Hot-swapped screen: ${screenId}`);
-      
     } catch (error) {
-      console.error(`❌ [MobileAppDirectLoader] Failed to hot-swap screen ${screenId}:`, error);
-      throw error;
+      console.error(`❌ [MobileAppDirectLoader] SIMPLE: Failed to hot-reload ${screenId}:`, error);
     }
   }
 
@@ -144,6 +152,7 @@ export class MobileAppDirectLoader {
     console.log(`➕ [MobileAppDirectLoader] Adding screen override: ${screenId}`);
     
     try {
+      // Load the screen from session files
       const newScreen = await this.loadSessionScreen(screenId);
       
       // Add to session overrides
@@ -207,9 +216,85 @@ export class MobileAppDirectLoader {
   }
 
   /**
-   * Load all session screen overrides
+   * Map session screen IDs to mobile app registry screen IDs
+   * 
+   * CRITICAL: This handles the mapping where:
+   * - Session files use direct names (e.g., "HomeScreen")
+   * - Mobile app registry uses navigation wrappers (e.g., "HomeNavigation")
+   */
+  private mapSessionScreenToRegistryScreen(sessionScreenId: string): string {
+    const screenMapping: Record<string, string> = {
+      // HomeScreen.tsx → HomeNavigation (which renders HomeScreen)
+      'HomeScreen': 'home-screen', // Registry uses kebab-case for screen IDs
+      'SettingsScreen': 'settings-screen',
+      'ComponentsShowcaseScreen': 'component-library-screen',
+      'DynamicTestScreen': 'dynamic-test-screen',
+      'TemplateIndexScreen': 'template-index-screen',
+      // Add more mappings as needed
+    };
+    
+    const mappedId = screenMapping[sessionScreenId] || sessionScreenId.toLowerCase().replace(/screen$/, '-screen');
+    console.log(`🗺️ [MobileAppDirectLoader] Screen mapping: ${sessionScreenId} → ${mappedId}`);
+    return mappedId;
+  }
+
+  /**
+   * Load session screen overrides using Session Change Detection API (ENHANCED APPROACH)
    */
   private async loadSessionScreenOverrides(): Promise<Map<string, ScreenOverride>> {
+    const screenOverrides = new Map<string, ScreenOverride>();
+    
+    try {
+      // NEW: Ask server what files have been changed in this session
+      console.log('📋 [MobileAppDirectLoader] Asking server for changed files in session...');
+      const changedResponse = await fetch(`${this.serverUrl}/api/editor/session/${this.sessionInfo!.sessionId}/changed-files`);
+      
+      if (!changedResponse.ok) {
+        console.warn('⚠️ [MobileAppDirectLoader] Could not get changed files, falling back to all screens');
+        return this.loadAllSessionScreens(); // Fallback to old approach
+      }
+      
+      const changedData = await changedResponse.json();
+      console.log(`📊 [MobileAppDirectLoader] Server reports ${changedData.changedFiles.length} changed files:`, 
+                  changedData.changedFiles.map((f: any) => f.screenId));
+      
+      // Load ONLY the changed session screens (consistent with editor reload!)
+      for (const changedFile of changedData.changedFiles) {
+        try {
+          const screenOverride = await this.loadSessionScreen(changedFile.screenId);
+          
+          // ENHANCED: Screen ID mapping for correct component registry override
+          const registryScreenId = this.mapSessionScreenToRegistryScreen(changedFile.screenId);
+          screenOverrides.set(registryScreenId, screenOverride);
+          
+          // 🎯 CRITICAL FIX: Register the screen override in mobile app's global registry!
+          if (screenOverride.component && typeof window !== 'undefined' && (window as any).globalRegistry) {
+            (window as any).globalRegistry.registerComponent(registryScreenId, screenOverride.component);
+            console.log(`🔄 [MobileAppDirectLoader] Registered screen override in mobile registry: ${changedFile.screenId} → ${registryScreenId}`);
+          } else {
+            console.warn(`⚠️ [MobileAppDirectLoader] Cannot register screen override - mobile registry not available`);
+          }
+          
+          console.log(`✅ [MobileAppDirectLoader] Loaded changed session screen: ${changedFile.screenId} → ${registryScreenId}`);
+        } catch (error) {
+          console.warn(`⚠️ [MobileAppDirectLoader] Failed to load changed screen ${changedFile.screenId}:`, error);
+        }
+      }
+      
+      console.log(`🎯 [MobileAppDirectLoader] Session Change Detection: Loaded ${screenOverrides.size} changed screens (editor reload consistency guaranteed!)`);
+      
+    } catch (error) {
+      console.warn('⚠️ [MobileAppDirectLoader] Session change detection failed, using fallback:', error);
+      return this.loadAllSessionScreens(); // Fallback to old approach
+    }
+    
+    return screenOverrides;
+  }
+
+  /**
+   * Fallback: Load all session screens (old approach)
+   */
+  private async loadAllSessionScreens(): Promise<Map<string, ScreenOverride>> {
     const screenOverrides = new Map<string, ScreenOverride>();
     
     try {
@@ -242,9 +327,11 @@ export class MobileAppDirectLoader {
   }
 
   /**
-   * Load and evaluate a single session screen
+   * Load and evaluate a single session screen from the server
    */
   private async loadSessionScreen(screenId: string): Promise<ScreenOverride> {
+    console.log(`📥 [MobileAppDirectLoader] Loading session screen: ${screenId}`);
+    
     const response = await fetch(`${this.serverUrl}/api/editor/session/${this.sessionInfo!.sessionId}/direct-screen/${screenId}`);
     
     if (!response.ok) {
@@ -260,7 +347,8 @@ export class MobileAppDirectLoader {
       screenId,
       component,
       path: screenData.path || `/${screenId}`,
-      lastModified: Date.now()
+      lastModified: Date.now(),
+      isDirectRefresh: false // This is the old approach
     };
   }
 
@@ -275,6 +363,43 @@ export class MobileAppDirectLoader {
       const React = require('react');
       const RNWeb = require('react-native-web');
       
+      // Dynamically import context hooks from mobile package at runtime
+      let useTheme = null;
+      let useMember = null; 
+      let useCart = null;
+      let HamburgerMenu = null;
+      
+      try {
+        const ThemeContext = require('../../../mobile/src/context/ThemeContext');
+        useTheme = ThemeContext.useTheme;
+      } catch (e) {
+        console.warn(`[${screenId}] Could not import useTheme:`, e.message);
+        useTheme = () => ({ theme: {} }); // Fallback
+      }
+      
+      try {
+        const MemberContext = require('../../../mobile/src/context/MemberContext');
+        useMember = MemberContext.useMember;
+      } catch (e) {
+        console.warn(`[${screenId}] Could not import useMember:`, e.message);
+        useMember = () => ({ member: null }); // Fallback
+      }
+      
+      try {
+        const WixCartContext = require('../../../mobile/src/context/WixCartContext');
+        useCart = WixCartContext.useCart;
+      } catch (e) {
+        console.warn(`[${screenId}] Could not import useCart:`, e.message);
+        useCart = () => ({ cart: {} }); // Fallback
+      }
+      
+      try {
+        HamburgerMenu = require('../../../mobile/src/screens/HomeScreen/HamburgerMenu').default;
+      } catch (e) {
+        console.warn(`[${screenId}] Could not import HamburgerMenu:`, e.message);
+        HamburgerMenu = () => null; // Fallback
+      }
+      
       // Simple evaluation context (no complex bundling needed)
       const evaluationContext = {
         React,
@@ -286,6 +411,14 @@ export class MobileAppDirectLoader {
         useRef: React.useRef,
         useContext: React.useContext,
         
+        // Context hooks from mobile package
+        useTheme,
+        useMember,
+        useCart,
+        
+        // Screen components
+        HamburgerMenu: HamburgerMenu, // Already has fallback assigned above
+        
         // React Native Web components
         View: RNWeb.View,
         Text: RNWeb.Text,
@@ -293,6 +426,9 @@ export class MobileAppDirectLoader {
         TouchableOpacity: RNWeb.TouchableOpacity,
         StyleSheet: RNWeb.StyleSheet,
         Dimensions: RNWeb.Dimensions,
+        SafeAreaView: RNWeb.SafeAreaView,
+        Animated: RNWeb.Animated,
+        Platform: RNWeb.Platform,
         
         // Common utilities
         console: {

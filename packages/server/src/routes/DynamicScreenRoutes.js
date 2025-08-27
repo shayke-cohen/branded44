@@ -115,7 +115,12 @@ class DynamicScreenRoutes {
    */
   async buildScreenDefinition(session, screenId) {
     try {
+      console.log(`🔍 [DynamicScreenRoutes] buildScreenDefinition called with screenId: ${screenId}`);
+      console.log(`🔍 [DynamicScreenRoutes] Session workspace: ${session.workspacePath}`);
+      
       const screenPaths = await this.findScreenFiles(session, screenId);
+      
+      console.log(`🔍 [DynamicScreenRoutes] findScreenFiles returned:`, screenPaths);
       
       if (!screenPaths.component) {
         console.warn(`⚠️ [DynamicScreenRoutes] No component file found for screen: ${screenId}`);
@@ -123,7 +128,16 @@ class DynamicScreenRoutes {
       }
 
       // Read component code and transform TypeScript
+      console.log(`🔍 [DynamicScreenRoutes] About to read file: ${screenPaths.component}`);
       let componentCode = await fs.readFile(screenPaths.component, 'utf8');
+      
+      // DEBUG: Log what we actually read from the file
+      console.log(`🔍 [DynamicScreenRoutes] File content preview:`, componentCode.substring(0, 200) + '...');
+      console.log(`🔍 [DynamicScreenRoutes] File contains test text:`, componentCode.includes('TEST UNIQUE CHANGE 12345'));
+      
+      // Extract text content from raw file
+      const rawTextMatches = componentCode.match(/"[^"]*"/g) || [];
+      console.log(`🔍 [DynamicScreenRoutes] Raw file text content:`, rawTextMatches.slice(0, 5));
       if (screenPaths.component.endsWith('.ts') || screenPaths.component.endsWith('.tsx')) {
         componentCode = this.transformTypeScript(componentCode, 'component');
         console.log(`🔄 [DynamicScreenRoutes] Transformed component TypeScript for ${screenId}`);
@@ -199,10 +213,52 @@ class DynamicScreenRoutes {
   }
 
   /**
-   * Find screen files in session workspace
+   * Convert screen ID to directory name (kebab-case to CamelCase)
+   */
+  screenIdToDirectoryName(screenId) {
+    // Map common screen IDs to their actual directory names
+    const mapping = {
+      'home-screen': 'HomeScreen',
+      'settings-screen': 'SettingsScreen', 
+      'components-showcase-screen': 'ComponentsShowcaseScreen',
+      'template-index-screen': 'TemplateIndexScreen',
+      'auth-demo-screen': 'AuthDemoScreen',
+      'profile-screen': 'ProfileScreen',
+      'login-screen': 'LoginScreen',
+      'wix-store-screen': 'wix/navigation',
+      'wix-services-screen': 'wix/navigation', 
+      'wix-food-screen': 'wix/restaurant/FoodScreen',
+      'wix-cart-screen': 'wix/ecommerce/CartScreen',
+      'wix-auth-screen': 'wix/auth/MemberAuthScreen'
+    };
+
+    if (mapping[screenId]) {
+      return mapping[screenId];
+    }
+
+    // Fallback: convert kebab-case to CamelCase
+    return screenId
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('')
+      .replace(/Screen$/, '') + 'Screen';
+  }
+
+  /**
+   * Find screen files using SMART SESSION DETECTION
+   * 
+   * LOGIC:
+   * 1. Check if session files exist AND were modified after session creation
+   * 2. Only use session files if they've been actually edited by user
+   * 3. Fall back to source files for unchanged screens
+   * 4. This ensures editor reload shows only user-modified files from session
+   * 
+   * BENEFITS:
+   * - Unchanged files continue to use source (gets updates)
+   * - Only truly edited session files are used
+   * - Consistent behavior across server restarts
    */
   async findScreenFiles(session, screenId) {
-    const srcPath = session.srcPath || path.join(session.workspacePath, 'src');
     const screenPaths = {
       component: null,
       hooks: [],
@@ -211,19 +267,135 @@ class DynamicScreenRoutes {
     };
 
     try {
-      // Look for screen in screens directory
-      const screensDir = path.join(srcPath, 'screens');
-      const screenDir = path.join(screensDir, screenId);
+      console.log(`🔍 [DynamicScreenRoutes] findScreenFiles called with:`);
+      console.log(`🔍 [DynamicScreenRoutes] - screenId: ${screenId}`);
+      console.log(`🔍 [DynamicScreenRoutes] - session.workspacePath: ${session.workspacePath}`);
+      console.log(`🔍 [DynamicScreenRoutes] - session.srcPath: ${session.srcPath}`);
       
-      if (await fs.pathExists(screenDir)) {
+      const screenDirName = this.screenIdToDirectoryName(screenId);
+      
+      // SMART SESSION FILE DETECTION: Only use session files if they've been modified
+      const sessionScreensDir = path.join(session.workspacePath, 'screens');
+      const sessionScreenDir = path.join(sessionScreensDir, screenDirName);
+      const srcPath = session.srcPath || path.join(session.workspacePath, 'src');
+      const sourceScreensDir = path.join(srcPath, 'screens');
+      const sourceScreenDir = path.join(sourceScreensDir, screenDirName);
+      
+      console.log(`🔍 [DynamicScreenRoutes] Screen ID mapping:`);
+      console.log(`🔍 [DynamicScreenRoutes] - ${screenId} → ${screenDirName}`);
+      console.log(`🔍 [DynamicScreenRoutes] - Session path: ${sessionScreenDir}`);
+      console.log(`🔍 [DynamicScreenRoutes] - Source path: ${sourceScreenDir}`);
+      
+      let screenDir = sourceScreenDir; // Default to source
+      let useSessionFiles = false;
+      
+      // Check if session files exist and have been modified
+      const sessionExists = await fs.pathExists(sessionScreenDir);
+      const sourceExists = await fs.pathExists(sourceScreenDir);
+      
+      if (sessionExists && sourceExists) {
+        // Both exist - ALWAYS prioritize session files for consistency with editor reload
+        useSessionFiles = true;
+        screenDir = sessionScreenDir;
+        console.log(`✅ [DynamicScreenRoutes] Using SESSION files (consistent with editor reload): ${sessionScreenDir}`);
+        console.log(`🎯 [DynamicScreenRoutes] Session files take priority to match MobileAppDirectLoader behavior`);
+      } else if (sessionExists) {
+        // Only session exists - use it
+        useSessionFiles = true;
+        screenDir = sessionScreenDir;
+        console.log(`✅ [DynamicScreenRoutes] Using SESSION files (source missing): ${sessionScreenDir}`);
+      } else if (sourceExists) {
+        // Only source exists - use it
+        screenDir = sourceScreenDir;
+        console.log(`✅ [DynamicScreenRoutes] Using SOURCE files (session missing): ${sourceScreenDir}`);
+      } else {
+        console.log(`❌ [DynamicScreenRoutes] No files found in session OR source for: ${screenId}`);
+      }
+      
+      console.log(`🔍 [DynamicScreenRoutes] - Using directory: ${screenDir}`);
+      console.log(`🔍 [DynamicScreenRoutes] - Using session files: ${useSessionFiles}`);
+      
+      const dirExists = await fs.pathExists(screenDir);
+      console.log(`🔍 [DynamicScreenRoutes] - Directory exists: ${dirExists}`);
+      
+      if (dirExists) {
         // Look for main component file
-        const componentFile = path.join(screenDir, `${screenId}.tsx`);
+        const componentFileName = screenDirName.split('/').pop(); // Get last part for nested paths
+        const componentFile = path.join(screenDir, `${componentFileName}.tsx`);
         const indexFile = path.join(screenDir, 'index.tsx');
         
+        console.log(`🔍 [DynamicScreenRoutes] Looking for component files: ${componentFile}, ${indexFile}`);
+        
         if (await fs.pathExists(componentFile)) {
+          console.log(`✅ [DynamicScreenRoutes] Found component file: ${componentFile}`);
+          
+          // ENHANCED: Also check individual file modification time if using session files
+          if (useSessionFiles) {
+            const sessionCreatedAt = new Date(session.createdAt || session.startTime || 0);
+            const fileStats = await fs.stat(componentFile);
+            const fileModified = fileStats.mtime;
+            
+            if (fileModified > sessionCreatedAt) {
+              console.log(`🔥 [DynamicScreenRoutes] File was MODIFIED after session creation: ${componentFile}`);
+              console.log(`🔍 [DynamicScreenRoutes] File modified: ${fileModified.toISOString()}`);
+            } else {
+              console.log(`⚠️ [DynamicScreenRoutes] File unchanged since session creation: ${componentFile}`);
+            }
+          }
+          
           screenPaths.component = componentFile;
         } else if (await fs.pathExists(indexFile)) {
+          console.log(`✅ [DynamicScreenRoutes] Found index file: ${indexFile}`);
+          
+          // ENHANCED: Also check individual file modification time if using session files
+          if (useSessionFiles) {
+            const sessionCreatedAt = new Date(session.createdAt || session.startTime || 0);
+            const fileStats = await fs.stat(indexFile);
+            const fileModified = fileStats.mtime;
+            
+            if (fileModified > sessionCreatedAt) {
+              console.log(`🔥 [DynamicScreenRoutes] File was MODIFIED after session creation: ${indexFile}`);
+              console.log(`🔍 [DynamicScreenRoutes] File modified: ${fileModified.toISOString()}`);
+            } else {
+              console.log(`⚠️ [DynamicScreenRoutes] File unchanged since session creation: ${indexFile}`);
+            }
+          }
+          
           screenPaths.component = indexFile;
+        } else {
+          // Try other common naming patterns
+          const altFiles = [
+            path.join(screenDir, `${screenId}.tsx`), // Original attempt
+            path.join(screenDir, `${componentFileName}Screen.tsx`),
+            path.join(screenDir, `${componentFileName}Navigation.tsx`)
+          ];
+          
+          for (const altFile of altFiles) {
+            if (await fs.pathExists(altFile)) {
+              console.log(`✅ [DynamicScreenRoutes] Found alternative component file: ${altFile}`);
+              
+              // ENHANCED: Also check individual file modification time if using session files
+              if (useSessionFiles) {
+                const sessionCreatedAt = new Date(session.createdAt || session.startTime || 0);
+                const fileStats = await fs.stat(altFile);
+                const fileModified = fileStats.mtime;
+                
+                if (fileModified > sessionCreatedAt) {
+                  console.log(`🔥 [DynamicScreenRoutes] File was MODIFIED after session creation: ${altFile}`);
+                  console.log(`🔍 [DynamicScreenRoutes] File modified: ${fileModified.toISOString()}`);
+                } else {
+                  console.log(`⚠️ [DynamicScreenRoutes] File unchanged since session creation: ${altFile}`);
+                }
+              }
+              
+              screenPaths.component = altFile;
+              break;
+            }
+          }
+          
+          if (!screenPaths.component) {
+            console.error(`❌ [DynamicScreenRoutes] No component file found for ${screenId} in ${screenDir}`);
+          }
         }
 
         // Look for hooks directory
@@ -254,18 +426,22 @@ class DynamicScreenRoutes {
           screenPaths.styles = stylesFile;
         }
       } else {
-        // Look for screen as a single file
+        console.error(`❌ [DynamicScreenRoutes] Screen directory not found: ${screenDir}`);
+        
+        // Also try looking for screen as a single file in the parent screens directory
+        const screensDir = path.dirname(screenDir);
         const componentFile = path.join(screensDir, `${screenId}.tsx`);
         if (await fs.pathExists(componentFile)) {
           screenPaths.component = componentFile;
         }
       }
 
+      return screenPaths;
+      
     } catch (error) {
       console.error(`❌ [DynamicScreenRoutes] Error finding screen files for ${screenId}:`, error);
+      return screenPaths;
     }
-
-    return screenPaths;
   }
 
   /**

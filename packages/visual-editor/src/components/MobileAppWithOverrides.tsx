@@ -97,22 +97,30 @@ export const MobileAppWithOverrides: React.FC<MobileAppWithOverridesProps> = ({
     console.log(`🎯 [MobileAppWithOverrides] External tab control: ${activeTabId}`);
   }
 
-  // Set global navigation control for mobile app to access
+  // Set global navigation control and screen override context for mobile app to access
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__VISUAL_EDITOR_NAVIGATION_CONTROL__ = {
         externalActiveTabId: activeTabId || null
       };
+      
+      // DISABLED: Using simple registry approach instead
+      // (window as any).__SCREEN_OVERRIDE_CONTEXT__ = {
+      //   session: session
+      // };
+      
       console.log('🌐 [MobileAppWithOverrides] Set global navigation control:', activeTabId);
+      console.log('🌐 [MobileAppWithOverrides] SIMPLE: Using registry approach, no override context needed');
     }
     
     // Cleanup
     return () => {
       if (typeof window !== 'undefined') {
         delete (window as any).__VISUAL_EDITOR_NAVIGATION_CONTROL__;
+        // No need to delete override context since we're using simple registry approach
       }
     };
-  }, [activeTabId]);
+  }, [activeTabId, session]);
 
   try {
     const { MobileApp } = session;
@@ -168,14 +176,23 @@ export function withScreenOverride<P extends object>(
     }
     
     // Check for screen override
-    const overrideComponent = screenOverrideContext.getScreenOverride(screenId);
+    const override = screenOverrideContext.session?.screenOverrides.get(screenId);
     
-    if (overrideComponent) {
-      console.log(`🔄 [withScreenOverride] Using session override for: ${screenId}`);
-      return React.createElement(overrideComponent, props);
+    if (override) {
+      // Prefer real component overrides from session files
+      if (override.component) {
+        console.log(`🔄 [withScreenOverride] Using session screen override for: ${screenId}`);
+        return React.createElement(override.component, props);
+      }
+      // Fallback: Direct refresh (re-render original component)
+      else if (override.component === null && override.isDirectRefresh) {
+        console.log(`🔄 [withScreenOverride] Direct refresh fallback for: ${screenId} - re-rendering original component`);
+        // For direct refresh, just render the original component (it will pick up file changes)
+        return React.createElement(OriginalComponent, props);
+      }
     }
     
-    // No override, use original component
+    // No override or invalid override, use original component
     return React.createElement(OriginalComponent, props);
   };
   

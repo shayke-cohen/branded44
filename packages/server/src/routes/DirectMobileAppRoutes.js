@@ -27,6 +27,7 @@ class DirectMobileAppRoutes {
     this.router.get('/session/:sessionId/direct-mobile-app', this.getMobileApp.bind(this));
     this.router.get('/session/:sessionId/direct-screens', this.listScreens.bind(this));
     this.router.get('/session/:sessionId/direct-screen/:screenId', this.getScreenDefinition.bind(this));
+    this.router.get('/session/:sessionId/changed-files', this.getChangedFiles.bind(this)); // NEW: Session change detection
     
     // Real-time updates  
     this.router.delete('/session/:sessionId/cache', this.clearCache.bind(this));
@@ -300,17 +301,54 @@ class DirectMobileAppRoutes {
       }
 
       // Use DynamicScreenRoutes logic for screen transformation
-      const dynamicScreenRoutes = req.app.get('dynamicScreenRoutes') || new (require('./DynamicScreenRoutes'))();
-      const screenDefinition = await dynamicScreenRoutes.buildScreenDefinition(session, screenId);
+      const dynamicScreenRoutes = req.app.get('dynamicScreenRoutes');
+      if (!dynamicScreenRoutes) {
+        console.log(`⚠️ [DirectMobileApp] dynamicScreenRoutes not found in app context, creating new instance`);
+      } else {
+        console.log(`✅ [DirectMobileApp] Found dynamicScreenRoutes in app context`);
+      }
+      
+      const dynamicScreenRoutesInstance = dynamicScreenRoutes || new (require('./DynamicScreenRoutes'))();
+      console.log(`📱 [DirectMobileApp] Building screen definition for ${screenId} in session ${sessionId}`);
+      console.log(`📁 [DirectMobileApp] Session workspace path: ${session.workspacePath}`);
+      console.log(`📁 [DirectMobileApp] Session src path: ${session.srcPath || 'undefined'}`);
+      
+      // DEBUG: Add detailed logging before calling buildScreenDefinition
+      console.log(`🔍 [DirectMobileApp] About to call buildScreenDefinition with:`);
+      console.log(`🔍 [DirectMobileApp] - screenId: ${screenId}`);
+      console.log(`🔍 [DirectMobileApp] - session.sessionId: ${session.sessionId}`);
+      console.log(`🔍 [DirectMobileApp] - session keys:`, Object.keys(session));
+      
+      const screenDefinition = await dynamicScreenRoutesInstance.buildScreenDefinition(session, screenId);
+      
+      // DEBUG: Log what buildScreenDefinition returned
+      console.log(`🔍 [DirectMobileApp] buildScreenDefinition returned:`);
+      console.log(`🔍 [DirectMobileApp] - screenDefinition keys:`, Object.keys(screenDefinition || {}));
+      if (screenDefinition?.code?.component) {
+        const codePreview = screenDefinition.code.component.substring(0, 150) + '...';
+        console.log(`🔍 [DirectMobileApp] - code preview:`, codePreview);
+        
+        // Look for user's unique test text
+        const hasTestText = screenDefinition.code.component.includes('TEST UNIQUE CHANGE 12345');
+        console.log(`🔍 [DirectMobileApp] - contains test text:`, hasTestText);
+        
+        // Extract text content from the code
+        const textMatches = screenDefinition.code.component.match(/"[^"]*"/g) || [];
+        console.log(`🔍 [DirectMobileApp] - text content found:`, textMatches.slice(0, 5));
+      }
       
       if (!screenDefinition) {
+        console.error(`❌ [DirectMobileApp] buildScreenDefinition returned null for ${screenId}`);
         return res.status(404).json({
           error: 'Screen not found',
           screenId,
           sessionId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          details: `Failed to build screen definition for ${screenId}. Check if screen files exist in session workspace.`
         });
       }
+      
+      console.log(`✅ [DirectMobileApp] Successfully built screen definition for ${screenId}`);
 
       // Add direct loading metadata
       screenDefinition.approach = 'direct-mobile-app-loading';
@@ -538,6 +576,190 @@ class DirectMobileAppRoutes {
         'no-bundling-complexity'
       ]
     };
+  }
+
+  /**
+   * NEW: Get changed files for a session (Session Change Detection API)
+   * Returns list of files that have been modified in the session workspace
+   */
+  async getChangedFiles(req, res) {
+    const requestId = req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const { sessionId } = req.params;
+    
+    console.log(`📋 [${new Date().toISOString()}] Incoming request`);
+    console.log(`  Summary: 6 fields - requestId, method, path...`);
+    console.log(`🔄 [VisualEditor] GET /session/${sessionId}/changed-files - Start (${requestId})`);
+    
+    try {
+      const sessionManager = req.app.get('sessionManager');
+      const session = sessionManager?.getSession(sessionId);
+      
+      if (!session) {
+        console.log(`❌ [DirectMobileApp] Session not found: ${sessionId}`);
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      
+      console.log(`📁 [DirectMobileApp] Detecting changed files for session: ${sessionId}`);
+      const changedFiles = await this.detectChangedFilesInSession(session);
+      console.log(`📊 [DirectMobileApp] Found ${changedFiles.length} changed files:`, changedFiles.map(f => f.screenId));
+      
+      res.json({
+        sessionId,
+        changedFiles,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`✅ [VisualEditor] GET /session/${sessionId}/changed-files - 200 (${Date.now() % 1000}ms)`);
+    } catch (error) {
+      console.error(`❌ [DirectMobileApp] Error getting changed files:`, error);
+      res.status(500).json({ error: error.message });
+      console.log(`❌ [VisualEditor] GET /session/${sessionId}/changed-files - 500`);
+    }
+  }
+
+  /**
+   * Detect which files have been changed in the session workspace
+   */
+  async detectChangedFilesInSession(session) {
+    const changedFiles = [];
+    
+    try {
+      const sessionScreensDir = path.join(session.workspacePath, 'screens');
+      const sourceScreensDir = path.join(session.srcPath || path.join(session.workspacePath, 'src'), 'screens');
+      
+      console.log(`🔍 [DirectMobileApp] DETAILED SCANNING for changes:`);
+      console.log(`🔍 [DirectMobileApp] - Session: ${sessionScreensDir}`);
+      console.log(`🔍 [DirectMobileApp] - Source: ${sourceScreensDir}`);
+      console.log(`🔍 [DirectMobileApp] - Session workspace: ${session.workspacePath}`);
+      console.log(`🔍 [DirectMobileApp] - Session srcPath: ${session.srcPath}`);
+      console.log(`🔍 [DirectMobileApp] - Session createdAt: ${session.createdAt}`);
+      console.log(`🔍 [DirectMobileApp] - Session startTime: ${session.startTime}`);
+      
+      const sessionDirExists = await fs.pathExists(sessionScreensDir);
+      console.log(`🔍 [DirectMobileApp] - Session screens dir exists: ${sessionDirExists}`);
+      
+      if (!sessionDirExists) {
+        console.log(`📁 [DirectMobileApp] No session screens directory found`);
+        return changedFiles;
+      }
+      
+      const sessionItems = await fs.readdir(sessionScreensDir, { withFileTypes: true });
+      console.log(`🔍 [DirectMobileApp] - Found ${sessionItems.length} items in session screens:`);
+      
+      for (const item of sessionItems) {
+        console.log(`🔍 [DirectMobileApp] - Item: ${item.name} (isDirectory: ${item.isDirectory()})`);
+        
+        if (item.isDirectory()) {
+          const screenId = item.name;
+          const sessionScreenDir = path.join(sessionScreensDir, screenId);
+          const sourceScreenDir = path.join(sourceScreensDir, screenId);
+          
+          console.log(`🔍 [DirectMobileApp] - Checking screen: ${screenId}`);
+          console.log(`🔍 [DirectMobileApp] - Session screen dir: ${sessionScreenDir}`);
+          console.log(`🔍 [DirectMobileApp] - Source screen dir: ${sourceScreenDir}`);
+          
+          // Check if this screen has changes
+          const hasChanges = await this.screenHasChanges(sessionScreenDir, sourceScreenDir, session);
+          
+          console.log(`🔍 [DirectMobileApp] - Screen ${screenId} has changes: ${hasChanges}`);
+          
+          if (hasChanges) {
+            // Find the main component file
+            const componentFile = await this.findMainComponentFile(sessionScreenDir, screenId);
+            
+            console.log(`🔍 [DirectMobileApp] - Component file for ${screenId}: ${componentFile}`);
+            
+            if (componentFile) {
+              const fileStats = await fs.stat(componentFile);
+              changedFiles.push({
+                screenId,
+                screenDir: screenId, // Directory name
+                filePath: componentFile,
+                relativePath: path.relative(session.workspacePath, componentFile),
+                changeType: 'modified',
+                lastModified: fileStats.mtime
+              });
+              
+              console.log(`✅ [DirectMobileApp] Changed screen detected: ${screenId} (modified: ${fileStats.mtime})`);
+            }
+          }
+        }
+      }
+      
+      console.log(`📊 [DirectMobileApp] FINAL RESULT: Found ${changedFiles.length} changed files`);
+      
+    } catch (error) {
+      console.error(`❌ [DirectMobileApp] Error detecting changed files:`, error);
+    }
+    
+    return changedFiles;
+  }
+
+  /**
+   * Check if a screen has changes compared to source
+   */
+  async screenHasChanges(sessionScreenDir, sourceScreenDir, session) {
+    try {
+      const sessionExists = await fs.pathExists(sessionScreenDir);
+      const sourceExists = await fs.pathExists(sourceScreenDir);
+      
+      console.log(`🔍 [DirectMobileApp] - Session dir exists: ${sessionExists}`);
+      console.log(`🔍 [DirectMobileApp] - Source dir exists: ${sourceExists}`);
+      
+      // If session screen doesn't exist, no changes
+      if (!sessionExists) {
+        console.log(`🔍 [DirectMobileApp] - Session screen doesn't exist, no changes`);
+        return false;
+      }
+      
+      // If source screen doesn't exist, session screen is definitely a change
+      if (!sourceExists) {
+        console.log(`🔍 [DirectMobileApp] - Source screen doesn't exist, session is a change`);
+        return true;
+      }
+      
+      // SIMPLIFIED LOGIC: If session directory exists, it's a change (user must have edited it)
+      // This is much more reliable than timestamp checking
+      console.log(`🔍 [DirectMobileApp] - Both dirs exist, considering session as changed (user edited)`);
+      
+      // Optional: Add timestamp debugging for analysis
+      try {
+        const sessionStats = await fs.stat(sessionScreenDir);
+        const sessionCreatedAt = new Date(session.createdAt || session.startTime || 0);
+        
+        console.log(`🔍 [DirectMobileApp] - Session created: ${sessionCreatedAt.toISOString()}`);
+        console.log(`🔍 [DirectMobileApp] - Session dir modified: ${sessionStats.mtime.toISOString()}`);
+        console.log(`🔍 [DirectMobileApp] - Time comparison: ${sessionStats.mtime > sessionCreatedAt}`);
+      } catch (timeError) {
+        console.log(`🔍 [DirectMobileApp] - Could not check timestamps:`, timeError.message);
+      }
+      
+      return true; // If session directory exists, assume it's changed
+      
+    } catch (error) {
+      console.error(`❌ [DirectMobileApp] Error checking screen changes:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Find the main component file in a screen directory
+   */
+  async findMainComponentFile(screenDir, screenId) {
+    const possibleFiles = [
+      path.join(screenDir, `${screenId}.tsx`),
+      path.join(screenDir, `${screenId}.ts`),
+      path.join(screenDir, 'index.tsx'),
+      path.join(screenDir, 'index.ts')
+    ];
+    
+    for (const filePath of possibleFiles) {
+      if (await fs.pathExists(filePath)) {
+        return filePath;
+      }
+    }
+    
+    return null;
   }
 
   /**

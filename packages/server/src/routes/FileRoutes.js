@@ -428,6 +428,17 @@ class FileRoutes {
             timestamp: Date.now()
           });
         }
+        
+        // Trigger Direct Mobile App hot-reload
+        if (global.handleDirectMobileAppFileChange) {
+          global.handleDirectMobileAppFileChange({
+            sessionId,
+            filePath: relativePath,
+            fullPath: fullFilePath,
+            eventType: 'change',
+            timestamp: Date.now()
+          });
+        }
       }
       
       res.json(this.validationService.createSuccessResponse({
