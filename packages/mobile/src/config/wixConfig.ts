@@ -16,6 +16,8 @@ const WIX_SITE_ID = '975ab44d-feb8-4af0-bec1-ca5ef2519316'; // ✅ Updated with 
 // This is the standard Wix Stores app ID used for all Wix Stores sites
 const WIX_STORES_APP_ID = '215238eb-22a5-4c36-9e7b-e7c08025e04e';
 
+
+
 // API Configuration
 // Use proxy when running in browser (visual editor) to avoid CORS issues
 const WIX_API_BASE_URL = typeof window !== 'undefined' && window.location?.hostname === 'localhost'
@@ -65,6 +67,9 @@ export const getSiteId = (): string => {
 export const getStoresAppId = (): string => {
   return WIX_STORES_APP_ID;
 };
+
+
+
 
 /**
  * Get the Wix API base URL

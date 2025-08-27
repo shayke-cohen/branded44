@@ -3,14 +3,14 @@ import { Platform } from 'react-native';
 import { getClientId, getSiteId, getStoresAppId, getApiBaseUrl } from '../config/wixConfig';
 import { createClient, ApiKeyStrategy, OAuthStrategy } from '@wix/sdk';
 import { items } from '@wix/data';
-import { currentCart } from '@wix/ecom';
-import { redirects } from '@wix/redirects';
+// SDK imports removed - using REST API fallback only
+// import { currentCart } from '@wix/ecom';
+// import { redirects } from '@wix/redirects';
+import { acquireTokenGenerationLock } from './wix/shared/authLock';
+import { featureManager } from '../config/features';
 
 // Declare window for web environment
 declare const window: any;
-
-// Global token generation lock to prevent multiple simultaneous requests
-let tokenGenerationPromise: Promise<void> | null = null;
 
 // Member state change listeners
 type MemberStateChangeListener = () => void;
@@ -824,15 +824,12 @@ class WixApiClient {
   private initializeWixClient(): void {
     try {
       this.wixClient = createClient({
-        modules: {
-          currentCart,
-          redirects,
-        },
+        // modules: { currentCart, redirects }, // Removed - packages deleted, using new domain clients
         auth: OAuthStrategy({
           clientId: this.clientId,
         }),
       });
-      console.log('✅ [WIX SDK] Wix SDK client initialized with OAuth strategy and eCommerce modules');
+      console.log('✅ [WIX SDK] Wix SDK client initialized with OAuth strategy (legacy compatibility)');
     } catch (error) {
       console.error('❌ [WIX SDK] Failed to initialize Wix SDK client:', error);
     }
@@ -955,24 +952,14 @@ class WixApiClient {
 
   // Generate new visitor tokens
   private async generateVisitorTokens(): Promise<void> {
-    // Check if token generation is already in progress
-    if (tokenGenerationPromise) {
-      console.log('🔄 [AUTH] Token generation already in progress, waiting...');
-      await tokenGenerationPromise;
-      // After waiting, load the tokens that were generated
-      await this.loadStoredVisitorTokens();
-      return;
-    }
-
-    // Start token generation and store the promise
-    tokenGenerationPromise = this.doGenerateVisitorTokens();
+    // Use shared authentication lock to prevent race conditions
+    await acquireTokenGenerationLock(
+      () => this.doGenerateVisitorTokens(),
+      { clientName: 'WixApiClient' }
+    );
     
-    try {
-      await tokenGenerationPromise;
-    } finally {
-      // Clear the promise when done
-      tokenGenerationPromise = null;
-    }
+    // After generation, load the tokens that were generated
+    await this.loadStoredVisitorTokens();
   }
 
   // Actual token generation implementation
@@ -1915,6 +1902,12 @@ class WixApiClient {
   // Cart API - eCommerce (UPDATED to use proper Wix SDK)
   async getCurrentCart(): Promise<WixCart | null> {
     try {
+      // Check if cart SDK is enabled
+      if (!featureManager?.isCartSDKEnabled()) {
+        console.log('🛒 [GET CART] Cart SDK disabled - use new domain clients instead');
+        return null; // Caller should use new wixEcommerceClient
+      }
+
       // Debug cart authentication context  
       const hasMemberTokens = this.memberTokens && this.isMemberTokenValid(this.memberTokens);
       const hasMemberIdentity = !!this.currentMember;
@@ -2017,6 +2010,12 @@ class WixApiClient {
 
   async addToCart(items: WixCartItem[]): Promise<WixCart> {
     try {
+      // Check if cart SDK is enabled
+      if (!featureManager?.isCartSDKEnabled()) {
+        console.log('🛒 [ADD TO CART] Cart SDK disabled - use new domain clients instead');
+        throw new Error('Cart SDK disabled - use wixEcommerceClient.addToCart() instead');
+      }
+
       // Debug cart authentication context
       const hasMemberTokens = this.memberTokens && this.isMemberTokenValid(this.memberTokens);
       const hasMemberIdentity = !!this.currentMember;
@@ -2125,6 +2124,12 @@ class WixApiClient {
 
   async updateCartItemQuantity(lineItemId: string, quantity: number): Promise<WixCart> {
     try {
+      // Check if cart SDK is enabled
+      if (!featureManager?.isCartSDKEnabled()) {
+        console.log('🛒 [UPDATE CART] Cart SDK disabled - use new domain clients instead');
+        throw new Error('Cart SDK disabled - use wixEcommerceClient.updateCartItemQuantity() instead');
+      }
+
       if (!this.wixClient) {
         console.error('❌ [UPDATE CART] Wix SDK client not initialized');
         throw new Error('Wix SDK client not initialized');
@@ -2167,6 +2172,12 @@ class WixApiClient {
 
   async removeFromCart(lineItemIds: string[]): Promise<WixCart> {
     try {
+      // Check if cart SDK is enabled
+      if (!featureManager?.isCartSDKEnabled()) {
+        console.log('🛒 [REMOVE FROM CART] Cart SDK disabled - use new domain clients instead');
+        throw new Error('Cart SDK disabled - use wixEcommerceClient.removeFromCart() instead');
+      }
+
       if (!this.wixClient) {
         console.error('❌ [REMOVE FROM CART] Wix SDK client not initialized');
         throw new Error('Wix SDK client not initialized');
@@ -2208,6 +2219,12 @@ class WixApiClient {
   // Checkout API (UPDATED to use proper Wix SDK)
   async createCheckout(cartId?: string): Promise<{ checkoutId: string; checkoutUrl: string }> {
     try {
+      // Check if cart SDK is enabled
+      if (!featureManager?.isCartSDKEnabled()) {
+        console.log('🛒 [CHECKOUT] Cart SDK disabled - use new domain clients instead');
+        throw new Error('Cart SDK disabled - use wixEcommerceClient.createCheckout() instead');
+      }
+
       const hasMemberTokens = this.hasMemberTokens();
       const hasMemberIdentity = !!this.currentMember;
       

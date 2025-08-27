@@ -13,7 +13,7 @@ import {
   WixBookingSlot,
   formatServicePrice,
   formatServiceDuration 
-} from './wixBookingApiClient';
+} from './wix';
 
 import { 
   Service, 

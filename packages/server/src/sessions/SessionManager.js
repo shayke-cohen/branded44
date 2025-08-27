@@ -138,8 +138,8 @@ class SessionManager {
     // Post-process files to fix import paths
     await this._transformImportsInWorkspace(workspacePath);
     
-    // Create a simplified App.tsx for Metro bundling (without Wix dependencies)
-    await this._createSimplifiedApp(workspacePath);
+    // Skip creating simplified App.tsx - use the real app with esbuild + mocking
+    // await this._createSimplifiedApp(workspacePath);
     
     console.log(`✅ [SessionManager] Copied mobile src directory to session workspace`);
     console.log(`📁 [SessionManager] Workspace path: ${workspacePath}`);

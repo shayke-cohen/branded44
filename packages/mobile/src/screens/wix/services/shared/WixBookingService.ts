@@ -5,7 +5,7 @@
  * Keeps screens thin and focused on presentation
  */
 
-import { wixBookingApiClient, type WixService, type WixServiceProvider, type WixBooking } from '../../../../utils/wixBookingApiClient';
+import { wixBookingClient, type WixService, type WixServiceProvider, type WixBooking } from '../../../../utils/wix';
 
 export interface ServiceQuery {
   serviceId?: string;
@@ -71,7 +71,7 @@ class WixBookingService {
 
       console.log('🎯 [BOOKING SERVICE] Fetching service:', { serviceId, includeProviders, includeReviews });
 
-      const serviceResponse = await wixBookingApiClient.getServiceForBooking(serviceId);
+      const serviceResponse = await wixBookingClient.getServiceForBooking(serviceId);
       if (!serviceResponse || !serviceResponse.success || !serviceResponse.data) {
         throw new Error('Service not found');
       }
@@ -81,7 +81,7 @@ class WixBookingService {
       // Optionally load providers
       if (includeProviders) {
         try {
-          const providersResult = await wixBookingApiClient.queryServiceProviders({ serviceId });
+          const providersResult = await wixBookingClient.queryServiceProviders({ serviceId });
           enrichedService.providers = providersResult?.providers?.map(this.transformProvider) || [];
         } catch (error) {
           console.warn('⚠️ [BOOKING SERVICE] Could not load providers:', error);
@@ -92,7 +92,7 @@ class WixBookingService {
       // Optionally load reviews
       if (includeReviews) {
         try {
-          const reviews = await wixBookingApiClient.getServiceReviews(serviceId);
+          const reviews = await wixBookingClient.getServiceReviews(serviceId);
           enrichedService.reviews = reviews || [];
         } catch (error) {
           console.warn('⚠️ [BOOKING SERVICE] Could not load reviews:', error);
@@ -118,7 +118,7 @@ class WixBookingService {
       console.log('🎯 [BOOKING SERVICE] Fetching services:', { categoryId, includeProviders, forceRefresh });
 
       // Use queryServices directly to support forceRefresh
-      const result = await wixBookingApiClient.queryServices({ forceRefresh });
+      const result = await wixBookingClient.queryServices({ forceRefresh });
       const response = { 
         success: true, 
         data: result.services || [],
@@ -145,7 +145,7 @@ class WixBookingService {
 
           if (includeProviders) {
             try {
-              const providersResult = await wixBookingApiClient.queryServiceProviders({ serviceId: service.id });
+              const providersResult = await wixBookingClient.queryServiceProviders({ serviceId: service.id });
               transformedService.providers = providersResult?.providers?.map(this.transformProvider) || [];
             } catch (error) {
               console.warn(`⚠️ [BOOKING SERVICE] Could not load providers for service ${service.id}:`, error);
@@ -172,7 +172,7 @@ class WixBookingService {
     try {
       console.log('🎯 [BOOKING SERVICE] Fetching service provider:', providerId);
 
-      const providerResponse = await wixBookingApiClient.getServiceProviderForBooking(providerId);
+      const providerResponse = await wixBookingClient.getServiceProviderForBooking(providerId);
       if (!providerResponse || !providerResponse.success || !providerResponse.data) {
         throw new Error('Service provider not found');
       }
@@ -194,7 +194,7 @@ class WixBookingService {
     try {
       console.log('🎯 [BOOKING SERVICE] Fetching service providers:', serviceId);
 
-      const providersResult = await wixBookingApiClient.queryServiceProviders({ serviceId });
+      const providersResult = await wixBookingClient.queryServiceProviders({ serviceId });
       const transformedProviders = providersResult?.providers?.map(this.transformProvider) || [];
 
       console.log('✅ [BOOKING SERVICE] Providers loaded:', transformedProviders.length);
@@ -213,7 +213,7 @@ class WixBookingService {
       const queryDate = date || new Date();
       console.log('🎯 [BOOKING SERVICE] Fetching time slots:', { serviceId, providerId, date: queryDate });
 
-      const slots = await wixBookingApiClient.getAvailableTimeSlots(serviceId, providerId, queryDate);
+      const slots = await wixBookingClient.getAvailableTimeSlots(serviceId, providerId, queryDate);
       const transformedSlots = slots?.map(slot => this.transformTimeSlot(slot, serviceId)) || [];
 
       console.log('✅ [BOOKING SERVICE] Time slots loaded:', transformedSlots.length);
@@ -231,7 +231,7 @@ class WixBookingService {
     try {
       console.log('🎯 [BOOKING SERVICE] Creating booking:', request);
 
-      const booking = await wixBookingApiClient.createBooking({
+      const booking = await wixBookingClient.createBooking({
         serviceId: request.serviceId,
         providerId: request.providerId,
         startTime: request.startTime,
@@ -259,7 +259,7 @@ class WixBookingService {
     try {
       console.log('🎯 [BOOKING SERVICE] Fetching bookings:', query);
 
-      const bookings = await wixBookingApiClient.getBookings(query);
+      const bookings = await wixBookingClient.getBookings(query);
       const transformedBookings = bookings?.map(this.transformBooking) || [];
 
       console.log('✅ [BOOKING SERVICE] Bookings loaded:', transformedBookings.length);
@@ -271,18 +271,39 @@ class WixBookingService {
   }
 
   /**
+   * Get my bookings (convenience method for current user)
+   */
+  async getMyBookings(): Promise<WixBooking[]> {
+    try {
+      console.log('🎯 [BOOKING SERVICE] Fetching my bookings...');
+
+      // For now, get all bookings since we don't have user-specific filtering
+      // In a real implementation, this would filter by the current user's ID
+      const bookings = await this.getBookings();
+
+      console.log('✅ [BOOKING SERVICE] My bookings loaded:', bookings.length);
+      return bookings;
+    } catch (error) {
+      console.error('❌ [BOOKING SERVICE] Error fetching my bookings:', error);
+      throw new Error('Failed to load your bookings. Please try again.');
+    }
+  }
+
+  /**
    * Cancel a booking
    */
-  async cancelBooking(bookingId: string): Promise<void> {
+  async cancelBooking(bookingId: string): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('🎯 [BOOKING SERVICE] Cancelling booking:', bookingId);
 
-      await wixBookingApiClient.cancelBooking(bookingId);
+      await wixBookingClient.cancelBooking(bookingId);
 
       console.log('✅ [BOOKING SERVICE] Booking cancelled successfully');
+      return { success: true };
     } catch (error) {
       console.error('❌ [BOOKING SERVICE] Error cancelling booking:', error);
-      throw new Error('Failed to cancel booking. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to cancel booking. Please try again.';
+      return { success: false, error: errorMessage };
     }
   }
 

@@ -19,6 +19,12 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
+    "@wix/data": "^1.0.267",
+    "@wix/data-collections": "^1.0.5",
+    "@wix/ecom": "^1.0.1267",
+    "@wix/redirects": "^1.0.93",
+    "@wix/restaurants": "^1.0.386",
+    "@wix/sdk": "^1.15.26",
     "axios": "^1.6.7",
     "chokidar": "^3.6.0",
     "fs-extra": "^11.2.0",

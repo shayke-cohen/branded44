@@ -33,8 +33,8 @@ const mockGetServiceProviderForBooking = jest.fn().mockResolvedValue({
   }
 });
 
-jest.mock('../../../../../utils/wixBookingApiClient', () => ({
-  wixBookingApiClient: {
+jest.mock('../../../../../utils/wix', () => ({
+  wixBookingClient: {
     getServiceForBooking: mockGetServiceForBooking,
     getServiceProviderForBooking: mockGetServiceProviderForBooking,
     queryServiceProviders: jest.fn().mockResolvedValue({

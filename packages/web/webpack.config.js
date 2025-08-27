@@ -126,6 +126,15 @@ module.exports = {
         'src/context',
       ),
       // Override mobile ProductGrid with web-optimized responsive version
+      [path.resolve(mobileDirectory, 'src/components/product/ProductGrid')]: path.resolve(
+        appDirectory,
+        'src/components/product/ProductGrid.tsx',
+      ),
+      [path.resolve(mobileDirectory, 'src/components/product/ProductGrid.tsx')]: path.resolve(
+        appDirectory,
+        'src/components/product/ProductGrid.tsx',
+      ),
+      // Also override relative path patterns
       '../../components/product/ProductGrid': path.resolve(
         appDirectory,
         'src/components/product/ProductGrid.tsx',
@@ -133,6 +142,51 @@ module.exports = {
       '../../../components/product/ProductGrid': path.resolve(
         appDirectory,
         'src/components/product/ProductGrid.tsx',
+      ),
+      '../../../../components/product/ProductGrid': path.resolve(
+        appDirectory,
+        'src/components/product/ProductGrid.tsx',
+      ),
+
+      // Override mobile ProductCard with web version (with isAddingToCart protection)
+      [path.resolve(mobileDirectory, 'src/components/product/ProductCard')]: path.resolve(
+        appDirectory,
+        'src/components/product/ProductCard.tsx',
+      ),
+      [path.resolve(mobileDirectory, 'src/components/product/ProductCard.tsx')]: path.resolve(
+        appDirectory,
+        'src/components/product/ProductCard.tsx',
+      ),
+      // ProductCard relative path patterns - CRITICAL: same directory import
+      './ProductCard': path.resolve(
+        appDirectory,
+        'src/components/product/ProductCard.tsx',
+      ),
+      '../../components/product/ProductCard': path.resolve(
+        appDirectory,
+        'src/components/product/ProductCard.tsx',
+      ),
+      '../../../components/product/ProductCard': path.resolve(
+        appDirectory,
+        'src/components/product/ProductCard.tsx',
+      ),
+      '../../../../components/product/ProductCard': path.resolve(
+        appDirectory,
+        'src/components/product/ProductCard.tsx',
+      ),
+      
+      // Override ProductDetailStyles with web-mobile-frame-aware version
+      '../../../../shared/styles/ProductDetailStyles': path.resolve(
+        appDirectory,
+        'src/mobile-overrides/shared/styles/ProductDetailStyles.ts',
+      ),
+      '../../../shared/styles/ProductDetailStyles': path.resolve(
+        appDirectory,
+        'src/mobile-overrides/shared/styles/ProductDetailStyles.ts',
+      ),
+      '../../shared/styles/ProductDetailStyles': path.resolve(
+        appDirectory,
+        'src/mobile-overrides/shared/styles/ProductDetailStyles.ts',
       ),
       
       // API Client consolidation - use mobile API client interface with web server proxy implementation

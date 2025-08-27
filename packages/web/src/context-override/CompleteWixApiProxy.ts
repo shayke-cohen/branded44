@@ -144,19 +144,19 @@ export function installCompleteWixApiProxy() {
   
   console.log('🚀 [COMPLETE PROXY] Installing complete Wix API proxy...');
   
-  // Import the mobile wixApiClient and wixBookingApiClient
+  // Import the mobile wixApiClient and wixBookingClient
   Promise.all([
     import('@mobile/utils/wixApiClient'),
-    import('@mobile/utils/wixBookingApiClient')
+    import('@mobile/utils/wix')
   ]).then(([wixModule, bookingModule]) => {
     const { wixApiClient } = wixModule;
-    const { wixBookingApiClient } = bookingModule;
+    const { wixBookingClient } = bookingModule;
     
     originalWixApiClient = wixApiClient;
     
     // Create a complete proxy that intercepts ALL method calls
     const proxiedClient = createCompleteProxy(wixApiClient);
-    const proxiedBookingClient = createCompleteProxy(webWixBookingApiClient);
+    const proxiedBookingClient = createCompleteProxy(wixBookingClient);
     
     // Replace the original clients with our proxies
     (global as any).proxiedWixApiClient = proxiedClient;

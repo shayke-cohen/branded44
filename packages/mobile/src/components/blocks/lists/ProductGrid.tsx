@@ -471,7 +471,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         <FlatList
           data={products}
           renderItem={renderProduct}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item._id || item.id || `product-${index}`}
           numColumns={numColumns}
           onRefresh={onRefresh}
           refreshing={refreshing}

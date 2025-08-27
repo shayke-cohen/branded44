@@ -43,8 +43,11 @@ export const ServiceGrid: React.FC<ServiceGridProps> = ({
   const { theme } = useTheme();
   const styles = createServiceDetailStyles(theme);
 
+  // Ensure services is safely handled
+  const safeServices = services || [];
+  
   // Show error state
-  if (error && services.length === 0) {
+  if (error && safeServices.length === 0) {
     return (
       <ErrorState
         message={error}
@@ -52,9 +55,6 @@ export const ServiceGrid: React.FC<ServiceGridProps> = ({
       />
     );
   }
-
-  // Ensure services is safely handled
-  const safeServices = services || [];
   
   console.log('🎯 [SERVICE GRID] Render state:', {
     servicesLength: safeServices.length,

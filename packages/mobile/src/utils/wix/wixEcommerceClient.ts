@@ -6,10 +6,14 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getClientId, getSiteId, getStoresAppId, getApiBaseUrl } from '../../config/wixConfig';
+import { getClientId, getSiteId, getStoresAppId, getApiBaseUrl } from '../../../config/wixConfig';
 import { createClient, OAuthStrategy } from '@wix/sdk';
-import { currentCart } from '@wix/ecom';
-import { redirects } from '@wix/redirects';
+// SDK imports removed - using REST API fallback only
+// import { currentCart } from '@wix/ecom';
+// import { redirects } from '@wix/redirects';
+import { WixCoreClient, CACHE_KEYS } from './wixCoreClient';
+import { featureManager } from '../../../config/features';
+import { wixAuthenticationClient } from './wixAuthenticationClient';
 
 // === TYPES ===
 
@@ -145,16 +149,18 @@ const ECOMMERCE_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
 // === WIX E-COMMERCE CLIENT ===
 
-class WixEcommerceClient {
-  private baseURL = getApiBaseUrl();
-  private siteId = getSiteId();
-  private storesAppId = getStoresAppId();
-  private clientId = getClientId();
+class WixEcommerceClient extends WixCoreClient {
   private wixClient: any = null;
 
   constructor() {
+    super('ECOMMERCE');
     console.log('🛍️ [ECOMMERCE] WixEcommerceClient initialized');
-    this.initializeWixClient();
+    
+    if (featureManager.isCartSDKEnabled()) {
+      this.initializeWixClient();
+    } else {
+      console.log('🛒 [ECOMMERCE] SDK disabled for cart operations, using REST API only');
+    }
   }
 
   private initializeWixClient(): void {
@@ -168,9 +174,9 @@ class WixEcommerceClient {
           clientId: this.clientId,
         }),
       });
-      console.log('✅ [ECOMMERCE] Wix SDK client initialized');
+      console.log('✅ [ECOMMERCE SDK] Wix SDK client initialized with cart and redirects modules');
     } catch (error) {
-      console.error('❌ [ECOMMERCE] Failed to initialize Wix SDK client:', error);
+      console.error('❌ [ECOMMERCE SDK] Failed to initialize Wix SDK client:', error);
     }
   }
 
@@ -216,15 +222,43 @@ class WixEcommerceClient {
   // === REQUEST HELPER ===
 
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    // This should use the authentication from the main API client
-    // For now, we'll use a simplified version
+    console.log('🔄 [ECOMMERCE DEBUG] makeRequest called - NEW VERSION LOADED');
+    
+    // Use the authentication from the new authentication system
+    let authHeaders: Record<string, string> = {
+      'wix-site-id': getSiteId(),
+    };
+    
+    try {
+      const { wixAuthenticationClient } = await import('./domains/wixAuthenticationClient');
+      authHeaders = await wixAuthenticationClient.getAuthHeaders();
+      console.log(`🔐 [ECOMMERCE AUTH] Successfully got auth headers`);
+    } catch (error) {
+      console.error(`❌ [ECOMMERCE AUTH] Failed to get auth headers:`, error);
+      console.log(`🔐 [ECOMMERCE AUTH] Using fallback headers (site-id only)`);
+    }
+    
+    // Log what type of authentication we have
+    if (authHeaders['Authorization']) {
+      console.log(`✅ [ECOMMERCE AUTH] Using authentication token for cart API`);
+    } else {
+      console.log(`⚠️ [ECOMMERCE AUTH] No authentication token available - cart API will likely fail`);
+    }
+    
     const url = `${this.baseURL}${endpoint}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...authHeaders,
       ...(options.headers as Record<string, string>),
     };
 
     console.log(`🌐 [ECOMMERCE API] ${options.method || 'GET'} ${endpoint}`);
+    console.log(`🔐 [ECOMMERCE AUTH] Headers:`, Object.keys(authHeaders).length > 1 ? `${Object.keys(authHeaders).join(', ')}` : 'wix-site-id only');
+    console.log(`🔍 [ECOMMERCE AUTH DEBUG] Full auth headers:`, {
+      hasWixSiteId: !!authHeaders['wix-site-id'],
+      hasAuthorization: !!authHeaders['Authorization'],
+      authPreview: authHeaders['Authorization'] ? authHeaders['Authorization'].substring(0, 30) + '...' : 'none'
+    });
 
     const response = await fetch(url, {
       ...options,

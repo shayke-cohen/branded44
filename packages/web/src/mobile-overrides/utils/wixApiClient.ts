@@ -129,6 +129,11 @@ class WebWixApiClient {
 
   async addToCart(items: WixCartItem[]): Promise<WixCart> {
     console.log('🛒 [WEB API] Adding to cart via server proxy...', items.length, 'items');
+    console.log('🛒 [WEB API] Items to add:', items.map(item => ({
+      catalogItemId: item.catalogReference?.catalogItemId,
+      quantity: item.quantity
+    })));
+    
     try {
       const SERVER_BASE_URL = 'http://localhost:3001';
       const headers: any = {
@@ -150,7 +155,11 @@ class WebWixApiClient {
       if (this.visitorTokens?.access_token) {
         requestBody.visitorToken = this.visitorTokens.access_token;
         console.log('🔑 [WEB API] Using stored visitor token for add to cart');
+      } else {
+        console.log('⚠️ [WEB API] No visitor token available - server may create new cart');
       }
+
+      console.log('🛒 [WEB API] Request body:', JSON.stringify(requestBody, null, 2));
 
       const response = await fetch(`${SERVER_BASE_URL}/api/wix/cart/add`, {
         method: 'POST',
@@ -165,6 +174,17 @@ class WebWixApiClient {
       }
 
       const data = await response.json();
+      
+      console.log('🛒 [WEB API] Server response:', {
+        cartId: data.cart?.id,
+        totalItems: data.cart?.lineItems?.length || 0,
+        lineItems: data.cart?.lineItems?.map((item: any) => ({
+          id: item.id,
+          catalogItemId: item.catalogReference?.catalogItemId,
+          quantity: item.quantity
+        })),
+        hasVisitorTokens: !!data.visitorTokens
+      });
       
       // Store visitor tokens if returned by server
       if (data.visitorTokens) {

@@ -212,7 +212,7 @@ class WixProductService {
 
   private transformProduct(apiProduct: any): WixProduct {
     return {
-      id: apiProduct.id || '',
+      id: apiProduct._id || apiProduct.id || '',
       name: apiProduct.name || 'Unnamed Product',
       description: this.stripHtmlTags(apiProduct.description || ''),
       price: apiProduct.price?.formatted?.price || '$0.00',

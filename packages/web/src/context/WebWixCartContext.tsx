@@ -86,16 +86,22 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
         throw new Error('Product ID is required to add item to cart');
       }
       
+      console.log('🛒 [CART] Current cart before adding:', cart ? `${cart.lineItems?.length || 0} items` : 'empty');
+      
       const updatedCart = await wixApiClient.addToCart([cartItem]);
       setCart(updatedCart);
+      
       console.log('✅ [CART] Item added to cart:', productId);
+      console.log('🛒 [CART] Updated cart after adding:', updatedCart ? `${updatedCart.lineItems?.length || 0} items` : 'empty');
+      console.log('🎯 [CART] Skipping refresh - using updated cart from server response');
+      
     } catch (error) {
       console.error('❌ [CART] Failed to add item to cart:', error);
       throw error;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cart, refreshCart]);
 
   const updateQuantity = useCallback(async (lineItemId: string, quantity: number) => {
     try {
@@ -148,8 +154,9 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
 
   // Initialize cart on mount and when member status changes
   useEffect(() => {
+    console.log('🔄 [CART] Initializing cart for member status change');
     refreshCart();
-  }, [refreshCart]);
+  }, [isLoggedIn, member?.email?.address]); // Only depend on actual member state changes
 
   const contextValue: WixCartContextType = {
     cart,

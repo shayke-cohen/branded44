@@ -5,7 +5,7 @@
  * Provides clean interface for CMS data management
  */
 
-import { wixCmsClient, WixDataItem, WixCollection, WixDataResponse } from '../../../../utils/wixApiClient';
+import { wixCMSClient, WixDataItem, WixCollection, WixDataResponse } from '../../../../utils/wix';
 
 export interface CMSItem extends WixDataItem {
   title?: string;
@@ -46,7 +46,7 @@ class WixCMSService {
     try {
       console.log('🔄 [CMS SERVICE] Loading collections...');
 
-      const response = await wixCmsClient.getCollections();
+      const response = await wixCMSClient.getCollections();
       
       if (response?.success && response?.collections) {
         console.log('✅ [CMS SERVICE] Collections loaded successfully', {
@@ -95,7 +95,7 @@ class WixCMSService {
         queryParams.search = search;
       }
 
-      const response: WixDataResponse = await wixCmsClient.getCollectionItems(
+      const response: WixDataResponse = await wixCMSClient.getCollectionItems(
         collectionId,
         queryParams
       );
@@ -180,7 +180,7 @@ class WixCMSService {
     try {
       console.log('🔄 [CMS SERVICE] Loading item:', { collectionId, itemId });
 
-      const response = await wixCmsClient.getItem(collectionId, itemId);
+      const response = await wixCMSClient.getItem(collectionId, itemId);
 
       if (response?.success && response?.item) {
         console.log('✅ [CMS SERVICE] Item loaded successfully');
@@ -207,7 +207,7 @@ class WixCMSService {
         itemData: { ...itemData, content: itemData.content ? '[content]' : undefined }
       });
 
-      const response = await wixCmsClient.createItem(collectionId, itemData);
+      const response = await wixCMSClient.createItem(collectionId, itemData);
 
       if (response?.success) {
         console.log('✅ [CMS SERVICE] Item created successfully');
@@ -242,7 +242,7 @@ class WixCMSService {
         itemData: { ...itemData, content: itemData.content ? '[content]' : undefined }
       });
 
-      const response = await wixCmsClient.updateItem(collectionId, itemId, itemData);
+      const response = await wixCMSClient.updateItem(collectionId, itemId, itemData);
 
       if (response?.success) {
         console.log('✅ [CMS SERVICE] Item updated successfully');
@@ -272,7 +272,7 @@ class WixCMSService {
     try {
       console.log('🔄 [CMS SERVICE] Deleting item:', { collectionId, itemId });
 
-      const response = await wixCmsClient.deleteItem(collectionId, itemId);
+      const response = await wixCMSClient.deleteItem(collectionId, itemId);
 
       if (response?.success) {
         console.log('✅ [CMS SERVICE] Item deleted successfully');

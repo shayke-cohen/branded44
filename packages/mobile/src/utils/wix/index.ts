@@ -4,17 +4,25 @@
  * This file exports all Wix API clients organized by domain.
  * Each domain client handles its specific functionality while sharing
  * common authentication and request infrastructure.
+ * 
+ * NEW: Includes feature toggles to disable SDK usage selectively.
  */
+
+// === FEATURE FLAGS ===
+export { featureManager, FEATURES } from '../../config/features';
 
 // === DOMAIN CLIENTS ===
 
-import { wixEcommerceClient } from './wixEcommerceClient';
-import { wixBookingApiClient } from '../wixBookingApiClient';
-import { wixRestaurantSdkClient } from './wixRestaurantSdkClient';
+import { wixEcommerceClient } from './domains/wixEcommerceClient';
+import { wixBookingClient } from './domains/wixBookingClient';
+import { wixRestaurantClient } from './domains/wixRestaurantClient';
 
-export { wixEcommerceClient } from './wixEcommerceClient';
-export { wixBookingApiClient } from '../wixBookingApiClient';
-export { wixRestaurantSdkClient as wixRestaurantApiClient } from './wixRestaurantSdkClient';
+// NEW: Import the main orchestrating client
+import { wixMainClient } from './domains/wixMainClient';
+
+export { wixEcommerceClient } from './domains/wixEcommerceClient';
+export { wixBookingClient } from './domains/wixBookingClient';
+export { wixRestaurantClient } from './domains/wixRestaurantClient';
 
 // === SHARED TYPES ===
 
@@ -23,40 +31,38 @@ export type {
   WixCategory,
   WixCart,
   WixCartItem,
-} from './wixEcommerceClient';
+} from './domains/wixEcommerceClient';
 
 export type {
   WixService,
   WixServiceProvider,
-  WixServiceCategory,
   WixBooking,
-  WixBookingSlot,
-  WixBookingRequest,
   WixAvailabilityQuery,
-} from '../wixBookingApiClient';
+  WixAvailabilitySlot,
+} from './domains/wixBookingClient';
 
 export type {
-  RestaurantMenu as WixMenu,
-  MenuSection as WixMenuSection,
-  MenuItem as WixMenuItem,
-  ItemVariant as WixItemVariant,
-  ItemLabel as WixItemLabel,
-} from './wixRestaurantSdkClient';
+  WixMenu,
+  WixMenuSection,
+  WixMenuItem,
+  WixItemVariant,
+  WixItemLabel,
+} from './domains/wixRestaurantClient';
 
 export type { WixRestaurantAdapterContext } from './wixRestaurantAdapter';
 
 // === SHARED UTILITIES ===
 
-export { formatPrice, safeString } from './wixEcommerceClient';
+export { formatPrice, safeString } from './domains/wixEcommerceClient';
 export { 
   formatServicePrice, 
   formatServiceDuration 
-} from '../wixBookingApiClient';
+} from './domains/wixBookingClient';
 export { 
   formatRestaurantPrice, 
   safeRestaurantString,
   extractCurrency
-} from './wixRestaurantApiClient';
+} from './domains/wixRestaurantClient';
 
 // === ADAPTERS ===
 
@@ -91,12 +97,8 @@ export {
  */
 class WixUnifiedClient {
   readonly ecommerce = wixEcommerceClient;
-  readonly booking = wixBookingApiClient;
-  
-  // Use getter for restaurant to support lazy initialization
-  get restaurant() {
-    return wixRestaurantSdkClient;
-  }
+  readonly booking = wixBookingClient;
+  readonly restaurant = wixRestaurantClient;
 
   /**
    * Clear all caches across domains
@@ -148,36 +150,20 @@ export const wixUnifiedClient = new WixUnifiedClient();
 
 /**
  * Legacy exports for backward compatibility
- * These maintain compatibility with existing code that imports from wixApiClient
+ * Now uses the new orchestrating main client that supports feature toggles
  */
-export const wixApiClient = {
-  // E-commerce methods
-  queryProducts: wixEcommerceClient.queryProducts.bind(wixEcommerceClient),
-  getProduct: wixEcommerceClient.getProduct.bind(wixEcommerceClient),
-  queryCategories: wixEcommerceClient.queryCategories.bind(wixEcommerceClient),
-  getCurrentCart: wixEcommerceClient.getCurrentCart.bind(wixEcommerceClient),
-  addToCart: wixEcommerceClient.addToCart.bind(wixEcommerceClient),
-  updateCartItemQuantity: wixEcommerceClient.updateCartItemQuantity.bind(wixEcommerceClient),
-  removeFromCart: wixEcommerceClient.removeFromCart.bind(wixEcommerceClient),
-  createCheckout: wixEcommerceClient.createCheckout.bind(wixEcommerceClient),
-  getOptimizedImageUrl: wixEcommerceClient.getOptimizedImageUrl.bind(wixEcommerceClient),
-  clearCache: wixEcommerceClient.clearCache.bind(wixEcommerceClient),
-  getCacheInfo: wixEcommerceClient.getCacheInfo.bind(wixEcommerceClient),
-  getSiteId: wixEcommerceClient.getSiteId.bind(wixEcommerceClient),
-  getClientId: wixEcommerceClient.getClientId.bind(wixEcommerceClient),
-  getStoresAppId: wixEcommerceClient.getStoresAppId.bind(wixEcommerceClient),
+export const wixApiClient = wixMainClient;
 
-  // Booking methods (new)
-  queryServices: wixBookingApiClient.queryServices.bind(wixBookingApiClient),
-  getService: wixBookingApiClient.getService.bind(wixBookingApiClient),
-  queryServiceCategories: wixBookingApiClient.queryServiceCategories.bind(wixBookingApiClient),
-  queryServiceProviders: wixBookingApiClient.queryServiceProviders.bind(wixBookingApiClient),
-  getAvailableSlots: wixBookingApiClient.getAvailableSlots.bind(wixBookingApiClient),
-  createBooking: wixBookingApiClient.createBooking.bind(wixBookingApiClient),
-  getCustomerBookings: wixBookingApiClient.getCustomerBookings.bind(wixBookingApiClient),
-  cancelBooking: wixBookingApiClient.cancelBooking.bind(wixBookingApiClient),
-  rescheduleBooking: wixBookingApiClient.rescheduleBooking.bind(wixBookingApiClient),
-};
+// === MODERN EXPORTS ===
+
+/**
+ * New domain-specific exports for cleaner architecture
+ */
+export { wixMainClient };
+export { wixAuthenticationClient } from './domains/wixAuthenticationClient';
+export { wixCMSClient } from './domains/wixCMSClient';
+
+// Domain clients are already exported above
 
 console.log('🔗 [WIX] Unified Wix API clients loaded');
 console.log('🛍️ [WIX] E-commerce client available');

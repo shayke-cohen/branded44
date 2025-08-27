@@ -5,7 +5,7 @@
  * Provides clean interface for authentication management
  */
 
-import { wixApiClient } from '../../../../utils/wixApiClient';
+import { wixAuthenticationClient } from '../../../../utils/wix';
 
 export interface MemberCredentials {
   email: string;
@@ -57,33 +57,41 @@ class WixMemberService {
   public async login(credentials: MemberCredentials): Promise<AuthResult> {
     try {
       console.log('🔄 [MEMBER SERVICE] Attempting login for:', credentials.email);
+      console.log('🌐 [MEMBER SERVICE] Using new REST-based authentication client');
 
-      const response = await wixApiClient.loginMember(credentials.email, credentials.password);
+      const response = await wixAuthenticationClient.loginMember(credentials.email, credentials.password);
 
-      if (response && response.state === 'SUCCESS') {
-        console.log('✅ [MEMBER SERVICE] Login successful');
+      if (response.success && response.member) {
+        console.log('✅ [MEMBER SERVICE] Login successful via REST API');
         
         return {
           success: true,
-          member: response.member,
-          state: response.state
+          member: {
+            id: response.member.id,
+            email: response.member.email || credentials.email,
+            firstName: response.member.firstName,
+            lastName: response.member.lastName,
+            profilePhoto: response.member.picture ? { url: response.member.picture } : undefined,
+          },
+          state: 'SUCCESS'
         };
       }
 
-      const errorMessage = response?.errorDescription || 'Login failed';
-      console.warn('⚠️ [MEMBER SERVICE] Login failed:', errorMessage);
+      const errorMessage = response.error || 'Login failed';
+      console.warn('⚠️ [MEMBER SERVICE] Login failed via REST API:', errorMessage);
 
       return {
         success: false,
         error: errorMessage,
-        state: response?.state
+        state: 'FAILED'
       };
     } catch (error) {
       console.error('❌ [MEMBER SERVICE] Login error:', error);
       
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Login failed'
+        error: error instanceof Error ? error.message : 'Login failed',
+        state: 'FAILED'
       };
     }
   }
@@ -111,36 +119,30 @@ class WixMemberService {
         };
       }
 
-      const response = await wixApiClient.registerMember({
+      const response = await wixAuthenticationClient.registerMember({
         email: registrationData.email,
         password: registrationData.password,
-        profile: {
-          firstName: registrationData.firstName,
-          lastName: registrationData.lastName,
-        }
+        firstName: registrationData.firstName,
+        lastName: registrationData.lastName,
       });
 
-      if (response && response.state === 'PENDING_EMAIL_VERIFICATION') {
-        console.log('✅ [MEMBER SERVICE] Registration successful, pending verification');
+      if (response.success && response.member) {
+        console.log('✅ [MEMBER SERVICE] Registration and login successful via REST API');
         
         return {
           success: true,
-          state: response.state,
-          member: response.member
+          state: 'SUCCESS',
+          member: {
+            id: response.member.id,
+            email: response.member.email || registrationData.email,
+            firstName: response.member.firstName || registrationData.firstName,
+            lastName: response.member.lastName || registrationData.lastName,
+            profilePhoto: response.member.picture ? { url: response.member.picture } : undefined,
+          }
         };
       }
 
-      if (response && response.state === 'SUCCESS') {
-        console.log('✅ [MEMBER SERVICE] Registration and login successful');
-        
-        return {
-          success: true,
-          state: response.state,
-          member: response.member
-        };
-      }
-
-      const errorMessage = response?.errorDescription || 'Registration failed';
+      const errorMessage = response.error || 'Registration failed';
       console.warn('⚠️ [MEMBER SERVICE] Registration failed:', errorMessage);
 
       return {
@@ -164,31 +166,34 @@ class WixMemberService {
   public async logout(): Promise<AuthResult> {
     try {
       console.log('🔄 [MEMBER SERVICE] Attempting logout...');
+      console.log('🌐 [MEMBER SERVICE] Using new REST-based authentication client');
 
-      const response = await wixApiClient.logoutMember();
+      const response = await wixAuthenticationClient.logoutMember();
 
-      if (response && response.state === 'SUCCESS') {
-        console.log('✅ [MEMBER SERVICE] Logout successful');
+      if (response.success) {
+        console.log('✅ [MEMBER SERVICE] Logout successful via REST API');
         
         return {
           success: true,
-          state: response.state
+          state: 'SUCCESS'
         };
       }
 
-      const errorMessage = response?.errorDescription || 'Logout failed';
-      console.warn('⚠️ [MEMBER SERVICE] Logout failed:', errorMessage);
+      const errorMessage = response.error || 'Logout failed';
+      console.warn('⚠️ [MEMBER SERVICE] Logout failed via REST API:', errorMessage);
 
       return {
         success: false,
-        error: errorMessage
+        error: errorMessage,
+        state: 'FAILED'
       };
     } catch (error) {
       console.error('❌ [MEMBER SERVICE] Logout error:', error);
       
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Logout failed'
+        error: error instanceof Error ? error.message : 'Logout failed',
+        state: 'FAILED'
       };
     }
   }

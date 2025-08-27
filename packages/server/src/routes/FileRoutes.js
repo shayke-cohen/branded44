@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs-extra');
 const path = require('path');
 const ValidationService = require('../services/ValidationService');
+// const { SessionBundleService } = require('../services'); // Removed: Using Direct Mobile App Loading now
 
 /**
  * File operation routes (read, write, tree, serving)
@@ -11,6 +12,7 @@ class FileRoutes {
   constructor() {
     this.router = express.Router();
     this.validationService = new ValidationService();
+    // this.sessionBundleService = new SessionBundleService(); // Removed: Using Direct Mobile App Loading now
     this.setupRoutes();
   }
 
@@ -25,6 +27,10 @@ class FileRoutes {
     this.router.get('/session-file/:sessionId/*', this.getSessionFile.bind(this));
     this.router.put('/session-file/:sessionId/*', this.updateSessionFile.bind(this));
     this.router.get('/session-module/:sessionId/*', this.serveSessionModule.bind(this));
+    
+    // Session bundle operations - DISABLED: Using Direct Mobile App Loading now
+    // this.router.get('/session/:sessionId/bundle.js', this.serveSessionBundle.bind(this));
+    // this.router.get('/session/:sessionId/test-bundle', this.testBundleExecution.bind(this));
   }
 
   /**
@@ -684,6 +690,82 @@ class FileRoutes {
   }
 
   /**
+   * Serve session bundle - complete JavaScript bundle for session workspace
+   */
+  async serveSessionBundle(req, res) {
+    const startTime = Date.now();
+    const requestId = Date.now().toString();
+    
+    try {
+      const { sessionId } = req.params;
+      
+      if (!sessionId) {
+        return res.status(400).json(
+          this.validationService.createErrorResponse('Session ID is required', { requestId })
+        );
+      }
+
+      console.log(`📦 [FileRoutes] Serving bundle for session: ${sessionId}`);
+
+      const sessionManager = req.app.get('sessionManager');
+      const sessionValidation = await this.validationService.validateSession(sessionManager, sessionId);
+      if (!sessionValidation.valid) {
+        return res.status(404).json(
+          this.validationService.createErrorResponse(sessionValidation.error, { requestId })
+        );
+      }
+
+      const session = sessionValidation.session;
+
+      // Check if bundle is cached
+      let bundleCode = this.sessionBundleService.getCachedBundle(sessionId);
+      
+      if (!bundleCode) {
+        console.log(`🔨 [FileRoutes] No cached bundle found, building new bundle...`);
+        try {
+          bundleCode = await this.sessionBundleService.buildSessionBundle(sessionId, session);
+        } catch (buildError) {
+          console.error(`❌ [FileRoutes] Bundle build failed:`, buildError);
+          return res.status(500).json(
+            this.validationService.createErrorResponse(
+              `Bundle build failed: ${buildError.message}`, 
+              { requestId, sessionId }
+            )
+          );
+        }
+      } else {
+        console.log(`📦 [FileRoutes] Serving cached bundle for session: ${sessionId}`);
+      }
+
+      // Set appropriate headers for JavaScript content
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      
+      // Add custom headers for debugging
+      const stats = this.sessionBundleService.getBundleStats(sessionId);
+      if (stats) {
+        res.setHeader('X-Bundle-Size', stats.size.toString());
+        res.setHeader('X-Bundle-Build-Time', stats.buildTime.toString());
+        res.setHeader('X-Bundle-Age', stats.age.toString());
+      }
+      
+      const endTime = Date.now();
+      console.log(`✅ [FileRoutes] Bundle served successfully for ${sessionId} (${endTime - startTime}ms)`);
+      
+      res.send(bundleCode);
+      
+    } catch (error) {
+      console.error(`❌ [FileRoutes] Error serving bundle:`, error);
+      res.status(500).json(
+        this.validationService.createErrorResponse(error.message, { requestId })
+      );
+    }
+  }
+
+  /**
    * Get the router instance
    */
   getRouter() {
@@ -697,6 +779,391 @@ class FileRoutes {
     return {
       validationStats: this.validationService.getStats()
     };
+  }
+
+  /**
+   * Test bundle execution to debug loading issues
+   */
+  async testBundleExecution(req, res) {
+    const startTime = Date.now();
+    const requestId = Date.now().toString();
+    
+    try {
+      const { sessionId } = req.params;
+      
+      if (!sessionId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Session ID is required',
+          requestId
+        });
+      }
+
+      console.log(`🧪 [FileRoutes] Testing bundle execution for session: ${sessionId}`);
+
+      // Get session info
+      const sessionManager = req.app.get('sessionManager');
+      const sessionValidation = await this.validationService.validateSession(sessionManager, sessionId);
+      if (!sessionValidation.valid) {
+        return res.status(404).json({
+          success: false,
+          error: sessionValidation.error,
+          requestId
+        });
+      }
+
+      const session = sessionValidation.session;
+
+      // Get bundle code
+      let bundleCode = this.sessionBundleService.getCachedBundle(sessionId);
+      
+      if (!bundleCode) {
+        console.log(`🔨 [FileRoutes] Building bundle for test...`);
+        try {
+          bundleCode = await this.sessionBundleService.buildSessionBundle(sessionId, session);
+        } catch (buildError) {
+          return res.status(500).json({
+            success: false,
+            error: `Bundle build failed: ${buildError.message}`,
+            requestId,
+            sessionId
+          });
+        }
+      }
+
+      // Create mock environment (similar to SessionBundleLoader.ts)
+      const mockReactNative = {
+        StyleSheet: {
+          create: (styles) => {
+            console.log(`✅ [TEST] StyleSheet.create called with:`, Object.keys(styles || {}));
+            return styles;
+          },
+          flatten: (styles) => styles,
+          hairlineWidth: 1,
+          absoluteFill: {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+          },
+        },
+        Platform: { OS: 'web', Version: '1.0' },
+        Dimensions: { get: () => ({ width: 375, height: 812 }) },
+        Text: () => null,
+        View: () => null,
+        ScrollView: () => null,
+        TouchableOpacity: () => null,
+        Image: () => null,
+        PanResponder: {
+          create: () => ({ panHandlers: {} })
+        }
+      };
+
+      // Mock global context
+      const mockGlobal = {
+        React: { 
+          createElement: () => null, 
+          Fragment: null,
+          createContext: (defaultValue) => ({
+            Provider: () => null,
+            Consumer: () => null,
+            _currentValue: defaultValue,
+            _defaultValue: defaultValue
+          }),
+          useState: () => [null, () => {}],
+          useEffect: () => {},
+          useMemo: (fn) => fn(),
+          useCallback: (fn) => fn,
+          useRef: () => ({ current: null })
+        },
+        'react': { 
+          default: {
+            createElement: () => null,
+            Fragment: null,
+            createContext: (defaultValue) => ({
+              Provider: () => null,
+              Consumer: () => null,
+              _currentValue: defaultValue,
+              _defaultValue: defaultValue
+            }),
+            useState: () => [null, () => {}],
+            useEffect: () => {},
+            useMemo: (fn) => fn(),
+            useCallback: (fn) => fn,
+            useRef: () => ({ current: null }),
+            memo: (fn) => fn,
+            forwardRef: (fn) => fn,
+            useContext: () => ({}),
+            useReducer: () => [{}, () => {}],
+            useMemo: (fn) => fn(),
+            useCallback: (fn) => fn
+          },
+          createElement: () => null, 
+          Fragment: null,
+          createContext: (defaultValue) => ({
+            Provider: () => null,
+            Consumer: () => null,
+            _currentValue: defaultValue,
+            _defaultValue: defaultValue
+          }),
+          useState: () => [null, () => {}],
+          useEffect: () => {},
+          useMemo: (fn) => fn(),
+          useCallback: (fn) => fn,
+          useRef: () => ({ current: null }),
+          memo: (fn) => fn,
+          forwardRef: (fn) => fn,
+          useContext: () => ({}),
+          useReducer: () => [{}, () => {}]
+        },
+        'react/jsx-runtime': (() => {
+          // Simple jsx mock for server-side testing
+          const jsx = (type, props, key) => {
+            if (typeof type === 'string') {
+              return `<${type}${props ? ' props' : ''}>`;
+            }
+            return `Component(${type?.name || 'Unknown'})`;
+          };
+          
+          const jsxs = jsx;
+          const Fragment = 'Fragment';
+          
+          const module = {
+            jsx,
+            jsxs,
+            Fragment,
+          };
+          
+          module.default = module;
+          return module;
+        })(),
+        'react-native': mockReactNative,
+        'react-native-web': mockReactNative,
+        'react-native-safe-area-context': {
+          useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
+          useSafeAreaFrame: () => ({ width: 375, height: 812, x: 0, y: 0 }),
+          SafeAreaProvider: () => null,
+          SafeAreaView: () => null,
+          initialWindowMetrics: { insets: { top: 44, bottom: 34, left: 0, right: 0 } }
+        },
+        'react-native-reanimated': {
+          default: {},
+          Easing: { linear: () => {}, ease: () => {} },
+          timing: () => ({ start: () => {} }),
+          Value: class { constructor(value) { this.value = value; } },
+          interpolate: () => 0,
+          createAnimatedComponent: (component) => component,
+          useSharedValue: (initial) => ({ value: initial }),
+          useAnimatedStyle: (styleFactory) => styleFactory(),
+          withSpring: (value) => value,
+          withTiming: (value) => value,
+        },
+        '@react-native-cookies/cookies': {
+          get: () => Promise.resolve({}),
+          set: () => Promise.resolve(),
+          clearAll: () => Promise.resolve(),
+          getAll: () => Promise.resolve({})
+        },
+        '@react-native-async-storage/async-storage': {
+          getItem: () => Promise.resolve(null),
+          setItem: () => Promise.resolve(),
+          removeItem: () => Promise.resolve(),
+          clear: () => Promise.resolve(),
+          getAllKeys: () => Promise.resolve([])
+        },
+        window: {},
+        global: {},
+        process: {
+          env: { NODE_ENV: 'development', __DEV__: true }
+        }
+      };
+
+      // Test execution
+      const testResults = {
+        bundleSize: bundleCode.length,
+        executionStart: Date.now(),
+        errors: [],
+        warnings: [],
+        success: false,
+        sessionApp: null
+      };
+
+      try {
+        console.log(`🧪 [TEST] Executing bundle (${bundleCode.length} chars)...`);
+        
+        // Create execution context
+        const moduleContext = {
+          ...mockGlobal,
+          console: {
+            log: (...args) => console.log(`📝 [BUNDLE LOG]`, ...args),
+            warn: (...args) => {
+              const warning = args.join(' ');
+              console.warn(`⚠️ [BUNDLE WARN]`, warning);
+              testResults.warnings.push(warning);
+            },
+            error: (...args) => {
+              const error = args.join(' ');
+              console.error(`❌ [BUNDLE ERROR]`, error);
+              testResults.errors.push(error);
+            }
+          }
+        };
+
+        // Execute bundle in controlled environment using eval
+        let sessionApp = null;
+        const originalGlobal = global;
+        let originalRequire;
+        
+        try {
+          // Capture original console functions and require BEFORE creating mocks
+          const originalLog = console.log;
+          const originalWarn = console.warn;
+          const originalError = console.error;
+          
+          // Override the global require function BEFORE bundle execution
+          originalRequire = global.require;
+          global.require = (moduleName) => {
+            originalLog(`🔍 [TEST] require('${moduleName}') called`);
+            if (moduleContext[moduleName]) {
+              originalLog(`✅ [TEST] Providing mock for: ${moduleName}`);
+              return moduleContext[moduleName];
+            }
+            // Fall back to original require for internal modules
+            originalLog(`⚠️ [TEST] Using real require for: ${moduleName}`);
+            return originalRequire(moduleName);
+          };
+          
+          // Create isolated context
+          const context = {
+            ...moduleContext,
+            SessionApp: undefined,
+            console: {
+              log: (...args) => {
+                originalLog(`📱 [BUNDLE]`, ...args);
+              },
+              warn: (...args) => {
+                const warning = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+                originalWarn(`⚠️ [BUNDLE WARN]`, warning);
+                testResults.warnings.push(warning);
+              },
+              error: (...args) => {
+                const error = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+                originalError(`❌ [BUNDLE ERROR]`, error);
+                testResults.errors.push({ message: error });
+              }
+            }
+          };
+          
+          // Set up context as globals
+          Object.assign(global, context);
+          
+          // Inject custom require function into bundle code by name
+          const customRequireCode = `
+            var require = function(moduleName) {
+              console.log('🔍 [INJECTED] require(' + moduleName + ') called');
+              
+              // Check for external modules
+              var externalMocks = ${JSON.stringify(moduleContext)};
+              if (externalMocks[moduleName]) {
+                console.log('✅ [INJECTED] Providing mock for: ' + moduleName);
+                var mockModule = externalMocks[moduleName];
+                
+                if (moduleName === 'react') {
+                  console.log('🔍 [INJECTED] React structure:', Object.keys(mockModule || {}));
+                  console.log('🔍 [INJECTED] React.createContext exists:', typeof (mockModule && mockModule.createContext));
+                  console.log('🔍 [INJECTED] React.default exists:', typeof (mockModule && mockModule.default));
+                  if (mockModule && mockModule.default) {
+                    console.log('🔍 [INJECTED] React.default.createContext exists:', typeof mockModule.default.createContext);
+                  }
+                }
+                
+                return mockModule;
+              }
+              
+              console.log('⚠️ [INJECTED] No mock for: ' + moduleName);
+              throw new Error('Module not available: ' + moduleName);
+            };
+          `;
+          
+          const modifiedBundleCode = customRequireCode + bundleCode;
+          originalLog(`🔍 [TEST] Modified bundle with injected require (${modifiedBundleCode.length} chars)`);
+          originalLog(`🔍 [TEST] First 500 chars: ${modifiedBundleCode.substring(0, 500)}`);
+          originalLog(`🔍 [TEST] Original bundle first 500 chars: ${bundleCode.substring(0, 500)}`);
+          
+          // Execute bundle with error capture
+          try {
+            eval(modifiedBundleCode);
+            sessionApp = global.SessionApp;
+          } catch (bundleError) {
+            console.error(`💥 [TEST] Bundle execution error:`, bundleError.message);
+            testResults.errors.push({
+              message: bundleError.message,
+              stack: bundleError.stack,
+              name: bundleError.name
+            });
+            testResults.success = false;
+            sessionApp = null;
+          }
+          
+        } finally {
+          // Restore original require function
+          global.require = originalRequire;
+          
+          // Cleanup globals
+          Object.keys(moduleContext).forEach(key => {
+            delete global[key];
+          });
+          delete global.SessionApp;
+        }
+        
+        // Set success if no errors occurred
+        if (testResults.success !== false) {
+          testResults.success = true;
+        }
+        testResults.sessionApp = sessionApp ? 'Available' : 'Not Available';
+        testResults.executionTime = Date.now() - testResults.executionStart;
+        
+        console.log(`✅ [TEST] Bundle executed successfully`);
+
+      } catch (executionError) {
+        testResults.success = false;
+        testResults.errors.push({
+          message: executionError.message,
+          stack: executionError.stack
+        });
+        testResults.executionTime = Date.now() - testResults.executionStart;
+        
+        console.log(`❌ [TEST] Bundle execution failed:`, executionError.message);
+      }
+
+      const duration = Date.now() - startTime;
+      
+      res.json({
+        success: true,
+        sessionId,
+        testResults,
+        meta: {
+          requestId,
+          timestamp: new Date().toISOString(),
+          duration
+        }
+      });
+
+    } catch (error) {
+      console.error(`❌ [FileRoutes] Bundle test failed:`, error);
+      
+      const duration = Date.now() - startTime;
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        meta: {
+          requestId,
+          timestamp: new Date().toISOString(),
+          duration
+        }
+      });
+    }
   }
 }
 

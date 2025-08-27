@@ -125,14 +125,15 @@ const ScreenSelector: React.FC<ScreenSelectorProps> = ({
   collapsed = false, 
   onToggle 
 }) => {
-  const { state, setCurrentScreen } = useEditor();
+  const { state, setCurrentScreen, setCurrentTab } = useEditor();
   
   // Get real screen options from navigation tabs
   const screenOptions = getScreenOptions();
 
   const handleScreenSelect = (screen: ScreenOption) => {
-    console.log('📱 [ScreenSelector] Screen selected:', screen.name, '->', screen.id);
+    console.log('📱 [ScreenSelector] Screen selected:', screen.name, '->', screen.id, 'Tab:', screen.tabId);
     setCurrentScreen(screen.id);
+    setCurrentTab(screen.tabId);
   };
 
   const handleToggle = () => {

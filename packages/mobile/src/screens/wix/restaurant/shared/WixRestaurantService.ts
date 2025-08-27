@@ -5,7 +5,7 @@
  * Provides clean interface for restaurant data management
  */
 
-import { wixRestaurantApiClient } from '../../../../utils/wix';
+import { wixRestaurantClient } from '../../../../utils/wix';
 import { adaptWixMenuSection, adaptWixMenuItem } from './wixRestaurantAdapter';
 import type { Restaurant, MenuItem, MenuCategoryData, OrderItem } from '../components/blocks/restaurant';
 
@@ -50,7 +50,7 @@ class WixRestaurantService {
       console.log('🔄 [RESTAURANT SERVICE] Loading restaurant...', { restaurantId });
 
       // Use getCompleteMenuStructure to get restaurant data
-      const menuStructure = await wixRestaurantApiClient.getCompleteMenuStructure();
+      const menuStructure = await wixRestaurantClient.getCompleteMenuStructure();
       
       if (menuStructure?.menus && menuStructure.menus.length > 0) {
         // Create a restaurant object from the first menu
@@ -92,7 +92,7 @@ class WixRestaurantService {
       console.log('🔄 [RESTAURANT SERVICE] Loading menu...', { restaurantId });
 
       // Use getCompleteMenuStructure to get menu data
-      const menuStructure = await wixRestaurantApiClient.getCompleteMenuStructure();
+      const menuStructure = await wixRestaurantClient.getCompleteMenuStructure();
       
       if (menuStructure?.sections && menuStructure.items) {
         // Transform sections and items using the proper adapter
@@ -145,7 +145,7 @@ class WixRestaurantService {
       console.log('🔄 [RESTAURANT SERVICE] Loading menu items for category:', categoryId);
 
       // Get the complete menu structure and filter by category
-      const menuStructure = await wixRestaurantApiClient.getCompleteMenuStructure();
+      const menuStructure = await wixRestaurantClient.getCompleteMenuStructure();
       
       if (menuStructure?.sections && menuStructure.items) {
         // Find the section with the given categoryId
@@ -183,7 +183,7 @@ class WixRestaurantService {
       console.log('🔄 [RESTAURANT SERVICE] Searching menu items:', query);
 
       // Get the complete menu structure and search through items
-      const menuStructure = await wixRestaurantApiClient.getCompleteMenuStructure();
+      const menuStructure = await wixRestaurantClient.getCompleteMenuStructure();
       
       if (menuStructure?.items && menuStructure.sections) {
         const searchTerm = query.toLowerCase();
@@ -250,7 +250,7 @@ class WixRestaurantService {
         orderType: order.orderType
       });
 
-      const response = await wixRestaurantApiClient.createOrder({
+      const response = await wixRestaurantClient.createOrder({
         items: order.items,
         customerInfo: order.customerInfo,
         orderType: order.orderType,
@@ -292,7 +292,7 @@ class WixRestaurantService {
       console.log('🔄 [RESTAURANT SERVICE] Loading popular items...', { limit });
 
       // Get the complete menu structure and return first few items as "popular"
-      const menuStructure = await wixRestaurantApiClient.getCompleteMenuStructure();
+      const menuStructure = await wixRestaurantClient.getCompleteMenuStructure();
       
       if (menuStructure?.items && menuStructure.sections) {
         // Take the first few items as popular items
@@ -325,7 +325,7 @@ class WixRestaurantService {
       console.log('🔄 [RESTAURANT SERVICE] Loading featured items...', { limit });
 
       // Get the complete menu structure and return some items as "featured"
-      const menuStructure = await wixRestaurantApiClient.getCompleteMenuStructure();
+      const menuStructure = await wixRestaurantClient.getCompleteMenuStructure();
       
       if (menuStructure?.items && menuStructure.sections) {
         // Take items from the middle as featured items

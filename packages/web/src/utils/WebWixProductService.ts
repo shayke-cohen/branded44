@@ -212,12 +212,12 @@ class WebWixProductService {
    */
   private transformProduct(apiProduct: any): WixProduct {
     return {
-      id: apiProduct.id || '',
+      id: apiProduct._id || apiProduct.id || '',
       name: apiProduct.name || 'Unnamed Product',
       description: apiProduct.description || '',
       price: apiProduct.price?.formatted?.price || '$0.00',
-      priceValue: apiProduct.price?.value || 0,
-      currency: apiProduct.price?.currency || 'USD',
+      priceValue: apiProduct.price?.price || apiProduct.priceData?.price || 0,
+      currency: apiProduct.price?.currency || apiProduct.priceData?.currency || 'USD',
       imageUrl: apiProduct.media?.mainMedia?.image?.url || '',
       images: apiProduct.media?.items?.map((item: any) => item.image?.url).filter(Boolean) || [],
       inStock: apiProduct.stock?.inStock ?? true,

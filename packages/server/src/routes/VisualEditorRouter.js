@@ -7,6 +7,8 @@ const FileRoutes = require('./FileRoutes');
 const BuildRoutes = require('./BuildRoutes');
 const ComponentRoutes = require('./ComponentRoutes');
 const ProxyRoutes = require('./ProxyRoutes');
+const DynamicScreenRoutes = require('./DynamicScreenRoutes');
+const DirectMobileAppRoutes = require('./DirectMobileAppRoutes');
 
 /**
  * Main Visual Editor Router
@@ -113,6 +115,8 @@ class VisualEditorRouter {
     const buildRoutes = new BuildRoutes();
     const componentRoutes = new ComponentRoutes();
     const proxyRoutes = new ProxyRoutes();
+    const dynamicScreenRoutes = new DynamicScreenRoutes();
+    const directMobileAppRoutes = new DirectMobileAppRoutes();
 
     // Store references for monitoring and stats
     this.routeControllers.set('session', sessionRoutes);
@@ -120,6 +124,8 @@ class VisualEditorRouter {
     this.routeControllers.set('build', buildRoutes);
     this.routeControllers.set('component', componentRoutes);
     this.routeControllers.set('proxy', proxyRoutes);
+    this.routeControllers.set('dynamicScreen', dynamicScreenRoutes);
+    this.routeControllers.set('directMobileApp', directMobileAppRoutes);
 
     // Mount route controllers
     this.router.use('/', sessionRoutes.getRouter());
@@ -127,6 +133,8 @@ class VisualEditorRouter {
     this.router.use('/', buildRoutes.getRouter());
     this.router.use('/', componentRoutes.getRouter());
     this.router.use('/', proxyRoutes.getRouter());
+    this.router.use('/', dynamicScreenRoutes.getRouter());
+    this.router.use('/', directMobileAppRoutes.getRouter());
 
     // Health check endpoint
     this.router.get('/health', this.healthCheck.bind(this));

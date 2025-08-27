@@ -16,6 +16,7 @@ export interface EditorState {
   selectedComponent: string | null; // Changed to component ID for LiveRenderer
   componentTree: ComponentNode[];
   currentScreen: string | null;
+  currentTabId: string | null; // Active tab ID for mobile app navigation
   isInspecting: boolean;
   isDragging: boolean;
   src2Status: 'initializing' | 'ready' | 'error';
@@ -37,6 +38,7 @@ type EditorAction =
   | { type: 'SELECT_COMPONENT'; payload: string | null }
   | { type: 'UPDATE_COMPONENT_TREE'; payload: ComponentNode[] }
   | { type: 'SET_CURRENT_SCREEN'; payload: string }
+  | { type: 'SET_CURRENT_TAB'; payload: string }
   | { type: 'TOGGLE_INSPECTION'; payload?: boolean }
   | { type: 'SET_DRAGGING'; payload: boolean }
   | { type: 'SET_SRC2_STATUS'; payload: EditorState['src2Status'] }
@@ -50,6 +52,7 @@ const initialState: EditorState = {
   selectedComponent: null,
   componentTree: [],
   currentScreen: null,
+  currentTabId: null,
   isInspecting: false,
   isDragging: false,
   src2Status: 'initializing',
@@ -76,6 +79,12 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         currentScreen: action.payload,
+      };
+
+    case 'SET_CURRENT_TAB':
+      return {
+        ...state,
+        currentTabId: action.payload,
       };
 
     case 'TOGGLE_INSPECTION':
@@ -165,6 +174,7 @@ interface EditorContextType {
   selectComponent: (componentId: string | null) => void;
   updateComponentTree: (tree: ComponentNode[]) => void;
   setCurrentScreen: (screen: string) => void;
+  setCurrentTab: (tabId: string) => void;
   toggleInspection: (enabled?: boolean) => void;
   setDragging: (isDragging: boolean) => void;
   setSrc2Status: (status: EditorState['src2Status']) => void;
@@ -191,6 +201,10 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const setCurrentScreen = (screen: string) => {
     dispatch({ type: 'SET_CURRENT_SCREEN', payload: screen });
+  };
+
+  const setCurrentTab = (tabId: string) => {
+    dispatch({ type: 'SET_CURRENT_TAB', payload: tabId });
   };
 
   const toggleInspection = (enabled?: boolean) => {
@@ -231,6 +245,7 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     selectComponent,
     updateComponentTree,
     setCurrentScreen,
+    setCurrentTab,
     toggleInspection,
     setDragging,
     setSrc2Status,

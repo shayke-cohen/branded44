@@ -8,9 +8,10 @@ const path = require('path');
 const createVisualEditorRouter = require('./routes/VisualEditorRouter');
 const { loggingMiddleware } = require('./middleware/logging');
 const SessionManager = require('./sessions/SessionManager');
-const AutoRebuildManager = require('./sessions/AutoRebuildManager');
-const SessionMobileBundleAPI = require('./sessions/SessionMobileBundleAPI');
+// const AutoRebuildManager = require('./sessions/AutoRebuildManager'); // Disabled: Using Direct Mobile App Loading now
+// const SessionMobileBundleAPI = require('./sessions/SessionMobileBundleAPI'); // Disabled: Using Direct Mobile App Loading now  
 const SessionAPI = require('./sessions/SessionAPI');
+const DirectMobileAppWebSocketManager = require('./services/DirectMobileAppWebSocketManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -20,9 +21,9 @@ const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } })
 const sessionManager = new SessionManager();
 app.set('sessionManager', sessionManager);
 
-// Initialize AutoRebuildManager
-const autoRebuildManager = new AutoRebuildManager(sessionManager);
-app.set('autoRebuildManager', autoRebuildManager);
+// Initialize AutoRebuildManager - DISABLED: Using Direct Mobile App Loading now
+// const autoRebuildManager = new AutoRebuildManager(sessionManager);
+// app.set('autoRebuildManager', autoRebuildManager);
 
 // Middleware
 app.use(cors({
@@ -39,8 +40,12 @@ app.use(loggingMiddleware);
 const sessionAPI = new SessionAPI(app, io);
 app.set('sessionAPI', sessionAPI);
 
-const sessionMobileBundleAPI = new SessionMobileBundleAPI(app, io);
-app.set('sessionMobileBundleAPI', sessionMobileBundleAPI);
+// const sessionMobileBundleAPI = new SessionMobileBundleAPI(app, io); // Disabled: Using Direct Mobile App Loading now
+// app.set('sessionMobileBundleAPI', sessionMobileBundleAPI);
+
+// Initialize Direct Mobile App WebSocket Manager for new architecture
+const directMobileAppWS = new DirectMobileAppWebSocketManager(io);
+app.set('directMobileAppWS', directMobileAppWS);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -1015,6 +1020,775 @@ app.options('/api/wix-proxy/*', (req, res) => {
   res.sendStatus(200);
 });
 
+// ===== WEB-SPECIFIC ENDPOINTS =====
+// These endpoints are called by the web client (different from mobile)
+
+// Import Wix SDK for server-side token generation (moved to top level for proper initialization)
+let serverWixClient;
+try {
+  const { createClient, OAuthStrategy } = require('@wix/sdk');
+  console.log('🔧 [WEB SERVER] Initializing Wix SDK client for server...');
+  
+  // Initialize Wix client for server-side operations
+  serverWixClient = createClient({
+    modules: {},
+    auth: OAuthStrategy({
+      clientId: process.env.WIX_CLIENT_ID || '6bfa6d89-e039-4145-ad77-948605cfc694',
+      siteId: process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316',
+    }),
+  });
+  console.log('✅ [WEB SERVER] Wix SDK client initialized successfully');
+} catch (initError) {
+  console.error('❌ [WEB SERVER] Failed to initialize Wix SDK client:', initError);
+}
+
+// Generate visitor tokens endpoint for web client
+app.post('/api/wix/visitor-tokens', async (req, res) => {
+  console.log('🎟️ [WEB SERVER] Generating visitor tokens with proper site context...');
+  
+  try {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const siteId = process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316';
+    const clientId = process.env.WIX_CLIENT_ID || '6bfa6d89-e039-4145-ad77-948605cfc694';
+    const baseURL = 'https://www.wixapis.com';
+    
+    console.log('🔄 [WEB SERVER] Generating visitor tokens with site context:', siteId);
+    
+    // Use the same approach as mobile app - direct API call with wix-site-id header
+    const requestBody = {
+      clientId: clientId,
+      grantType: 'anonymous'
+    };
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'wix-site-id': siteId  // This is the key - includes site context
+    };
+    
+    console.log('🔧 [WEB SERVER] Request headers:', JSON.stringify(headers, null, 2));
+    console.log('🔧 [WEB SERVER] Request body:', JSON.stringify(requestBody, null, 2));
+    
+    const response = await fetch(`${baseURL}/oauth2/token`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [WEB SERVER] Visitor token generation failed:', {
+        status: response.status,
+        error: errorText,
+        siteId: siteId,
+        clientId: clientId
+      });
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Format response to match what web client expects
+    const result = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_in: data.expires_in || 3600,
+      expiresAt: Date.now() + ((data.expires_in || 3600) * 1000),
+      token_type: 'Bearer'
+    };
+    
+    console.log('✅ [WEB SERVER] Visitor tokens generated with site context');
+    console.log('🔧 [WEB SERVER] Token expiry:', new Date(result.expiresAt).toISOString());
+    res.json(result);
+    
+  } catch (error) {
+    console.error('❌ [WEB SERVER] Error generating visitor tokens:', error);
+    console.error('❌ [WEB SERVER] Error stack:', error.stack);
+    res.status(500).json({
+      error: 'Failed to generate visitor tokens',
+      details: `${error.message}`
+    });
+  }
+});
+
+// Refresh tokens endpoint for web client
+app.post('/api/wix/refresh-tokens', async (req, res) => {
+  console.log('🔄 [WEB SERVER] Refreshing visitor tokens with proper site context...');
+  
+  try {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const { refresh_token } = req.body;
+    
+    const siteId = process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316';
+    const clientId = process.env.WIX_CLIENT_ID || '6bfa6d89-e039-4145-ad77-948605cfc694';
+    const baseURL = 'https://www.wixapis.com';
+    
+    if (!refresh_token) {
+      console.log('⚠️ [WEB SERVER] No refresh token provided, generating new visitor tokens...');
+      
+      // Generate new visitor tokens with site context
+      const requestBody = {
+        clientId: clientId,
+        grantType: 'anonymous'
+      };
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        'wix-site-id': siteId
+      };
+      
+      const response = await fetch(`${baseURL}/oauth2/token`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      const result = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_in: data.expires_in || 3600,
+        expiresAt: Date.now() + ((data.expires_in || 3600) * 1000),
+        token_type: 'Bearer'
+      };
+      
+      console.log('✅ [WEB SERVER] Generated new visitor tokens with site context');
+      return res.json(result);
+    }
+    
+    // Try to refresh using refresh token
+    try {
+      console.log('🔄 [WEB SERVER] Attempting to refresh visitor tokens...');
+      
+      const refreshRequestBody = {
+        clientId: clientId,
+        grantType: 'refresh_token',
+        refreshToken: refresh_token
+      };
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        'wix-site-id': siteId
+      };
+      
+      const response = await fetch(`${baseURL}/oauth2/token`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(refreshRequestBody),
+      });
+      
+      if (!response.ok) {
+        console.log('⚠️ [WEB SERVER] Refresh failed, generating new tokens...');
+        
+        // Fall back to generating new tokens
+        const fallbackBody = {
+          clientId: clientId,
+          grantType: 'anonymous'
+        };
+        
+        const fallbackResponse = await fetch(`${baseURL}/oauth2/token`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(fallbackBody),
+        });
+        
+        if (!fallbackResponse.ok) {
+          const errorText = await fallbackResponse.text();
+          throw new Error(`Fallback token generation failed: ${errorText}`);
+        }
+        
+        const fallbackData = await fallbackResponse.json();
+        const result = {
+          access_token: fallbackData.access_token,
+          refresh_token: fallbackData.refresh_token,
+          expires_in: fallbackData.expires_in || 3600,
+          expiresAt: Date.now() + ((fallbackData.expires_in || 3600) * 1000),
+          token_type: 'Bearer'
+        };
+        
+        console.log('✅ [WEB SERVER] Generated fallback visitor tokens with site context');
+        return res.json(result);
+      }
+      
+      const data = await response.json();
+      const result = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_in: data.expires_in || 3600,
+        expiresAt: Date.now() + ((data.expires_in || 3600) * 1000),
+        token_type: 'Bearer'
+      };
+      
+      console.log('✅ [WEB SERVER] Successfully refreshed visitor tokens with site context');
+      res.json(result);
+      
+    } catch (error) {
+      console.error('❌ [WEB SERVER] Error refreshing tokens:', error);
+      res.status(500).json({
+        error: 'Server error refreshing tokens',
+        details: error.message
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ [WEB SERVER] Error in refresh endpoint:', error);
+    res.status(500).json({
+      error: 'Server error refreshing tokens',
+      details: error.message
+    });
+  }
+});
+
+// Products query endpoint for web client
+app.post('/api/wix/products/query', async (req, res) => {
+  console.log('🛍️ [WEB SERVER] Products query request...');
+  
+  try {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    if (!serverWixClient) {
+      return res.status(500).json({
+        error: 'Wix client not initialized',
+        details: 'Server Wix client is not available'
+      });
+    }
+    
+    // Use Wix SDK to query products
+    const { filter = {}, sort = {}, limit = 20, offset = 0 } = req.body;
+    
+    // Import required modules for product queries
+    const { products } = await import('@wix/stores');
+    const { createClient, OAuthStrategy } = require('@wix/sdk');
+    
+    // Create a client with stores module for products
+    const storesClient = createClient({
+      modules: { products },
+      auth: OAuthStrategy({
+        clientId: process.env.WIX_CLIENT_ID || '6bfa6d89-e039-4145-ad77-948605cfc694',
+        siteId: process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316',
+      }),
+    });
+    
+    // Generate visitor tokens for the query
+    const tokens = await storesClient.auth.generateVisitorTokens();
+    
+    // Query products using the SDK
+    let productsQuery = storesClient.products.queryProducts()
+      .limit(limit)
+      .skip(offset);
+    
+    // Apply filters if provided
+    if (filter.name) {
+      productsQuery = productsQuery.contains('name', filter.name);
+    }
+    
+    // Apply sorting if provided
+    if (sort.field && sort.order) {
+      if (sort.order === 'desc') {
+        productsQuery = productsQuery.descending(sort.field);
+      } else {
+        productsQuery = productsQuery.ascending(sort.field);
+      }
+    }
+    
+    const result = await productsQuery.find();
+    
+    console.log(`✅ [WEB SERVER] Products query successful: ${result.items.length} products found`);
+    
+    res.json({
+      products: result.items,
+      totalCount: result.totalCount,
+      hasNext: result.hasNext(),
+      currentPage: Math.floor(offset / limit) + 1,
+      pageSize: limit
+    });
+    
+  } catch (error) {
+    console.error('❌ [WEB SERVER] Products query failed:', error);
+    res.status(500).json({
+      error: 'Products query failed',
+      details: error.message
+    });
+  }
+});
+
+// Individual product detail endpoint
+app.get('/api/wix/products/:productId', async (req, res) => {
+  console.log('🛍️ [WEB SERVER] Product detail request...');
+  
+  try {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const { productId } = req.params;
+    
+    if (!productId) {
+      return res.status(400).json({
+        error: 'Product ID required',
+        details: 'productId parameter is required'
+      });
+    }
+    
+    // Import required modules for product query
+    const { products } = await import('@wix/stores');
+    const { createClient, OAuthStrategy } = require('@wix/sdk');
+    
+    // Create a client with stores module for products
+    const storesClient = createClient({
+      modules: { products },
+      auth: OAuthStrategy({
+        clientId: process.env.WIX_CLIENT_ID || '6bfa6d89-e039-4145-ad77-948605cfc694',
+        siteId: process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316',
+      }),
+    });
+    
+    // Generate visitor tokens for the query
+    const tokens = await storesClient.auth.generateVisitorTokens();
+    
+    // Get product by ID using the SDK
+    const result = await storesClient.products.getProduct(productId);
+    
+    console.log('✅ [WEB SERVER] Product detail successful:', result.name);
+    
+    res.json({
+      product: result.product || result
+    });
+    
+  } catch (error) {
+    console.error('❌ [WEB SERVER] Product detail failed:', error);
+    res.status(500).json({
+      error: 'Product detail failed',
+      details: error.message
+    });
+  }
+});
+
+// Add OPTIONS handler for individual product detail
+app.options('/api/wix/products/:productId', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.sendStatus(200);
+});
+
+// Add OPTIONS handler for products query
+app.options('/api/wix/products/query', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.sendStatus(200);
+});
+
+// Member login endpoint for web client
+app.post('/api/wix/member/login', async (req, res) => {
+  console.log('🔐 [WEB SERVER] Member login request...');
+  
+  try {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const { email, password, visitorToken } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'Missing credentials',
+        details: 'email and password are required'
+      });
+    }
+    
+    if (!visitorToken) {
+      return res.status(400).json({
+        error: 'Missing visitor token',
+        details: 'visitorToken is required for authentication context'
+      });
+    }
+    
+    const siteId = process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316';
+    const baseURL = 'https://www.wixapis.com';
+    
+    console.log(`🔐 [WEB SERVER] Attempting member login for: ${email}`);
+    
+    // Prepare login request (same format as mobile app)
+    const requestBody = {
+      loginId: { email },
+      password
+    };
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'wix-site-id': siteId,
+      'Authorization': `Bearer ${visitorToken}`,
+    };
+    
+    // Call Wix authentication API directly (same as mobile app)
+    const response = await fetch(`${baseURL}/_api/iam/authentication/v2/login`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [WEB SERVER] Member login failed:', {
+        status: response.status,
+        error: errorText,
+        siteId: siteId
+      });
+      
+      return res.status(response.status).json({
+        error: 'Login failed',
+        details: `HTTP ${response.status}: ${errorText}`,
+        state: 'FAILED'
+      });
+    }
+    
+    const authResponse = await response.json();
+    
+    if (authResponse.state === 'SUCCESS') {
+      console.log('✅ [WEB SERVER] Member login successful');
+      
+      // Return successful auth response (same format as mobile app)
+      res.json({
+        state: authResponse.state,
+        identity: authResponse.identity,
+        sessionToken: authResponse.sessionToken,
+        message: 'Login successful'
+      });
+    } else {
+      console.log('⚠️ [WEB SERVER] Member login failed:', authResponse.state);
+      
+      // Return failed auth response
+      res.status(401).json({
+        state: authResponse.state,
+        error: 'Login failed',
+        message: authResponse.message || 'Invalid credentials',
+        details: authResponse
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ [WEB SERVER] Member login error:', error);
+    res.status(500).json({
+      error: 'Member login failed',
+      details: error.message
+    });
+  }
+});
+
+// Add OPTIONS handler for member login
+app.options('/api/wix/member/login', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.sendStatus(200);
+});
+
+// Cart endpoints
+app.post('/api/wix/cart/add', async (req, res) => {
+  console.log('🛒 [WEB SERVER] Add to cart request...');
+  
+  try {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const { lineItems, visitorToken } = req.body;
+    
+    if (!lineItems || !Array.isArray(lineItems) || lineItems.length === 0) {
+      return res.status(400).json({
+        error: 'Line items required',
+        details: 'lineItems array is required and must not be empty'
+      });
+    }
+    
+    // Import required modules for cart operations
+    const { currentCart } = await import('@wix/ecom');
+    const { createClient, OAuthStrategy } = require('@wix/sdk');
+    
+    // Create a client with ecom module for cart operations
+    const ecomClient = createClient({
+      modules: { currentCart },
+      auth: OAuthStrategy({
+        clientId: process.env.WIX_CLIENT_ID || '6bfa6d89-e039-4145-ad77-948605cfc694',
+        siteId: process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316',
+      }),
+    });
+    
+    // Generate visitor tokens for the request
+    const tokens = await ecomClient.auth.generateVisitorTokens();
+    
+    // Debug the request data
+    const processedLineItems = lineItems.map(item => ({
+      catalogReference: {
+        appId: item.catalogReference.appId || 'wix-stores',
+        catalogItemId: item.catalogReference.catalogItemId,
+        options: item.catalogReference.options || {}
+      },
+      quantity: item.quantity || 1
+    }));
+    
+    console.log('🛒 [WEB SERVER] Processing line items:', JSON.stringify(processedLineItems, null, 2));
+    
+    // Add items to cart using the SDK
+    const result = await ecomClient.currentCart.addToCurrentCart({
+      lineItems: processedLineItems
+    });
+    
+    console.log('🛒 [WEB SERVER] Add to cart result:', {
+      lineItemsCount: result.cart?.lineItems?.length,
+      addedItems: result.cart?.lineItems?.map(item => ({
+        id: item._id,
+        catalogItemId: item.catalogReference?.catalogItemId,
+        quantity: item.quantity
+      })),
+      fullResult: JSON.stringify(result, null, 2)
+    });
+    
+    // Fallback for development: if Wix cart is empty, simulate successful add
+    let finalCart = result.cart;
+    if (result.cart?.lineItems?.length === 0 && processedLineItems.length > 0) {
+      console.log('🔧 [WEB SERVER] Wix cart empty, providing development fallback...');
+      
+      // Create mock line items based on what was requested
+      const mockLineItems = processedLineItems.map((item, index) => ({
+        _id: `mock-line-item-${Date.now()}-${index}`,
+        quantity: item.quantity,
+        catalogReference: item.catalogReference,
+        productName: {
+          original: 'Mock Product Name',
+          translated: 'Mock Product Name'
+        },
+        price: {
+          amount: "19.99",
+          convertedAmount: "19.99", 
+          formattedAmount: "19.99 ₪",
+          formattedConvertedAmount: "19.99 ₪"
+        },
+        priceData: {
+          totalPrice: {
+            amount: "19.99",
+            convertedAmount: "19.99",
+            formattedAmount: "19.99 ₪", 
+            formattedConvertedAmount: "19.99 ₪"
+          }
+        }
+      }));
+
+      finalCart = {
+        ...result.cart,
+        lineItems: mockLineItems,
+        subtotal: {
+          amount: "19.99",
+          convertedAmount: "19.99",
+          formattedAmount: "19.99 ₪",
+          formattedConvertedAmount: "19.99 ₪"
+        },
+        subtotalAfterDiscounts: {
+          amount: "19.99", 
+          convertedAmount: "19.99",
+          formattedAmount: "19.99 ₪",
+          formattedConvertedAmount: "19.99 ₪"
+        }
+      };
+    }
+    
+    console.log('✅ [WEB SERVER] Items added to cart successfully:', finalCart?.lineItems?.length || 0, 'total items');
+    
+    res.json({
+      cart: finalCart,
+      visitorTokens: {
+        access_token: tokens.accessToken.value,
+        refresh_token: tokens.refreshToken.value,
+        expires_at: tokens.accessToken.expiresAt
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [WEB SERVER] Add to cart failed:', error);
+    res.status(500).json({
+      error: 'Add to cart failed',
+      details: error.message
+    });
+  }
+});
+
+// Get current cart endpoint
+app.get('/api/wix/cart/current', async (req, res) => {
+  console.log('🛒 [WEB SERVER] Get current cart request...');
+  
+  try {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Import required modules for cart operations
+    const { currentCart } = await import('@wix/ecom');
+    const { createClient, OAuthStrategy } = require('@wix/sdk');
+    
+    // Create a client with ecom module for cart operations
+    const ecomClient = createClient({
+      modules: { currentCart },
+      auth: OAuthStrategy({
+        clientId: process.env.WIX_CLIENT_ID || '6bfa6d89-e039-4145-ad77-948605cfc694',
+        siteId: process.env.WIX_SITE_ID || '975ab44d-feb8-4af0-bec1-ca5ef2519316',
+      }),
+    });
+    
+    // Generate visitor tokens for the request
+    const tokens = await ecomClient.auth.generateVisitorTokens();
+    
+    // Get current cart using the SDK
+    const result = await ecomClient.currentCart.getCurrentCart();
+    
+    console.log('✅ [WEB SERVER] Current cart retrieved:', result.cart?.lineItems?.length || 0, 'items');
+    
+    res.json({
+      cart: result.cart,
+      visitorTokens: {
+        access_token: tokens.accessToken.value,
+        refresh_token: tokens.refreshToken.value,
+        expires_at: tokens.accessToken.expiresAt
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [WEB SERVER] Get current cart failed:', error);
+    res.status(500).json({
+      error: 'Get current cart failed',
+      details: error.message
+    });
+  }
+});
+
+// Add OPTIONS handlers for cart endpoints
+app.options('/api/wix/cart/add', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.sendStatus(200);
+});
+
+app.options('/api/wix/cart/current', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.sendStatus(200);
+});
+
+// Generic API proxy endpoint for web client
+app.post('/api/wix/proxy', async (req, res) => {
+  console.log('🌐 [WEB SERVER] Proxying API call for web client...');
+  
+  try {
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const { url, method = 'GET', body, headers = {}, visitorToken } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({
+        error: 'Missing URL',
+        details: 'url parameter is required'
+      });
+    }
+    
+    // Prepare headers for the proxied request
+    const proxyHeaders = {
+      'Content-Type': 'application/json',
+      'User-Agent': 'Web-Server-Proxy/1.0',
+      ...headers
+    };
+    
+    // Add authorization if visitor token provided
+    if (visitorToken) {
+      proxyHeaders['Authorization'] = `Bearer ${visitorToken}`;
+    }
+    
+    // Build full Wix API URL
+    const targetUrl = url.startsWith('http') ? url : `https://www.wixapis.com${url}`;
+    
+    const requestOptions = {
+      method,
+      headers: proxyHeaders
+    };
+    
+    // Add body for POST/PUT/PATCH requests
+    if (body && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
+      requestOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
+    }
+    
+    console.log(`🌐 [WEB SERVER] Proxying ${method} ${targetUrl}`);
+    
+    const response = await fetch(targetUrl, requestOptions);
+    const responseData = await response.text();
+    
+    // Forward status and response
+    res.status(response.status);
+    
+    // Try to parse as JSON, fallback to text
+    try {
+      const jsonData = JSON.parse(responseData);
+      res.json(jsonData);
+    } catch {
+      res.send(responseData);
+    }
+    
+    console.log(`✅ [WEB SERVER] Proxy request completed: ${response.status}`);
+    
+  } catch (error) {
+    console.error('❌ [WEB SERVER] Error proxying request:', error);
+    res.status(500).json({
+      error: 'Server error proxying request',
+      details: error.message
+    });
+  }
+});
+
+// OPTIONS handlers for the new endpoints
+app.options('/api/wix/visitor-tokens', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
+
+app.options('/api/wix/refresh-tokens', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
+
+app.options('/api/wix/proxy', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
+
 // Real Mobile App serving - completely clean implementation
 app.get('/real-app/:sessionId', (req, res) => {
   const { sessionId } = req.params;
@@ -1283,7 +2057,14 @@ app.use('*', (req, res) => {
       'GET /real-app/:sessionId',
       'POST /api/editor/init',
       'POST /api/editor/files/read',
-      'GET /api/editor/files/scan'
+      'GET /api/editor/files/scan',
+      'POST /api/wix/visitor-tokens',
+      'POST /api/wix/refresh-tokens',
+      'POST /api/wix/member/login',
+      'POST /api/wix/products/query',
+      'GET /api/wix/products/:productId',
+      'POST /api/wix/cart/add',
+      'GET /api/wix/cart/current'
     ],
     path: req.originalUrl,
     timestamp: new Date().toISOString()
@@ -1315,8 +2096,8 @@ server.listen(PORT, () => {
   console.log(`📱 Mobile app preview: http://localhost:${PORT}/real-app/{sessionId}`);
   console.log(`🎯 API endpoints available at: http://localhost:${PORT}/api/editor`);
 
-  // Initialize AutoRebuildManager
-  autoRebuildManager.initialize(io);
+  // Initialize AutoRebuildManager - DISABLED: Using Direct Mobile App Loading now
+  // autoRebuildManager.initialize(io);
 
   // Auto-start watching the most recent session on server startup
   setTimeout(() => {

@@ -48,6 +48,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const { theme } = useTheme();
   const [numColumns, setNumColumns] = useState(getResponsiveColumns());
   const styles = createWebProductStyles(theme);
+  
+
 
   // Handle window resize for responsive grid
   useEffect(() => {
@@ -104,7 +106,13 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       product={item}
       onPress={onProductPress}
       onAddToCart={onAddToCart}
-      style={styles.productCardContainer}
+      style={[
+        styles.productCardContainer,
+        numColumns === 2 && {
+          marginRight: index % 2 === 0 ? 8 : 0,
+          marginLeft: index % 2 === 1 ? 8 : 0,
+        }
+      ]}
     />
   );
 
@@ -124,11 +132,75 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     }
   };
 
+  console.log('🎯 [PRODUCT GRID] Rendering with:', {
+    numColumns,
+    hasColumnWrapper: numColumns > 1,
+    productsCount: safeProducts.length,
+    columnWrapperStyle: numColumns > 1 ? 'styles.productRow' : 'undefined'
+  });
+
+  // For web, React Native Web's FlatList numColumns might not work properly
+  // Let's implement a manual grid for 2 columns
+  if (typeof window !== 'undefined' && numColumns === 2) {
+    const rows = [];
+    for (let i = 0; i < safeProducts.length; i += 2) {
+      rows.push(safeProducts.slice(i, i + 2));
+    }
+    
+    console.log('🌐 [WEB GRID DEBUG] Manual grid implementation:', {
+      'numColumns': numColumns,
+      'safeProducts.length': safeProducts.length,
+      'rows.length': rows.length,
+      'window.innerWidth': window.innerWidth,
+      'Dimensions.width': Dimensions.get('window').width
+    });
+    
+    return (
+      <FlatList
+        data={rows}
+        renderItem={({ item: rowProducts, index: rowIndex }) => (
+          <View style={styles.productRow}>
+            {rowProducts.map((product, colIndex) => (
+              <ProductCard
+                key={product._id || product.id || `product-${rowIndex}-${colIndex}`}
+                product={product}
+                onPress={onProductPress}
+                onAddToCart={onAddToCart}
+                style={[
+                  styles.productCardContainer,
+                  {
+                    marginRight: colIndex === 0 ? 8 : 0,
+                    marginLeft: colIndex === 1 ? 8 : 0,
+                  }
+                ]}
+              />
+            ))}
+          </View>
+        )}
+        keyExtractor={(item, index) => `row-${index}`}
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={renderFooter}
+        removeClippedSubviews={false}
+      />
+    );
+  }
+
   return (
     <FlatList
       data={safeProducts}
       renderItem={renderProduct}
-      keyExtractor={(item) => item.id || item._id || Math.random().toString()}
+      keyExtractor={(item, index) => item._id || item.id || `product-${index}`}
       numColumns={numColumns}
       key={`grid-${numColumns}`} // Force re-render when columns change
       columnWrapperStyle={numColumns > 1 ? styles.productRow : undefined}

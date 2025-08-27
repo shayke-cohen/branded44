@@ -47,6 +47,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 }) => {
   const { theme } = useTheme();
   const styles = createProductListStyles(theme);
+  
+  // Platform detection and web grid setup
+  const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
+  
+  if (isWeb) {
+    console.log('🌐 [WEB GRID] Using manual 2-column grid for web');
+  } else {
+    console.log('📱 [MOBILE GRID] Using mobile layout');
+  }
 
   // Ensure products is always an array
   const safeProducts = products || [];
@@ -105,11 +114,69 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     }
   };
 
+  // Manual 2-column grid for web (with proper spacing)
+  if (isWeb && safeProducts.length > 0) {
+    const rows = [];
+    for (let i = 0; i < safeProducts.length; i += 2) {
+      rows.push(safeProducts.slice(i, i + 2));
+    }
+    
+    console.log('🌐 [WEB MANUAL GRID] Creating', rows.length, 'rows for', safeProducts.length, 'products');
+
+    return (
+      <FlatList
+        data={rows}
+        renderItem={({ item: rowProducts, index: rowIndex }) => (
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-around', // Even spacing around items
+            marginBottom: 12,
+            paddingHorizontal: 8, // Less padding, more space for cards
+          }}>
+            {rowProducts.map((product, colIndex) => (
+              <View
+                key={product._id || product.id || `product-${rowIndex}-${colIndex}`}
+                style={{
+                  width: '42%', // Even smaller to ensure no overlap
+                  maxWidth: '42%',
+                  alignSelf: 'center',
+                }}
+              >
+                <ProductCard
+                  product={product}
+                  onPress={onProductPress}
+                  onAddToCart={onAddToCart}
+                />
+              </View>
+            ))}
+            {/* Fill empty space if odd number */}
+            {rowProducts.length === 1 && <View style={{ width: '42%' }} />}
+          </View>
+        )}
+        keyExtractor={(item, index) => `row-${index}`}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={renderFooter}
+        removeClippedSubviews={false}
+      />
+    );
+  }
+
   return (
     <FlatList
       data={safeProducts}
       renderItem={renderProduct}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item, index) => item._id || item.id || `product-${index}`}
       numColumns={2}
       columnWrapperStyle={styles.productRow}
       contentContainerStyle={styles.scrollContainer}

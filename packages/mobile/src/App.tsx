@@ -1,6 +1,6 @@
 console.log('📱 [DEBUG] Starting App.tsx imports...');
 
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 console.log('📱 [DEBUG] React imported successfully');
 
 import {StyleSheet, View} from 'react-native';
@@ -25,12 +25,78 @@ console.log('📱 [DEBUG] Screen navigation config imported successfully');
 import './config/importScreens';
 console.log('📱 [DEBUG] Screen imports completed successfully');
 
+// Hook to access external navigation control (if provided)
+// This will be provided by the visual editor's MobileAppWithOverrides component
+const useNavigationControl = (): { externalActiveTabId: string | null } | null => {
+  // Use state to trigger re-renders when the global control changes
+  const [control, setControl] = useState<{ externalActiveTabId: string | null } | null>(null);
+  
+  useEffect(() => {
+    const checkControl = () => {
+      // Check if we're in a web environment (React Native Web in visual editor)
+      if (typeof globalThis !== 'undefined' && 'window' in globalThis) {
+        const windowObj = (globalThis as any).window;
+        if (windowObj && windowObj.__VISUAL_EDITOR_NAVIGATION_CONTROL__) {
+          const globalControl = windowObj.__VISUAL_EDITOR_NAVIGATION_CONTROL__;
+          
+          // Only update if the value has actually changed
+          setControl(prevControl => {
+            if (!prevControl && !globalControl.externalActiveTabId) {
+              // Both are null/undefined - no change needed
+              return prevControl;
+            }
+            if (prevControl?.externalActiveTabId !== globalControl.externalActiveTabId) {
+              console.log('🌐 [useNavigationControl] Navigation control changed:', globalControl);
+              return globalControl;
+            }
+            // No change - return previous value
+            return prevControl;
+          });
+          return;
+        }
+      }
+      
+      // Only set to null if it's not already null
+      setControl(prevControl => {
+        if (prevControl !== null) {
+          console.log('🌐 [useNavigationControl] Navigation control cleared');
+          return null;
+        }
+        return prevControl;
+      });
+    };
+    
+    // Check initially
+    checkControl();
+    
+    // Check periodically in case it gets set later (reduced frequency)
+    const interval = setInterval(checkControl, 500);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return control;
+};
+
 const AppContent = () => {
   console.log('📱 [DEBUG] AppContent component rendering...');
   
   // Get first tab from unified registry as default
   const navTabs = getNavTabs();
   const [activeTab, setActiveTab] = useState<string>(navTabs[0]?.id || 'home-tab');
+  
+  // Check for external navigation control from visual editor
+  const navigationControl = useNavigationControl();
+  
+  // Update active tab when external control changes
+  useEffect(() => {
+    console.log('🔍 [APP] Navigation control check:', navigationControl);
+    if (navigationControl?.externalActiveTabId) {
+      console.log('🎯 [APP] External navigation control detected:', navigationControl.externalActiveTabId);
+      console.log('🎯 [APP] Changing activeTab from', activeTab, 'to', navigationControl.externalActiveTabId);
+      setActiveTab(navigationControl.externalActiveTabId);
+    }
+  }, [navigationControl, navigationControl?.externalActiveTabId, activeTab]);
 
   const renderScreen = () => {
     console.log('📱 [DEBUG] Rendering screen for tab:', activeTab);

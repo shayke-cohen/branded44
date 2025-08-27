@@ -226,10 +226,8 @@ export const useMemberAuth = (): UseMemberAuthReturn => {
           success: 'Login successful! Welcome back.',
         });
 
-        // Refresh member status in context
-        setTimeout(() => {
-          refreshMemberStatus();
-        }, 100);
+        // Refresh member status in context - now synchronous with fixed client
+        refreshMemberStatus();
 
       } else {
         console.warn('⚠️ [MEMBER AUTH HOOK] Login failed:', result.error);
@@ -283,10 +281,8 @@ export const useMemberAuth = (): UseMemberAuthReturn => {
           successMessage = 'Registration successful! Please check your email to verify your account.';
         } else if (result.state === 'SUCCESS') {
           successMessage = 'Registration and login successful! Welcome!';
-          // Refresh member status in context
-          setTimeout(() => {
-            refreshMemberStatus();
-          }, 100);
+          // Refresh member status in context - now synchronous with fixed client
+          refreshMemberStatus();
         }
 
         safeSetState({ 
@@ -333,10 +329,8 @@ export const useMemberAuth = (): UseMemberAuthReturn => {
           success: 'Logged out successfully.',
         });
 
-        // Refresh member status in context
-        setTimeout(() => {
-          refreshMemberStatus();
-        }, 100);
+        // Refresh member status in context - now synchronous with fixed client
+        refreshMemberStatus();
 
       } else {
         console.warn('⚠️ [MEMBER AUTH HOOK] Logout failed:', result.error);

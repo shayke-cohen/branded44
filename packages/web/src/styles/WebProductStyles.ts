@@ -11,22 +11,101 @@ import type { Theme } from '../context/ThemeContext';
 const getResponsiveLayout = () => {
   const { width, height } = Dimensions.get('window');
   
-  // Check if we're in the iPhone frame (web preview mode)
-  // iPhone frame is 375px wide, so we should detect this and use mobile layout
-  const isInIPhoneFrame = width <= 375 || (typeof window !== 'undefined' && window.innerWidth <= 375);
-  const isInAndroidFrame = width <= 360 || (typeof window !== 'undefined' && window.innerWidth <= 360);
+  // For web, detect if we're inside a mobile frame by checking the actual container width
+  let actualContentWidth = width;
   
-  // For iPhone/Android frame, use 2-column layout like mobile
-  if (isInIPhoneFrame || isInAndroidFrame) {
-    const containerPadding = 12; // Slightly less padding for mobile frame
-    const cardSpacing = 6; // Slightly less spacing for mobile frame
-    const numColumns = 2; // 2-column grid like mobile
-    const effectiveWidth = isInIPhoneFrame ? 375 : (isInAndroidFrame ? 360 : width);
-    const totalSpacing = (containerPadding * 2) + (cardSpacing * (numColumns - 1));
-    const cardWidth = (effectiveWidth - totalSpacing) / numColumns;
+  if (typeof window !== 'undefined') {
+    // Try to find the mobile frame elements based on actual DOM structure
+    // Look for elements that indicate we're in a mobile frame
+    const potentialContainers = [
+      // Look for React Native Web generated styles that indicate mobile frame
+      document.querySelector('div[style*="width: 375px"]'), // iPhone frame
+      document.querySelector('div[style*="width: 360px"]'), // Android frame  
+      document.querySelector('div[style*="width:375px"]'),  // Without spaces
+      document.querySelector('div[style*="width:360px"]'),  // Without spaces
+      // Look for common mobile frame container patterns
+      document.querySelector('div[style*="borderRadius"][style*="375"]'),
+      document.querySelector('div[style*="borderRadius"][style*="360"]'),
+      // Look for the app content container (after status bar)
+      document.querySelector('div[style*="flex: 1"][style*="backgroundColor"]'),
+    ];
+    
+    const appContainer = potentialContainers.find(container => container !== null);
+    
+    if (appContainer) {
+      const rect = appContainer.getBoundingClientRect();
+      actualContentWidth = rect.width;
+      
+      // If this is the device frame itself, subtract padding  
+      if (rect.width === 375) {
+        actualContentWidth = 359; // iPhone: 375 - 16px padding
+      } else if (rect.width === 360) {
+        actualContentWidth = 344; // Android: 360 - 16px padding  
+      }
+    } else {
+      // Fallback: if window width suggests we're in a mobile frame
+      if (window.innerWidth <= 400) {
+        // Probably in a mobile frame, use conservative estimate
+        actualContentWidth = Math.min(window.innerWidth - 40, 359); // Account for frame padding
+      }
+    }
+  }
+  
+  const isInMobileFrame = actualContentWidth <= 375;
+  
+  // 🚨 TEMPORARY DEBUG: Force mobile layout for debugging
+  const FORCE_MOBILE_LAYOUT = true; // Set to false once working
+  
+  // Debug logging to help diagnose the issue
+  if (typeof window !== 'undefined') {
+    const debugContainers = [
+      document.querySelector('div[style*="width: 375px"]'),
+      document.querySelector('div[style*="width: 360px"]'),
+      document.querySelector('div[style*="width:375px"]'),
+      document.querySelector('div[style*="width:360px"]'),
+      document.querySelector('div[style*="borderRadius"][style*="375"]'),
+      document.querySelector('div[style*="borderRadius"][style*="360"]'),
+      document.querySelector('div[style*="flex: 1"][style*="backgroundColor"]'),
+    ];
+    
+    console.log('📐 [WEB LAYOUT DEBUG]', {
+      'Dimensions.width': width,
+      'window.innerWidth': window.innerWidth,
+      'actualContentWidth': actualContentWidth,
+      'isInMobileFrame': isInMobileFrame,
+      'found containers': debugContainers.map((container, index) => ({
+        [`selector_${index}`]: container ? {
+          width: container.getBoundingClientRect().width,
+          height: container.getBoundingClientRect().height,
+          className: container.className,
+          style: container.getAttribute('style')?.substring(0, 100)
+        } : null
+      }))
+    });
+    
+    console.log('🎯 [MOBILE LAYOUT TRIGGER]', {
+      'FORCE_MOBILE_LAYOUT': FORCE_MOBILE_LAYOUT,
+      'isInMobileFrame': isInMobileFrame,
+      'width < 480': width < 480,
+      'final decision': FORCE_MOBILE_LAYOUT || isInMobileFrame || width < 480
+    });
+  }
+  
+
+  
+  // For mobile frame or small screens, always use 2-column layout like mobile
+  if (FORCE_MOBILE_LAYOUT || isInMobileFrame || width < 480) {
+    const numColumns = 2; // Fixed 2-column grid like mobile
+    const containerPadding = 16; // Match mobile padding  
+    const cardSpacing = 8; // Match mobile spacing
+    
+    // Calculate card width using the same logic as mobile
+    // Mobile uses: (actualContentWidth - 48) / 2 where 48 = containerPadding * 2 + cardSpacing
+    const totalHorizontalSpacing = (containerPadding * 2) + (cardSpacing * (numColumns - 1));
+    const cardWidth = (actualContentWidth - totalHorizontalSpacing) / numColumns;
     
     return {
-      width: effectiveWidth,
+      width: actualContentWidth,
       height,
       isSmallScreen: true,
       isMediumScreen: false,
@@ -37,8 +116,11 @@ const getResponsiveLayout = () => {
       containerPadding,
       cardSpacing,
       isInMobileFrame: true,
+      actualContentWidth: actualContentWidth,
     };
   }
+  
+
   
   // For larger screens (actual desktop/tablet), use responsive breakpoints
   const isSmallScreen = width < 480;
@@ -69,12 +151,19 @@ const getResponsiveLayout = () => {
     containerPadding,
     cardSpacing,
     isInMobileFrame: false,
+    actualContentWidth: width,
   };
 };
 
 export const getResponsiveColumns = () => {
-  const { numColumns } = getResponsiveLayout();
-  return numColumns;
+  const layout = getResponsiveLayout();
+  console.log('🔢 [RESPONSIVE COLUMNS] Calculated:', {
+    'numColumns': layout.numColumns,
+    'isInMobileFrame': layout.isInMobileFrame,
+    'width': layout.width,
+    'actualContentWidth': layout.actualContentWidth || 'N/A'
+  });
+  return layout.numColumns;
 };
 
 export const createWebProductStyles = (theme: Theme) => {
@@ -175,14 +264,17 @@ export const createWebProductStyles = (theme: Theme) => {
 
     // Responsive product grid styles
     productRow: {
+      flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: layout.isInMobileFrame ? 12 : 16,
-      gap: layout.cardSpacing,
+      marginBottom: 0, // Remove marginBottom from row, add to individual cards
+      paddingHorizontal: 0,
+      width: '100%',
     },
     productCardContainer: {
       flex: 1,
+      width: layout.cardWidth,
       maxWidth: layout.cardWidth,
-      minWidth: layout.isSmallScreen ? '48%' : layout.cardWidth,
+      marginBottom: 16, // Match mobile marginBottom
     },
     productCard: {
       backgroundColor: theme.colors.surface,

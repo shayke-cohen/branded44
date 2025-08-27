@@ -83,27 +83,53 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
       console.log('🌐 [WEB MEMBER CONTEXT] Initializing member status...');
       setLoading(true);
       
-      // Check if user is already logged in
-      const isUserLoggedIn = await wixApiClient.isMemberLoggedIn();
+      // Check localStorage for stored authentication data
+      const authState = localStorage.getItem('wix_auth_state');
+      const storedMember = localStorage.getItem('wix_current_member');
+      const sessionToken = localStorage.getItem('wix_session_token');
       
-      if (isUserLoggedIn) {
-        const currentMember = await wixApiClient.getCurrentMember();
-        if (currentMember) {
-          console.log('🌐 [WEB MEMBER CONTEXT] Found existing member session:', currentMember.id);
+      if (authState && storedMember) {
+        const parsedAuthState = JSON.parse(authState);
+        const parsedMember = JSON.parse(storedMember);
+        
+        // Check if the stored auth is still valid (not too old)
+        const loginAge = Date.now() - parsedAuthState.loginTimestamp;
+        const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+        
+        if (parsedAuthState.isLoggedIn && loginAge < maxAge) {
+          console.log('🌐 [WEB MEMBER CONTEXT] Found valid stored member session:', parsedMember.id);
           setIsLoggedIn(true);
-          setMember(currentMember);
+          setMember(parsedMember);
+        } else {
+          console.log('🌐 [WEB MEMBER CONTEXT] Stored session expired, clearing auth');
+          clearStoredAuth();
+          setIsLoggedIn(false);
+          setMember(null);
         }
       } else {
-        console.log('🌐 [WEB MEMBER CONTEXT] No existing member session found');
+        console.log('🌐 [WEB MEMBER CONTEXT] No stored member session found');
         setIsLoggedIn(false);
         setMember(null);
       }
     } catch (error) {
       console.error('🌐 [WEB MEMBER CONTEXT] Error initializing member status:', error);
+      clearStoredAuth();
       setIsLoggedIn(false);
       setMember(null);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Clear stored authentication data
+  const clearStoredAuth = () => {
+    try {
+      localStorage.removeItem('wix_auth_state');
+      localStorage.removeItem('wix_current_member');
+      localStorage.removeItem('wix_session_token');
+      console.log('🌐 [WEB MEMBER CONTEXT] Cleared stored authentication data');
+    } catch (error) {
+      console.warn('⚠️ [WEB MEMBER CONTEXT] Failed to clear stored auth:', error);
     }
   };
 
@@ -113,24 +139,36 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
       console.log('🌐 [WEB MEMBER CONTEXT] Refreshing member status...');
       setLoading(true);
       
-      const isUserLoggedIn = await wixApiClient.isMemberLoggedIn();
+      // Check localStorage for stored authentication data
+      const authState = localStorage.getItem('wix_auth_state');
+      const storedMember = localStorage.getItem('wix_current_member');
       
-      if (isUserLoggedIn) {
-        const currentMember = await wixApiClient.getCurrentMember();
-        if (currentMember) {
-          console.log('🌐 [WEB MEMBER CONTEXT] Member status refreshed:', currentMember.id);
+      if (authState && storedMember) {
+        const parsedAuthState = JSON.parse(authState);
+        const parsedMember = JSON.parse(storedMember);
+        
+        // Check if the stored auth is still valid
+        const loginAge = Date.now() - parsedAuthState.loginTimestamp;
+        const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+        
+        if (parsedAuthState.isLoggedIn && loginAge < maxAge) {
+          console.log('🌐 [WEB MEMBER CONTEXT] Refreshed with valid stored session:', parsedMember.id);
           setIsLoggedIn(true);
-          setMember(currentMember);
+          setMember(parsedMember);
         } else {
+          console.log('🌐 [WEB MEMBER CONTEXT] Stored session expired during refresh');
+          clearStoredAuth();
           setIsLoggedIn(false);
           setMember(null);
         }
       } else {
+        console.log('🌐 [WEB MEMBER CONTEXT] No stored session found during refresh');
         setIsLoggedIn(false);
         setMember(null);
       }
     } catch (error) {
       console.error('🌐 [WEB MEMBER CONTEXT] Error refreshing member status:', error);
+      clearStoredAuth();
       setIsLoggedIn(false);
       setMember(null);
     } finally {
@@ -144,7 +182,15 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
       console.log('🌐 [WEB MEMBER CONTEXT] Logging out member...');
       setLoading(true);
       
-      await wixApiClient.logoutMember();
+      // Clear stored authentication data first
+      clearStoredAuth();
+      
+      // Try to logout via API client (but don't fail if it doesn't work)
+      try {
+        await wixApiClient.logoutMember();
+      } catch (apiError) {
+        console.warn('⚠️ [WEB MEMBER CONTEXT] API logout failed, but local state cleared:', apiError);
+      }
       
       setIsLoggedIn(false);
       setMember(null);
@@ -152,7 +198,8 @@ export const WebMemberProvider: React.FC<MemberProviderProps> = ({ children }) =
       console.log('🌐 [WEB MEMBER CONTEXT] Member logged out successfully');
     } catch (error) {
       console.error('🌐 [WEB MEMBER CONTEXT] Error logging out member:', error);
-      // Even if logout fails, clear local state
+      // Even if logout fails, clear local state and storage
+      clearStoredAuth();
       setIsLoggedIn(false);
       setMember(null);
     } finally {

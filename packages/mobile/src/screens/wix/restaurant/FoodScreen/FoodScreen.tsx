@@ -61,6 +61,12 @@ const FoodScreen: React.FC<FoodScreenProps> = ({
     isRestaurantOpen,
     estimatedDeliveryTime,
     canCheckout,
+    // Enhanced loading states
+    restaurantLoading,
+    menuLoading,
+    popularItemsLoading,
+    featuredItemsLoading,
+    searchLoading,
     loadRestaurant,
     loadMenu,
     searchItems,
@@ -81,7 +87,7 @@ const FoodScreen: React.FC<FoodScreenProps> = ({
   /**
    * Convert Restaurant object to RestaurantHeaderData format
    */
-  const convertToRestaurantHeaderData = useCallback((restaurant: any): RestaurantHeaderData => {
+  const convertToRestaurantHeaderData = useCallback((restaurant: any): RestaurantHeaderData | null => {
     console.log('🔄 [FOOD SCREEN] Converting restaurant data:', restaurant);
     
     if (!restaurant) {
@@ -212,8 +218,8 @@ const FoodScreen: React.FC<FoodScreenProps> = ({
     return renderErrorState();
   }
 
-  // Show loading state for initial load
-  if (loading && !restaurant) {
+  // Show loading state for initial restaurant load
+  if (restaurantLoading && !restaurant) {
     return renderLoadingState();
   }
 
@@ -264,6 +270,30 @@ const FoodScreen: React.FC<FoodScreenProps> = ({
     default:
       const restaurantHeaderData = convertToRestaurantHeaderData(restaurant);
       
+      // Show loading state if restaurant data is still loading
+      if (!restaurantHeaderData && (restaurantLoading || menuLoading)) {
+        return renderLoadingState();
+      }
+      
+      // Show error if restaurant failed to load
+      if (!restaurantHeaderData && error) {
+        return renderErrorState();
+      }
+      
+      // Show empty state if no restaurant data and not loading
+      if (!restaurantHeaderData) {
+        return (
+          <SafeAreaView style={styles.container}>
+            <ErrorCard
+              title="Restaurant Unavailable"
+              message="Restaurant information could not be loaded."
+              actionText="Try Again"
+              onAction={retryLoad}
+            />
+          </SafeAreaView>
+        );
+      }
+      
       return (
         <MenuScreen
           restaurant={restaurantHeaderData}
@@ -274,6 +304,11 @@ const FoodScreen: React.FC<FoodScreenProps> = ({
           searchQuery={searchQuery}
           searchResults={searchResults}
           isRestaurantOpen={isRestaurantOpen}
+          // Enhanced loading states
+          menuLoading={menuLoading}
+          popularItemsLoading={popularItemsLoading}
+          featuredItemsLoading={featuredItemsLoading}
+          searchLoading={searchLoading}
           onBack={handleBack}
           onMenuItemPress={handleMenuItemPress}
           onCartPress={handleCartPress}

@@ -1,12 +1,18 @@
 /**
- * useRestaurant - Custom hook for restaurant logic
+ * useRestaurant - Enhanced Custom hook for restaurant logic
  * 
- * Centralizes all restaurant state management and business logic
+ * Centralizes all restaurant state management and business logic with:
+ * - Intelligent caching to prevent unnecessary API calls
+ * - Granular loading states for different data types
+ * - Optimized performance and user experience
+ * - Better error handling and recovery
+ * 
  * Makes screens thin and focused on presentation
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { restaurantService, RestaurantOrder } from '../../screens/wix/restaurant/shared/WixRestaurantService';
+import { restaurantCache } from '../../services/RestaurantCacheService';
 import type { Restaurant, MenuItem, MenuCategoryData, OrderItem } from '../../components/blocks/restaurant';
 
 export type FoodScreenView = 'menu' | 'restaurant' | 'order' | 'checkout';
@@ -24,6 +30,12 @@ interface UseRestaurantState {
   searchResults: MenuItem[];
   error: string | null;
   orderSubmitting: boolean;
+  // Enhanced loading states
+  restaurantLoading: boolean;
+  menuLoading: boolean;
+  popularItemsLoading: boolean;
+  featuredItemsLoading: boolean;
+  searchLoading: boolean;
 }
 
 interface UseRestaurantActions {
@@ -59,12 +71,18 @@ const INITIAL_STATE: UseRestaurantState = {
   popularItems: [],
   featuredItems: [],
   cart: [],
-  loading: true, // Start as true to show loading screen
+  loading: false, // Changed to false - we'll use granular loading states
   refreshing: false,
   searchQuery: '',
   searchResults: [],
   error: null,
   orderSubmitting: false,
+  // Enhanced loading states
+  restaurantLoading: true, // Initially loading restaurant
+  menuLoading: true,       // Initially loading menu
+  popularItemsLoading: true,
+  featuredItemsLoading: true,
+  searchLoading: false,
 };
 
 export const useRestaurant = (): UseRestaurantReturn => {
@@ -91,20 +109,35 @@ export const useRestaurant = (): UseRestaurantReturn => {
   }, []);
 
   /**
-   * Load restaurant information
+   * Load restaurant information with caching
    */
-  const loadRestaurant = useCallback(async (restaurantId?: string) => {
+  const loadRestaurant = useCallback(async (restaurantId?: string, forceRefresh = false) => {
     try {
-      safeSetState({ loading: true, error: null });
+      // Check cache first if not forcing refresh
+      if (!forceRefresh) {
+        const cachedRestaurant = restaurantCache.get<Restaurant>('restaurant', restaurantId);
+        if (cachedRestaurant) {
+          safeSetState({
+            restaurant: cachedRestaurant,
+            restaurantLoading: false,
+            error: null,
+          });
+          return;
+        }
+      }
 
+      safeSetState({ restaurantLoading: true, error: null });
       console.log('🔄 [RESTAURANT HOOK] Loading restaurant...');
 
       const restaurant = await restaurantService.getRestaurant(restaurantId);
 
+      // Cache the result
+      restaurantCache.set('restaurant', restaurant, restaurantId);
+
       if (mounted.current) {
         safeSetState({
           restaurant,
-          loading: false,
+          restaurantLoading: false,
         });
 
         console.log('✅ [RESTAURANT HOOK] Restaurant loaded successfully');
@@ -114,7 +147,7 @@ export const useRestaurant = (): UseRestaurantReturn => {
       
       if (mounted.current) {
         safeSetState({
-          loading: false,
+          restaurantLoading: false,
           error: error instanceof Error ? error.message : 'Failed to load restaurant',
         });
       }
@@ -122,20 +155,35 @@ export const useRestaurant = (): UseRestaurantReturn => {
   }, [safeSetState]);
 
   /**
-   * Load menu categories and items
+   * Load menu categories and items with caching
    */
-  const loadMenu = useCallback(async (restaurantId?: string) => {
+  const loadMenu = useCallback(async (restaurantId?: string, forceRefresh = false) => {
     try {
-      safeSetState({ loading: true, error: null });
+      // Check cache first if not forcing refresh
+      if (!forceRefresh) {
+        const cachedMenu = restaurantCache.get<MenuCategoryData[]>('menu', restaurantId);
+        if (cachedMenu) {
+          safeSetState({
+            menuCategories: cachedMenu,
+            menuLoading: false,
+            error: null,
+          });
+          return;
+        }
+      }
 
+      safeSetState({ menuLoading: true, error: null });
       console.log('🔄 [RESTAURANT HOOK] Loading menu...');
 
       const menuCategories = await restaurantService.getMenu(restaurantId);
 
+      // Cache the result
+      restaurantCache.set('menu', menuCategories, restaurantId);
+
       if (mounted.current) {
         safeSetState({
           menuCategories,
-          loading: false,
+          menuLoading: false,
         });
 
         console.log('✅ [RESTAURANT HOOK] Menu loaded successfully');
@@ -145,7 +193,7 @@ export const useRestaurant = (): UseRestaurantReturn => {
       
       if (mounted.current) {
         safeSetState({
-          loading: false,
+          menuLoading: false,
           error: error instanceof Error ? error.message : 'Failed to load menu',
         });
       }
@@ -153,38 +201,82 @@ export const useRestaurant = (): UseRestaurantReturn => {
   }, [safeSetState]);
 
   /**
-   * Load popular items
+   * Load popular items with caching
    */
-  const loadPopularItems = useCallback(async (restaurantId?: string) => {
+  const loadPopularItems = useCallback(async (restaurantId?: string, forceRefresh = false) => {
     try {
+      // Check cache first if not forcing refresh
+      if (!forceRefresh) {
+        const cachedPopularItems = restaurantCache.get<MenuItem[]>('popularItems', restaurantId);
+        if (cachedPopularItems) {
+          safeSetState({
+            popularItems: cachedPopularItems,
+            popularItemsLoading: false,
+          });
+          return;
+        }
+      }
+
+      safeSetState({ popularItemsLoading: true });
       console.log('🔄 [RESTAURANT HOOK] Loading popular items...');
 
       const popularItems = await restaurantService.getPopularItems(restaurantId);
 
+      // Cache the result
+      restaurantCache.set('popularItems', popularItems, restaurantId);
+
       if (mounted.current) {
-        safeSetState({ popularItems });
+        safeSetState({ 
+          popularItems,
+          popularItemsLoading: false,
+        });
         console.log('✅ [RESTAURANT HOOK] Popular items loaded');
       }
     } catch (error) {
       console.error('❌ [RESTAURANT HOOK] Error loading popular items:', error);
+      if (mounted.current) {
+        safeSetState({ popularItemsLoading: false });
+      }
     }
   }, [safeSetState]);
 
   /**
-   * Load featured items
+   * Load featured items with caching
    */
-  const loadFeaturedItems = useCallback(async (restaurantId?: string) => {
+  const loadFeaturedItems = useCallback(async (restaurantId?: string, forceRefresh = false) => {
     try {
+      // Check cache first if not forcing refresh
+      if (!forceRefresh) {
+        const cachedFeaturedItems = restaurantCache.get<MenuItem[]>('featuredItems', restaurantId);
+        if (cachedFeaturedItems) {
+          safeSetState({
+            featuredItems: cachedFeaturedItems,
+            featuredItemsLoading: false,
+          });
+          return;
+        }
+      }
+
+      safeSetState({ featuredItemsLoading: true });
       console.log('🔄 [RESTAURANT HOOK] Loading featured items...');
 
       const featuredItems = await restaurantService.getFeaturedItems(restaurantId);
 
+      // Cache the result
+      restaurantCache.set('featuredItems', featuredItems, restaurantId);
+
       if (mounted.current) {
-        safeSetState({ featuredItems });
+        safeSetState({ 
+          featuredItems,
+          featuredItemsLoading: false,
+        });
         console.log('✅ [RESTAURANT HOOK] Featured items loaded');
       }
     } catch (error) {
       console.error('❌ [RESTAURANT HOOK] Error loading featured items:', error);
+      if (mounted.current) {
+        safeSetState({ featuredItemsLoading: false });
+      }
     }
   }, [safeSetState]);
 
@@ -376,7 +468,7 @@ export const useRestaurant = (): UseRestaurantReturn => {
   }, [safeSetState]);
 
   /**
-   * Refresh all data
+   * Refresh all data (force cache refresh)
    */
   const refreshData = useCallback(async (restaurantId?: string) => {
     try {
@@ -385,17 +477,18 @@ export const useRestaurant = (): UseRestaurantReturn => {
 
       console.log('🔄 [RESTAURANT HOOK] Refreshing data...');
 
+      // Use forceRefresh=true to bypass cache during manual refresh
       console.log('🔄 [RESTAURANT HOOK] Loading restaurant...');
-      await loadRestaurant(restaurantId);
+      await loadRestaurant(restaurantId, true);
       
       console.log('🔄 [RESTAURANT HOOK] Loading menu...');
-      await loadMenu(restaurantId);
+      await loadMenu(restaurantId, true);
       
       console.log('🔄 [RESTAURANT HOOK] Loading popular items...');
-      await loadPopularItems(restaurantId);
+      await loadPopularItems(restaurantId, true);
       
       console.log('🔄 [RESTAURANT HOOK] Loading featured items...');
-      await loadFeaturedItems(restaurantId);
+      await loadFeaturedItems(restaurantId, true);
 
       if (mounted.current) {
         safeSetState({ refreshing: false });
@@ -462,6 +555,12 @@ export const useRestaurant = (): UseRestaurantReturn => {
     searchResults: state.searchResults,
     error: state.error,
     orderSubmitting: state.orderSubmitting,
+    // Enhanced loading states
+    restaurantLoading: state.restaurantLoading,
+    menuLoading: state.menuLoading,
+    popularItemsLoading: state.popularItemsLoading,
+    featuredItemsLoading: state.featuredItemsLoading,
+    searchLoading: state.searchLoading,
 
     // Actions
     loadRestaurant,

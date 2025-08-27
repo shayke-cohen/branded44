@@ -11,7 +11,8 @@
  */
 
 import { createClient, OAuthStrategy } from '@wix/sdk';
-import { menus, sections, items, itemVariants, itemLabels } from '@wix/restaurants';
+// SDK imports removed - restaurant SDK disabled, using REST API fallback
+// import { menus, sections, items, itemVariants, itemLabels } from '@wix/restaurants';
 import { media } from '@wix/sdk';
 import { getClientId } from '../../../../config/wixConfig';
 

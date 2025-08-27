@@ -280,7 +280,7 @@ class WixProductService {
    */
   private transformProduct(apiProduct: any): WixProduct {
     return {
-      id: apiProduct.id || '',
+      id: apiProduct._id || apiProduct.id || '',
       name: apiProduct.name || 'Unnamed Product',
       description: this.stripHtmlTags(apiProduct.description || ''),
       price: apiProduct.price?.formatted?.price || '$0.00',
@@ -297,7 +297,7 @@ class WixProductService {
       lastUpdated: apiProduct.lastUpdated,
       variants: apiProduct.productOptions || [],
       additionalInfoSections: apiProduct.additionalInfoSections || [],
-      catalogItemId: apiProduct.id || '', // Use product ID as catalog item ID
+      catalogItemId: apiProduct._id || apiProduct.id || '', // Use product ID as catalog item ID
     };
   }
 }

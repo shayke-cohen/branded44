@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { 
-  wixBookingApiClient, 
+  wixBookingClient, 
   WixService, 
   WixServiceProvider, 
   WixServiceCategory,
@@ -8,7 +8,7 @@ import {
   WixBookingSlot,
   WixBookingRequest,
   WixAvailabilityQuery
-} from '../utils/wixBookingApiClient';
+} from '../utils/wix';
 import { useMember } from './index';
 
 interface WixBookingContextType {
@@ -106,7 +106,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
       setServicesLoading(true);
       console.log('📅 [BOOKING CONTEXT] Loading services with filters:', filters);
       
-      const result = await wixBookingApiClient.queryServices({
+      const result = await wixBookingClient.queryServices({
         categoryId: filters?.categoryId,
         visible: true,
         limit: 50,
@@ -135,7 +135,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
       setCategoriesLoading(true);
       console.log('📅 [BOOKING CONTEXT] Loading service categories...');
       
-      const result = await wixBookingApiClient.queryServiceCategories(forceRefresh);
+      const result = await wixBookingClient.queryServiceCategories(forceRefresh);
       setCategories(result.categories);
       
       console.log(`✅ [BOOKING CONTEXT] Loaded ${result.categories.length} service categories`);
@@ -152,7 +152,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
       setProvidersLoading(true);
       console.log('📅 [BOOKING CONTEXT] Loading service providers with filters:', filters);
       
-      const result = await wixBookingApiClient.queryServiceProviders({
+      const result = await wixBookingClient.queryServiceProviders({
         serviceId: filters?.serviceId,
         limit: 50,
         forceRefresh: filters?.forceRefresh
@@ -187,7 +187,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
       }
       
       // Fetch from API
-      const serviceResult = await wixBookingApiClient.getServiceForBooking(serviceId);
+      const serviceResult = await wixBookingClient.getServiceForBooking(serviceId);
       
       if (serviceResult.success && serviceResult.data) {
         const service = serviceResult.data;
@@ -245,7 +245,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
       setAvailabilityLoading(true);
       console.log('📅 [BOOKING CONTEXT] Loading available slots:', query);
       
-      const slots = await wixBookingApiClient.getAvailableSlots(query);
+      const slots = await wixBookingClient.getAvailableSlots(query);
       setAvailableSlots(slots);
       
       // Clear selected slot if it's no longer available
@@ -269,7 +269,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
     try {
       console.log('📅 [BOOKING CONTEXT] Creating booking:', booking);
       
-      const newBooking = await wixBookingApiClient.createBooking(booking);
+      const newBooking = await wixBookingClient.createBooking(booking);
       
       if (newBooking) {
         // Add to customer bookings list
@@ -295,7 +295,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
       console.log('📅 [BOOKING CONTEXT] Loading customer bookings...');
       
       // For member users, we could pass member ID, but API handles this automatically
-      const bookings = await wixBookingApiClient.getCustomerBookings();
+      const bookings = await wixBookingClient.getCustomerBookings();
       setCustomerBookings(bookings);
       
       console.log(`✅ [BOOKING CONTEXT] Loaded ${bookings.length} customer bookings`);
@@ -311,7 +311,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
     try {
       console.log(`📅 [BOOKING CONTEXT] Canceling booking: ${bookingId}`);
       
-      const success = await wixBookingApiClient.cancelBooking(bookingId, reason);
+      const success = await wixBookingClient.cancelBooking(bookingId, reason);
       
       if (success) {
         // Update the booking status in local state
@@ -335,7 +335,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
     try {
       console.log(`📅 [BOOKING CONTEXT] Rescheduling booking: ${bookingId} to session: ${newSessionId}`);
       
-      const updatedBooking = await wixBookingApiClient.rescheduleBooking(bookingId, newSessionId);
+      const updatedBooking = await wixBookingClient.rescheduleBooking(bookingId, newSessionId);
       
       if (updatedBooking) {
         // Update the booking in local state
@@ -357,7 +357,7 @@ export const WixBookingProvider: React.FC<WixBookingProviderProps> = ({ children
 
   const clearCache = useCallback(async () => {
     try {
-      await wixBookingApiClient.clearCache();
+      await wixBookingClient.clearCache();
       console.log('🗑️ [BOOKING CONTEXT] Cache cleared');
     } catch (error) {
       console.error('❌ [BOOKING CONTEXT] Failed to clear cache:', error);

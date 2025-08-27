@@ -8,8 +8,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getClientId, getSiteId, getStoresAppId, getApiBaseUrl } from '../../config/wixConfig';
 import { createClient, OAuthStrategy } from '@wix/sdk';
-import { currentCart } from '@wix/ecom';
-import { redirects } from '@wix/redirects';
+// SDK imports removed - using REST API fallback only  
+// import { currentCart } from '@wix/ecom';
+// import { redirects } from '@wix/redirects';
 
 // === TYPES ===
 

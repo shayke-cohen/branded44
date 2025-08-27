@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { wixApiClient } from '../utils/wixApiClient';
+import { wixAuthenticationClient } from '../utils/wix/domains/wixAuthenticationClient';
 
 // Member data interface
 interface MemberData {
@@ -55,8 +56,9 @@ export const MemberProvider: React.FC<MemberProviderProps> = ({ children }) => {
   // Check member login status
   const checkMemberStatus = () => {
     try {
-      const loggedIn = wixApiClient.isMemberLoggedIn();
-      const memberData = wixApiClient.getCurrentMember();
+      // Use the same authentication client that performs login/logout operations
+      const loggedIn = wixAuthenticationClient.isMemberLoggedIn();
+      const memberData = wixAuthenticationClient.getCurrentMember();
       
       setIsLoggedIn(loggedIn);
       setMember(memberData);
@@ -93,7 +95,8 @@ export const MemberProvider: React.FC<MemberProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     try {
       setLoading(true);
-      await wixApiClient.logoutMember();
+      // Use the same authentication client that performs authentication operations
+      await wixAuthenticationClient.logoutMember();
       setIsLoggedIn(false);
       setMember(null);
       console.log('🚪 [MEMBER CONTEXT] Member logged out successfully');

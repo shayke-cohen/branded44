@@ -397,6 +397,14 @@ const SearchForm: React.FC<SearchFormProps> = ({
     booleanFilterTextActive: {
       color: COLORS.primary[700],
     },
+    buttonText: {
+      color: '#ffffff',
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+    },
+    clearButtonText: {
+      color: '#ffffff',
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+    },
     sortSection: {
       marginBottom: SPACING.md,
     },
@@ -464,7 +472,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
               style={styles.searchButton}
               testID="search-button"
             >
-              <Text>Search</Text>
+              <Text style={styles.buttonText}>Search</Text>
             </Button>
           )}
           {(hasActiveFilters || query) && (
@@ -473,7 +481,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
               style={styles.clearButton}
               testID="clear-button"
             >
-              <Text>Clear</Text>
+              <Text style={styles.clearButtonText}>Clear</Text>
             </Button>
           )}
         </View>

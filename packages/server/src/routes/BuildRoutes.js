@@ -13,17 +13,17 @@ class BuildRoutes {
   }
 
   setupRoutes() {
-    // Build session
-    this.router.post('/session/:sessionId/build', this.buildSession.bind(this));
+    // Build session - DISABLED: Using Direct Mobile App Loading now
+    // this.router.post('/session/:sessionId/build', this.buildSession.bind(this));
     
-    // Serve built session app
-    this.router.get('/session/:sessionId/app.js', this.serveBuildApp.bind(this));
+    // Serve built session app - DISABLED: Using Direct Mobile App Loading now
+    // this.router.get('/session/:sessionId/app.js', this.serveBuildApp.bind(this));
     
-    // Auto-rebuild status
-    this.router.get('/auto-rebuild/status', this.getAutoRebuildStatus.bind(this));
+    // Auto-rebuild status - DISABLED: Using Direct Mobile App Loading now
+    // this.router.get('/auto-rebuild/status', this.getAutoRebuildStatus.bind(this));
     
-    // Manual rebuild trigger
-    this.router.post('/auto-rebuild/trigger/:sessionId', this.triggerManualRebuild.bind(this));
+    // Manual rebuild trigger - DISABLED: Using Direct Mobile App Loading now
+    // this.router.post('/auto-rebuild/trigger/:sessionId', this.triggerManualRebuild.bind(this));
   }
 
   /**
@@ -51,8 +51,8 @@ class BuildRoutes {
         );
       }
 
-      const SessionBuilder = require('../sessions/SessionBuilder');
-      const sessionBuilder = new SessionBuilder();
+      // const SessionBuilder = require('../sessions/SessionBuilder'); // Disabled: Using Direct Mobile App Loading now
+      // const sessionBuilder = new SessionBuilder();
       
       req.log('info', 'Building session workspace', {
         requestId,
@@ -71,7 +71,12 @@ class BuildRoutes {
       const session = fullSessionValidation.session;
 
       // Build the session
-      const buildResult = await sessionBuilder.buildSession(sessionId, session.sessionPath, { forceRebuild });
+      // const buildResult = await sessionBuilder.buildSession(sessionId, session.sessionPath, { forceRebuild }); // Disabled: Using Direct Mobile App Loading now
+      return res.status(501).json({ 
+        error: 'Session bundling disabled', 
+        message: 'Using Direct Mobile App Loading instead of session bundling',
+        requestId 
+      });
       
       const endTime = Date.now();
       req.updateConnectionStats(true, endTime - startTime);
@@ -125,8 +130,8 @@ class BuildRoutes {
       }
       
       const sessionManager = req.app.get('sessionManager');
-      const SessionBuilder = require('../sessions/SessionBuilder');
-      const sessionBuilder = new SessionBuilder();
+      // const SessionBuilder = require('../sessions/SessionBuilder'); // Disabled: Using Direct Mobile App Loading now
+      // const sessionBuilder = new SessionBuilder();
       
       // Get session info
       const fullSessionValidation = await this.validationService.validateSession(sessionManager, sessionId);
@@ -137,7 +142,12 @@ class BuildRoutes {
       const session = fullSessionValidation.session;
 
       // Get compiled app path
-      const compiledAppPath = sessionBuilder.getCompiledAppPath(session.sessionPath);
+      // const compiledAppPath = sessionBuilder.getCompiledAppPath(session.sessionPath); // Disabled: Using Direct Mobile App Loading now
+      return res.status(501).json({ 
+        error: 'Session bundling disabled', 
+        message: 'Using Direct Mobile App Loading instead of session bundling',
+        requestId 
+      });
       
       if (!compiledAppPath) {
         return res.status(404).json({ 

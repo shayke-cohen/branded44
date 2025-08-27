@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getClientId, getSiteId, getApiBaseUrl } from '../../../../config/wixConfig';
 import { createClient, OAuthStrategy } from '@wix/sdk';
-import { menus, sections, items, itemVariants, itemLabels } from '@wix/restaurants';
+// SDK imports removed - restaurant SDK disabled, using REST API fallback
+// import { menus, sections, items, itemVariants, itemLabels } from '@wix/restaurants';
 import { wixApiClient } from '../wixApiClient';
 
 // === TYPES (from Wix SDK) ===

@@ -19,7 +19,7 @@ import RestaurantDetailScreen, { type RestaurantDetailScreenProps } from './Rest
 
 // Import Wix integration
 import {
-  wixRestaurantApiClient,
+  wixRestaurantClient,
   adaptWixRestaurant,
   adaptWixMenuSection,
   type WixRestaurantAdapterContext,
@@ -106,7 +106,7 @@ const WixRestaurantDetailScreen: React.FC<WixRestaurantDetailScreenProps> = ({
       console.log('🍽️ [WIX RESTAURANT DETAIL] Loading data from Wix API');
 
       // Get complete menu structure
-      const wixData = await wixRestaurantApiClient.getCompleteMenuStructure();
+      const wixData = await wixRestaurantClient.getCompleteMenuStructure();
       
       if (wixData.menus.length === 0) {
         throw new Error('No restaurant menus found in Wix');

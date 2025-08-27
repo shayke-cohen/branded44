@@ -181,6 +181,7 @@ export const useServicesList = (): UseServicesListReturn => {
       
       if (mounted.current) {
         safeSetState({
+          services: [], // Ensure services is always an array, even on error
           loading: false,
           refreshing: false,
           error: error instanceof Error ? error.message : 'Failed to load services',

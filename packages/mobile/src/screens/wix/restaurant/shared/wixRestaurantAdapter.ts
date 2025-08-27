@@ -202,9 +202,89 @@ export function adaptWixMenuItem(
       currency,
     },
     images: (() => {
-      const imageUrl = item.image?.url;
-      console.log(`🖼️ [RESTAURANT ADAPTER] Item "${item.name}" image:`, imageUrl);
-      return imageUrl ? [imageUrl] : [];
+      // Enhanced image processing to handle multiple formats from Wix API
+      console.log(`🔍 [RESTAURANT ADAPTER] Processing image for "${item.name}":`, {
+        imageType: typeof item.image,
+        imageValue: item.image,
+        hasImageUrl: !!(item.image && item.image.url),
+        hasAdditionalImages: !!(item.additionalImages && item.additionalImages.length > 0)
+      });
+      
+      // Handle object format with url property (most common in Wix API)
+      if (item.image && typeof item.image === 'object' && item.image.url) {
+        try {
+          let imageUrl = item.image.url;
+          
+          // Convert wix:image:// URLs to https URLs if needed
+          if (imageUrl.startsWith('wix:image://')) {
+            imageUrl = imageUrl
+              .replace('wix:image://v1/', 'https://static.wixstatic.com/media/')
+              .split('#')[0];
+          }
+          
+          console.log(`✅ [RESTAURANT ADAPTER] Converted object image URL for "${item.name}": ${imageUrl}`);
+          return [imageUrl];
+        } catch (error) {
+          console.warn(`⚠️ [RESTAURANT ADAPTER] Failed to process object image for "${item.name}":`, error);
+        }
+      }
+      
+      // Handle string format (wix:image:// URLs)
+      if (item.image && typeof item.image === 'string' && item.image.startsWith('wix:image://')) {
+        try {
+          // Try different URL conversion formats for Wix media
+          // Format 1: Standard Wix static URL
+          const staticUrl = item.image
+            .replace('wix:image://v1/', 'https://static.wixstatic.com/media/')
+            .split('#')[0];
+            
+          // Format 2: Wix images CDN format  
+          const wixImagesUrl = item.image
+            .replace('wix:image://v1/', 'https://wixmp-')
+            .replace('~', '.wixmp.')
+            .split('#')[0] + '.jpg';
+            
+          // Format 3: Direct media format
+          const mediaId = item.image.replace('wix:image://v1/', '').split('~')[0];
+          const directUrl = `https://static.wixstatic.com/media/${mediaId}.jpg`;
+          
+          console.log(`✅ [RESTAURANT ADAPTER] Item "${item.name}" image URL attempts:`, {
+            wixUrl: item.image,
+            staticUrl: staticUrl,
+            wixImagesUrl: wixImagesUrl, 
+            directUrl: directUrl
+          });
+          
+          // Return the static URL format first
+          return [staticUrl];
+        } catch (error) {
+          console.error(`❌ [RESTAURANT ADAPTER] Error converting image URL for "${item.name}":`, error);
+          return [];
+        }
+      }
+      
+      // Check for additional images array
+      if (item.additionalImages && item.additionalImages.length > 0) {
+        const imageUrls = item.additionalImages
+          .map(img => {
+            if (typeof img === 'string' && img.startsWith('wix:image://')) {
+              return img.replace('wix:image://v1/', 'https://static.wixstatic.com/media/').split('#')[0];
+            }
+            return img?.url;
+          })
+          .filter(Boolean);
+        if (imageUrls.length > 0) {
+          console.log(`✅ [RESTAURANT ADAPTER] Item "${item.name}" has ${imageUrls.length} additional images`);
+          return imageUrls;
+        }
+      }
+      
+              console.log(`⚠️ [RESTAURANT ADAPTER] Item "${item.name}" has no Wix images`, {
+          hasImage: !!item.image,
+          imageType: typeof item.image,
+          hasAdditionalImages: !!(item.additionalImages && item.additionalImages.length > 0)
+        });
+        return [];
     })(),
     dietaryTags: adaptWixLabelsToTags(item.labels || [], context),
     spiceLevel: inferSpiceLevel(item.name),

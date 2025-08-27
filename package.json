@@ -20,7 +20,9 @@
     "editor:init": "cd packages/visual-editor && npm run init:src2",
     "editor:cleanup": "cd packages/visual-editor && npm run cleanup:src2",
     "clean": "rm -rf node_modules packages/*/node_modules",
-    "health-check": "curl -s http://localhost:3001/health || echo 'Server not running'"
+    "health-check": "curl -s http://localhost:3001/health || echo 'Server not running'",
+    "restart": "./restart-services.sh",
+    "kill-all": "pkill -f 'npm.*run.*dev' && pkill -f 'npm.*start' && pkill -f 'nodemon' && pkill -f 'concurrently' && echo 'All services killed'"
   },
   "keywords": [
     "react-native",

@@ -10,12 +10,12 @@
  */
 
 import type {
-  RestaurantMenu as WixMenu,
-  MenuSection as WixMenuSection,
-  MenuItem as WixMenuItem,
-  ItemVariant as WixItemVariant,
-  ItemLabel as WixItemLabel,
-} from './wixRestaurantSdkClient';
+  WixMenu,
+  WixMenuSection,
+  WixMenuItem,
+  WixItemVariant,
+  WixItemLabel,
+} from './domains/wixRestaurantClient';
 
 // Helper functions for adapter
 function formatRestaurantPrice(price: number, currency: string = 'USD'): string {
@@ -529,6 +529,6 @@ export {
   formatRestaurantPrice,
   safeRestaurantString,
   extractCurrency,
-} from './wixRestaurantApiClient';
+} from './domains/wixRestaurantClient';
 
 console.log('🔄 [RESTAURANT ADAPTER] Wix Restaurant Adapter module loaded');

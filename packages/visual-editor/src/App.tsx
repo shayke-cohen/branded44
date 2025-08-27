@@ -13,14 +13,14 @@ import { SessionProvider } from './contexts/SessionContext';
 // Main components
 import Header from './components/Header/Header';
 import ComponentPalette from './components/ComponentPalette/ComponentPalette';
-import SimplifiedPhoneFrame from './components/PhoneFrame/SimplifiedPhoneFrame';
+import DirectMobileAppPhoneFrame from './components/PhoneFrame/DirectMobileAppPhoneFrame';
+import { MobileAppDirectSession } from './services/MobileAppDirectLoader';
 import PropertyPanel from './components/PropertyPanel/PropertyPanel';
 import StatusBar from './components/StatusBar/StatusBar';
 
 // Services
 import { Src2Manager } from './services/Src2Manager';
 import { fileWatcher } from './services/FileWatcher';
-import { aggressiveReloadManager } from './services/AggressiveReloadManager';
 import { debugFileWatcher } from './utils/DebugFileWatcher';
 import { DebugSessionInfo } from './utils/DebugSessionInfo';
 
@@ -43,10 +43,39 @@ const CenterPanel = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 20px;
   background: #e8e8e8;
   position: relative;
+  overflow-y: auto;
+`;
+
+// Removed DualPhoneContainer - no longer needed with single dynamic view
+
+const ViewToggle = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+`;
+
+const ToggleButton = styled.button<{ $active: boolean }>`
+  background: ${props => props.$active ? '#3498db' : 'transparent'};
+  color: ${props => props.$active ? 'white' : '#666'};
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.$active ? '#2980b9' : '#f5f5f5'};
+  }
 `;
 
 const LoadingOverlay = styled.div`
@@ -116,6 +145,7 @@ const AppContent: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [src2Manager] = useState(() => new Src2Manager());
+  // Removed viewMode and primaryView - now using only dynamic screen loading
   const isUnmountingRef = useRef(false);
 
   useEffect(() => {
@@ -148,10 +178,8 @@ const AppContent: React.FC = () => {
           // Continue initialization even if file watcher fails
         }
         
-        // Initialize aggressive reload manager
-        console.log('🔥 [Visual Editor] Initializing aggressive reload manager...');
-        aggressiveReloadManager.setEnabled(true); // Enable by default
-        console.log('✅ [Visual Editor] Aggressive reload manager initialized');
+        // Direct Mobile App Loading - no aggressive reload needed
+        console.log('🚀 [Visual Editor] Using Direct Mobile App Loading with WebSocket hot-reload');
         
         // Initialize session debugger
         console.log('🔍 [Visual Editor] Installing session debugger...');
@@ -301,7 +329,24 @@ const AppContent: React.FC = () => {
               </div>
             </LoadingOverlay>
           )}
-          <SimplifiedPhoneFrame src2Status={state.src2Status} />
+          
+
+
+          {/* Direct Mobile App Loading */}
+                        <DirectMobileAppPhoneFrame
+                onSessionLoaded={(session: MobileAppDirectSession) => {
+                  console.log('✅ [App] Direct mobile app loaded successfully!');
+                  console.log(`📊 [App] Session contains ${session.screenOverrides.size} screen overrides`);
+                  console.log(`🎯 [App] Session version: ${session.version}`);
+                }}
+                onScreenSwapped={(screenId: string, override) => {
+                  console.log(`🔥 [App] Screen hot-swapped: ${screenId}`, override);
+                }}
+                onError={(error: string) => {
+                  console.error('❌ [App] Direct mobile app loading error:', error);
+                  // TODO: Show user-friendly error notification
+                }}
+              />
         </CenterPanel>
         <PropertyPanel />
       </EditorContent>

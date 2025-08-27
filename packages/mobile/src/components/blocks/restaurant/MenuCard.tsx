@@ -355,6 +355,14 @@ export default function MenuCard({
     );
   }
 
+  // Debug logging for image data
+  console.log(`🔍 [MENU CARD] Rendering "${item.name}" with images:`, {
+    hasImages: !!(item.images && item.images.length > 0),
+    imageCount: item.images?.length || 0,
+    firstImage: item.images?.[0],
+    allImages: item.images
+  });
+
   const isCompact = layout === 'compact';
   const isList = layout === 'list';
 
@@ -384,23 +392,64 @@ export default function MenuCard({
             height: isCompact ? 100 : isList ? 100 : 180,
             position: 'relative',
           }}>
-            <Image
-              source={{ 
-                uri: item.images[0] || 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop&q=80'
-              }}
-              style={{ 
+            {item.images && item.images.length > 0 && item.images[0] ? (
+              <View style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <Image
+                  source={{ uri: item.images[0] }}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    borderTopLeftRadius: isList ? 16 : 16,
+                    borderTopRightRadius: isList ? 0 : 16,
+                    borderBottomLeftRadius: isList ? 16 : 0,
+                  }}
+                  resizeMode="cover"
+                  onError={(error) => {
+                    console.error(`❌ [MENU CARD] Image load FAILED for "${item.name}":`, {
+                      error: error.nativeEvent.error,
+                      url: item.images[0],
+                      imageLength: item.images?.length,
+                      allImages: item.images
+                    });
+                  }}
+                  onLoadStart={() => {
+                    console.log(`🔄 [MENU CARD] Image load STARTED for "${item.name}":`, item.images[0]);
+                  }}
+                  onLoadEnd={() => {
+                    console.log(`✅ [MENU CARD] Image load COMPLETED for "${item.name}":`, item.images[0]);
+                  }}
+                  onLoad={() => {
+                    console.log(`🖼️ [MENU CARD] Image RENDERED successfully for "${item.name}":`, item.images[0]);
+                  }}
+                />
+                {/* Debug indicator - small green dot when image is present */}
+                <View style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: '#10B981',
+                  zIndex: 10
+                }} />
+              </View>
+            ) : (
+              <View style={{ 
                 width: '100%', 
                 height: '100%',
+                backgroundColor: '#F3F4F6',
+                alignItems: 'center',
+                justifyContent: 'center',
                 borderTopLeftRadius: isList ? 16 : 16,
                 borderTopRightRadius: isList ? 0 : 16,
                 borderBottomLeftRadius: isList ? 16 : 0,
-              }}
-              resizeMode="cover"
-              onError={(error) => {
-                console.log(`🖼️ [MENU CARD] Image load error for "${item.name}":`, error.nativeEvent.error);
-                console.log(`🖼️ [MENU CARD] Failed URL:`, item.images[0]);
-              }}
-            />
+              }}>
+                <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
+                  No Image
+                </Text>
+              </View>
+            )}
             
             {/* Overlay for unavailable items */}
             {!item.available && (
@@ -506,7 +555,7 @@ export default function MenuCard({
                   marginRight: 8,
                 }}
               >
-                {item.name}
+                {item.name || 'Unnamed Item'}
               </Text>
               
               {/* Rating */}
@@ -540,12 +589,12 @@ export default function MenuCard({
                   marginBottom: 12,
                 }}
               >
-                {item.description}
+                {item.description || 'No description available'}
               </Text>
             )}
 
             {/* Dietary Tags */}
-            {showDietaryTags && item.dietaryTags.length > 0 && (
+            {showDietaryTags && item.dietaryTags && item.dietaryTags.length > 0 && (
               <View style={{ 
                 flexDirection: 'row', 
                 flexWrap: 'wrap',
@@ -619,7 +668,7 @@ export default function MenuCard({
                 )}
 
                 {/* Nutrition Info */}
-                {showNutrition && item.nutrition && (
+                {showNutrition && item.nutrition && item.nutrition.calories && (
                   <TouchableOpacity
                     onPress={onViewNutrition}
                     style={{ 
@@ -653,11 +702,11 @@ export default function MenuCard({
             }}>
               
               {/* Pricing */}
-              {showPricing && (
+              {showPricing && item.pricing && (
                 <View>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                     <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>
-                      {formatCurrency(item.pricing.basePrice, item.pricing.currency)}
+                      {item.pricing.basePrice ? formatCurrency(item.pricing.basePrice, item.pricing.currency || 'USD') : 'Price unavailable'}
                     </Text>
                     {item.pricing.originalPrice && item.pricing.onSale && (
                       <Text style={{ 
@@ -666,7 +715,7 @@ export default function MenuCard({
                         textDecorationLine: 'line-through', 
                         marginLeft: 6 
                       }}>
-                        {formatCurrency(item.pricing.originalPrice, item.pricing.currency)}
+                        {formatCurrency(item.pricing.originalPrice, item.pricing.currency || 'USD')}
                       </Text>
                     )}
                   </View>
@@ -675,6 +724,13 @@ export default function MenuCard({
                       {item.pricing.discountPercentage}% OFF
                     </Text>
                   )}
+                </View>
+              )}
+              {showPricing && !item.pricing && (
+                <View>
+                  <Text style={{ fontSize: 16, color: '#9CA3AF', fontStyle: 'italic' }}>
+                    Price unavailable
+                  </Text>
                 </View>
               )}
 

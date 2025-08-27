@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { useEditor } from '../../contexts/EditorContext';
-import AggressiveReloadPanel from '../AggressiveReloadPanel/AggressiveReloadPanel';
 
 const PanelContainer = styled.div`
   display: flex;
@@ -1589,8 +1588,23 @@ const PropertyPanel: React.FC = () => {
         {activeTab === 'files' && renderFiles()}
 
         {activeTab === 'dev' && (
-          <div style={{ height: '100%', overflow: 'auto' }}>
-            <AggressiveReloadPanel />
+          <div style={{ height: '100%', overflow: 'auto', padding: '16px' }}>
+            <div style={{ 
+              background: '#f8f9fa', 
+              border: '1px solid #e0e0e0', 
+              borderRadius: '8px', 
+              padding: '16px',
+              textAlign: 'center' 
+            }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🚀</div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>
+                Direct Mobile App Loading
+              </div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                Using real mobile app with WebSocket hot-reloading.<br/>
+                No bundling required!
+              </div>
+            </div>
           </div>
         )}
 

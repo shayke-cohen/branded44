@@ -63,6 +63,35 @@ class WebMemberService {
       if (response && response.state === 'SUCCESS') {
         console.log('✅ [WEB MEMBER SERVICE] Login successful');
         
+        // Store authentication data in localStorage (similar to mobile AsyncStorage)
+        try {
+          // Store session token if available
+          if (response.sessionToken) {
+            localStorage.setItem('wix_session_token', response.sessionToken);
+            console.log('✅ [WEB MEMBER SERVICE] Session token stored');
+          }
+          
+          // Store member profile
+          if (response.identity) {
+            localStorage.setItem('wix_current_member', JSON.stringify(response.identity));
+            console.log('✅ [WEB MEMBER SERVICE] Member profile stored');
+          }
+          
+          // Store authentication state
+          const authState = {
+            isLoggedIn: true,
+            loginTimestamp: Date.now(),
+            email: credentials.email,
+            memberId: response.identity?.id
+          };
+          localStorage.setItem('wix_auth_state', JSON.stringify(authState));
+          console.log('✅ [WEB MEMBER SERVICE] Authentication state persisted');
+          
+        } catch (storageError) {
+          console.warn('⚠️ [WEB MEMBER SERVICE] Failed to store auth data:', storageError);
+          // Don't fail the login if storage fails
+        }
+        
         return {
           success: true,
           member: response.identity,

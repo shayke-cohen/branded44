@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { wixApiClient, WixCart, WixCartItem, WixProduct } from '../utils/wixApiClient';
+import { WixCart, WixCartItem, WixProduct } from '../utils/wixApiClient';
+import { wixEcommerceClient } from '../utils/wix/domains/wixEcommerceClient';
+import { getStoresAppId } from '../config/wixConfig';
 import { useMember } from './MemberContext';
 
 interface WixCartContextType {
@@ -33,7 +35,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
   const refreshCart = useCallback(async () => {
     try {
       setLoading(true);
-      const currentCart = await wixApiClient.getCurrentCart();
+      const currentCart = await wixEcommerceClient.getCurrentCart();
       setCart(currentCart);
       
       console.log('✅ [CART CONTEXT] Cart refreshed:', {
@@ -68,7 +70,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
       });
       
       // Force fresh fetch from server
-      const serverCart = await wixApiClient.getCurrentCart();
+      const serverCart = await wixEcommerceClient.getCurrentCart();
       setCart(serverCart);
       
       console.log('🔄 [CART SYNC] Server cart state:', {
@@ -123,7 +125,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
       // Transform WixProduct to WixCartItem if needed
       const cartItem: WixCartItem = 'catalogReference' in item ? item : {
         catalogReference: {
-          appId: wixApiClient.storesAppId,
+          appId: getStoresAppId(),
           catalogItemId: item.id,
           options: {}
         },
@@ -141,7 +143,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
       });
       
       setLoading(true);
-      const updatedCart = await wixApiClient.addToCart([cartItem]);
+      const updatedCart = await wixEcommerceClient.addToCart([cartItem]);
       setCart(updatedCart);
       
       console.log('🛒 [CART CONTEXT] Add to cart result:', {
@@ -151,13 +153,10 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
         success: updatedCart.lineItems && updatedCart.lineItems.length > 0
       });
       
-      // If cart is still empty after adding, run product debug
+      // If cart is still empty after adding, log for debugging
       if (!updatedCart.lineItems || updatedCart.lineItems.length === 0) {
-        console.log('🔍 [CART CONTEXT] Item not added - running automatic product analysis...');
-        // Import the debug function dynamically to avoid circular dependency
-        import('../utils/wixApiClient').then(({ debugProduct }) => {
-          debugProduct(cartItem.catalogReference.catalogItemId);
-        });
+        console.log('🔍 [CART CONTEXT] Item not added - check product ID and availability');
+        console.log('🔍 [CART CONTEXT] Product ID attempted:', cartItem.catalogReference.catalogItemId);
       }
     } catch (error) {
       console.error('❌ [CART CONTEXT] Failed to add item to cart:', error);
@@ -183,8 +182,8 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
         return;
       }
       
-      console.log('🛒 [CONTEXT] Calling wixApiClient.updateCartItemQuantity...');
-      const updatedCart = await wixApiClient.updateCartItemQuantity(lineItemId, quantity);
+      console.log('🛒 [CONTEXT] Calling wixEcommerceClient.updateCartItemQuantity...');
+      const updatedCart = await wixEcommerceClient.updateCartItemQuantity(lineItemId, quantity);
       console.log('🛒 [CONTEXT] API call successful, updating cart state:', {
         newCartId: updatedCart?.id,
         newItemCount: updatedCart?.lineItems?.length || 0,
@@ -204,7 +203,7 @@ export const WixCartProvider: React.FC<WixCartProviderProps> = ({ children }) =>
     try {
       console.log('🛒 [DEBUG] Removing items from cart:', lineItemIds);
       setLoading(true);
-      const updatedCart = await wixApiClient.removeFromCart(lineItemIds);
+      const updatedCart = await wixEcommerceClient.removeFromCart(lineItemIds);
       setCart(updatedCart);
       console.log('✅ [DEBUG] Items removed from cart successfully');
     } catch (error) {

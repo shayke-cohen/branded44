@@ -48,6 +48,19 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setConnectionError(null);
     });
 
+    // Bundle-related event listeners
+    newSocket.on('bundle-updated', (data) => {
+      console.log('📦 [Socket] Bundle updated:', data);
+      // Dispatch custom event for components to listen to
+      window.dispatchEvent(new CustomEvent('bundle-updated', { detail: data }));
+    });
+
+    newSocket.on('bundle-error', (data) => {
+      console.error('📦 [Socket] Bundle error:', data);
+      // Dispatch custom event for components to listen to
+      window.dispatchEvent(new CustomEvent('bundle-error', { detail: data }));
+    });
+
     newSocket.on('reconnect_error', (error) => {
       console.error('🔌 [Socket] Reconnection error:', error);
       setConnectionError(error.message);
